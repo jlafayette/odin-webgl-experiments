@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8" />
+	<title>Hello WASM</title>
+	<link rel="preload" href="_main.wasm" as="fetch" type="application/wasm" crossorigin="anonymous" />
+
+</head>
+
+<body>
+	<button onclick="clickFunc()">ClickMe</button>
+	<p id="paragraph"></p>
+
+	<script type="module" src="./runtime.js"></script>
+	<script type="text/javascript">
+		let p = document.getElementById("paragraph");
+		p.innerText = "loading...";
+		window.addEventListener('load', function () {
+			console.log('loaded');
+			let p = document.getElementById("paragraph");
+			p.innerText = "loaded";
+			odin.runWasm("./_main.wasm", {});
+		});
+	</script>
+	<script type="text/javascript">
+		function clickFunc() {
+			console.log(odin);
+
+			// let p = document.getElementById("paragraph");
+			// p.innerText = result;
+		}
+	</script>
+</body>
+
+</html>
