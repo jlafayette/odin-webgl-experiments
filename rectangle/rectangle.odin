@@ -17,13 +17,15 @@ ProgramInfo :: struct {
 }
 AttribLocations :: struct {
 	vertex_position: i32,
+	vertex_color: i32,
 }
 UniformLocations :: struct {
 	projection_matrix: i32,
 	model_view_matrix: i32,
 }
 Buffers :: struct {
-	position: gl.Buffer
+	position: gl.Buffer,
+	color: gl.Buffer,
 }
 State :: struct {
 	started: bool,
@@ -37,6 +39,31 @@ temp_arena_buffer: [mem.Megabyte]byte
 temp_arena: mem.Arena = {data = temp_arena_buffer[:]}
 temp_arena_allocator := mem.arena_allocator(&temp_arena)
 
+init_buffers :: proc() -> Buffers {
+	return {
+		position = init_position_buffer(),
+		color = init_color_buffer(),
+	}
+}
+init_position_buffer :: proc() -> gl.Buffer {
+	buffer := gl.CreateBuffer()
+	gl.BindBuffer(gl.ARRAY_BUFFER, buffer)
+	data : [8]f32 = {1, 1, -1, 1, 1, -1, -1, -1}
+	gl.BufferDataSlice(gl.ARRAY_BUFFER, data[:], gl.STATIC_DRAW)
+	return buffer
+}
+init_color_buffer :: proc() -> gl.Buffer {
+	buffer := gl.CreateBuffer()
+	gl.BindBuffer(gl.ARRAY_BUFFER, buffer)
+	data : [16]f32 = {
+		1, 1, 1, 1,
+		1, 0, 0, 1,
+		0, 1, 0, 1,
+		0, 0, 1, 1,
+	}
+	gl.BufferDataSlice(gl.ARRAY_BUFFER, data[:], gl.STATIC_DRAW)
+	return buffer
+}
 
 start :: proc() -> (ok: bool) {
 	state.started = true
@@ -50,15 +77,23 @@ start :: proc() -> (ok: bool) {
 	
 	vs_source : string = `
 attribute vec4 aVertexPosition;
+attribute vec4 aVertexColor;
+
 uniform mat4 uModelViewMatrix;
 uniform mat4 uProjectionMatrix;
+
+varying lowp vec4 vColor;
+
 void main() {
 	gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+	vColor = aVertexColor;
 }
 `
 	fs_source : string = `
+varying lowp vec4 vColor;
+
 void main() {
-	gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+	gl_FragColor = vColor;
 }
 `
 	program: gl.Program
@@ -67,17 +102,20 @@ void main() {
 		fmt.eprintln("Failed to create program")
 		return false
 	}
-	state.program_info.program = program
-	state.program_info.attrib_locations.vertex_position = gl.GetAttribLocation(program, "aVertexPosition")
-	state.program_info.uniform_locations.projection_matrix = gl.GetUniformLocation(program, "uProjectionMatrix")
-	state.program_info.uniform_locations.model_view_matrix = gl.GetUniformLocation(program, "uModelViewMatrix")
+	state.program_info = {
+		program = program,
+		attrib_locations = {
+			vertex_position = gl.GetAttribLocation(program, "aVertexPosition"),
+			vertex_color = gl.GetAttribLocation(program, "aVertexColor"),
+		}, 
+		uniform_locations = {
+			projection_matrix = gl.GetUniformLocation(program, "uProjectionMatrix"),
+			model_view_matrix = gl.GetUniformLocation(program, "uModelViewMatrix"),
+		},
+	}
 	gl.UseProgram(program)
 
-	position_buffer := gl.CreateBuffer()
-	gl.BindBuffer(gl.ARRAY_BUFFER, position_buffer)
-	position_data : [8]f32 = {1, 1, -1, 1, 1, -1, -1, -1}
-	gl.BufferDataSlice(gl.ARRAY_BUFFER, position_data[:], gl.STATIC_DRAW)
-	state.buffers.position = position_buffer
+	state.buffers = init_buffers()
 
 	return check_gl_error()
 }
@@ -89,6 +127,41 @@ check_gl_error :: proc() -> (ok: bool) {
 		return false
 	}
 	return true
+}
+
+set_position_attribute :: proc() {
+	num_components := 2
+	type := gl.FLOAT
+	normalize := false
+	stride := 0
+	offset: uintptr = 0
+	gl.BindBuffer(gl.ARRAY_BUFFER, state.buffers.position)
+	gl.VertexAttribPointer(
+		state.program_info.attrib_locations.vertex_position,
+		num_components,
+		type,
+		normalize,
+		stride,
+		offset,
+	)
+	gl.EnableVertexAttribArray(state.program_info.attrib_locations.vertex_position)
+}
+set_color_attribute :: proc() {
+	num_components := 4
+	type := gl.FLOAT
+	normalize := false
+	stride := 0
+	offset: uintptr = 0
+	gl.BindBuffer(gl.ARRAY_BUFFER, state.buffers.color)
+	gl.VertexAttribPointer(
+		state.program_info.attrib_locations.vertex_color,
+		num_components,
+		type,
+		normalize,
+		stride,
+		offset,
+	)
+	gl.EnableVertexAttribArray(state.program_info.attrib_locations.vertex_color)
 }
 
 @export
@@ -115,22 +188,10 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 	z_far : f32 = 100.0
 	projection_mat := glm.mat4Perspective(fov, aspect, z_near, z_far)
 	model_view_mat := glm.mat4Translate({-0, 0, -6})
-	// set position attribute
-	num_components := 2
-	type := gl.FLOAT
-	normalize := false
-	stride := 0
-	offset: uintptr = 0
-	gl.BindBuffer(gl.ARRAY_BUFFER, state.buffers.position)
-	gl.VertexAttribPointer(
-		state.program_info.attrib_locations.vertex_position,
-		num_components,
-		type,
-		normalize,
-		stride,
-		offset,
-	)
-	gl.EnableVertexAttribArray(state.program_info.attrib_locations.vertex_position)
+
+	set_position_attribute()
+	set_color_attribute()
+	
 	gl.UseProgram(state.program_info.program)
 	gl.UniformMatrix4fv(
 		state.program_info.uniform_locations.projection_matrix,
