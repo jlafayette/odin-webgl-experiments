@@ -31,6 +31,7 @@ State :: struct {
 	started: bool,
 	program_info: ProgramInfo,
 	buffers: Buffers,
+	rotation: f32,
 }
 state : State = {}
 
@@ -164,17 +165,7 @@ set_color_attribute :: proc() {
 	gl.EnableVertexAttribArray(state.program_info.attrib_locations.vertex_color)
 }
 
-@export
-step :: proc(dt: f32) -> (keep_going: bool) {
-	context.temp_allocator = temp_arena_allocator
-	defer free_all(context.temp_allocator)
-
-	ok: bool
-	if !state.started {
-		if ok = start(); !ok { return false }
-	}
-	
-	// draw
+draw_scene :: proc() {
 	gl.ClearColor(0, 0, 0, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.ClearDepth(1)
@@ -187,7 +178,7 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 	z_near : f32 = 0.1
 	z_far : f32 = 100.0
 	projection_mat := glm.mat4Perspective(fov, aspect, z_near, z_far)
-	model_view_mat := glm.mat4Translate({-0, 0, -6})
+	model_view_mat := glm.mat4Translate({-0, 0, -6}) * glm.mat4Rotate({0, 0, 1}, state.rotation)
 
 	set_position_attribute()
 	set_color_attribute()
@@ -206,7 +197,21 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 		vertex_count := 4
 		gl.DrawArrays(gl.TRIANGLE_STRIP, offset, vertex_count)
 	}
+}
+
+@export
+step :: proc(dt: f32) -> (keep_going: bool) {
+	context.temp_allocator = temp_arena_allocator
+	defer free_all(context.temp_allocator)
+
+	ok: bool
+	if !state.started {
+		if ok = start(); !ok { return false }
+	}
+
+	state.rotation += dt
+
+	draw_scene()
 	
-	check_gl_error()
-	return false
+	return check_gl_error()
 }
