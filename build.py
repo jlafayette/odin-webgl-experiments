@@ -37,10 +37,13 @@ def main(args: Args):
 			"-target:js_wasm32",
 			"-o:minimal",
 		])
+	
+	runtime_js_dst = public_dst / "runtime.js"
+	if not runtime_js_dst.is_file():
+		copy_runtime_js(runtime_js_dst)
 
-	# print(os.getcwd())
 	os.chdir(public_dst)
-	# print(os.getcwd())
+
 	try:
 		subprocess.run([server_dst.name], shell=True)
 	except KeyboardInterrupt:
@@ -55,6 +58,13 @@ def clean(p: Path):
 		p.rmdir()
 
 
+def copy_runtime_js(dst: Path):
+	# <!-- Copy `vendor:wasm/js/runtime.js` into your web server -->
+	r = subprocess.check_output(["odin", "root"])
+	src = Path(r.decode()) / "vendor/wasm/js/runtime.js"
+	shutil.copy(src, dst)
+
+
 def args():
 	args = sys.argv[1:]
 	if len(args) == 0:
@@ -63,8 +73,6 @@ def args():
 	build_go = "-g" in args
 	build_odin = "-o" in args
 	return Args(args[0], build_go, build_odin)
-
-
 
 
 main(args())
