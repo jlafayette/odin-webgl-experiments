@@ -1,13 +1,16 @@
-package cube
+package cube_texture
 
+import "core:bytes"
 import "core:fmt"
-import "core:mem"
+import "core:image/png"
 import "core:math"
+import "core:mem"
 import gl "vendor:wasm/WebGL"
 import glm "core:math/linalg/glsl"
 
-
 main :: proc() {}
+
+texture_data := #load("odin_logo.png")
 
 ProgramInfo :: struct {
 	program: gl.Program,
@@ -16,35 +19,37 @@ ProgramInfo :: struct {
 }
 AttribLocations :: struct {
 	vertex_position: i32,
-	vertex_color: i32,
+	texture_coord: i32,
 }
 UniformLocations :: struct {
 	projection_matrix: i32,
 	model_view_matrix: i32,
+	u_sampler: i32,
 }
 Buffers :: struct {
 	position: gl.Buffer,
-	color: gl.Buffer,
 	indices: gl.Buffer,
+	texture_coord: gl.Buffer,
 }
 State :: struct {
 	started: bool,
 	program_info: ProgramInfo,
 	buffers: Buffers,
 	rotation: f32,
+	texture: gl.Texture,
 }
 state : State = {}
 
 
-temp_arena_buffer: [mem.Megabyte]byte
+temp_arena_buffer: [mem.Megabyte*4]byte
 temp_arena: mem.Arena = {data = temp_arena_buffer[:]}
 temp_arena_allocator := mem.arena_allocator(&temp_arena)
 
 init_buffers :: proc() -> Buffers {
 	return {
 		position = init_position_buffer(),
-		color = init_color_buffer(),
 		indices = init_index_buffer(),
+		texture_coord = init_texture_buffer(),
 	}
 }
 init_position_buffer :: proc() -> gl.Buffer {
@@ -57,31 +62,6 @@ init_position_buffer :: proc() -> gl.Buffer {
 		-1,-1, -1, 1, -1,-1,  1,-1,  1,-1, -1, 1, // bottom
 		 1,-1, -1, 1,  1,-1,  1, 1,  1, 1, -1, 1, // right
 		-1,-1, -1,-1, -1, 1, -1, 1,  1,-1,  1,-1, // left
-	}
-	gl.BufferDataSlice(gl.ARRAY_BUFFER, data[:], gl.STATIC_DRAW)
-	return buffer
-}
-init_color_buffer :: proc() -> gl.Buffer {
-	buffer := gl.CreateBuffer()
-	gl.BindBuffer(gl.ARRAY_BUFFER, buffer)
-	face_colors : [6][4]f32 = {
-		{0.6, 0.6, 0.6, 1},
-		{0.8, 0.2, 0.2, 1},
-		{0.2, 0.7, 0.2, 1},
-		{0.2, 0.2, 0.9, 1},
-		{0.7, 0.7, 0.2, 1},
-		{0.7, 0.2, 0.7, 1},
-	}
-	data : [96]f32
-	j := 0
-	for col, i in face_colors {
-		c : int
-		for c in 0..<4 {
-			for ch in col {
-				data[j] = ch
-				j += 1
-			}
-		}
 	}
 	gl.BufferDataSlice(gl.ARRAY_BUFFER, data[:], gl.STATIC_DRAW)
 	return buffer
@@ -100,6 +80,72 @@ init_index_buffer :: proc() -> gl.Buffer {
 	gl.BufferDataSlice(gl.ELEMENT_ARRAY_BUFFER, data[:], gl.STATIC_DRAW)
 	return buffer
 }
+init_texture_buffer :: proc() -> gl.Buffer {
+	tex_coord_buffer := gl.CreateBuffer()
+	gl.BindBuffer(gl.ARRAY_BUFFER, tex_coord_buffer)
+	data : [8*6]f32 = {
+		0, 0, 1, 0, 1, 1, 0, 1, // front
+		0, 0, 1, 0, 1, 1, 0, 1, // back
+		0, 0, 1, 0, 1, 1, 0, 1, // top
+		0, 0, 1, 0, 1, 1, 0, 1, // bottom
+		0, 0, 1, 0, 1, 1, 0, 1, // right
+		0, 0, 1, 0, 1, 1, 0, 1, // left
+	}
+	gl.BufferDataSlice(gl.ARRAY_BUFFER, data[:], gl.STATIC_DRAW)
+	return tex_coord_buffer
+}
+
+load_texture :: proc() -> gl.Texture {
+	texture := gl.CreateTexture()
+	gl.BindTexture(gl.TEXTURE_2D, texture)
+	fmt.println("texture data len:", len(texture_data))
+
+	// options : png.Options = {.do_not_decompress_image}
+	options : png.Options = {}
+	img, err := png.load_from_bytes(texture_data, options=options, allocator=context.temp_allocator)
+	if err != nil {
+		fmt.eprintln("error loading image:", err)
+		return texture
+	}
+	fmt.println(img.width, "x", img.height, "chan:", img.channels)
+	data := bytes.buffer_to_bytes(&img.pixels)
+	fmt.println("data len:", len(data))
+	level : i32 = 0
+	border : i32 = 0
+	internal_format := gl.RGBA
+	format := gl.RGBA
+	if img.channels == 3 {
+		internal_format = gl.RGB
+		format = gl.RGB
+	}
+	type := gl.UNSIGNED_BYTE
+	gl.BindTexture(gl.TEXTURE_2D, texture)
+	gl.TexImage2DSlice(
+		gl.TEXTURE_2D,
+		level,
+		internal_format,
+		cast(i32)img.width,
+		cast(i32)img.height,
+		border,
+		format,
+		type,
+		data,
+	)
+	if (is_power_of_two(img.width) && is_power_of_two(img.height)) {
+		fmt.println("generating mipmaps")
+		gl.GenerateMipmap(gl.TEXTURE_2D)
+	} else {
+		// wasn't able to test this because non-power-of-2 images fail on the
+		// TexImage2D command
+		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, cast(i32)gl.CLAMP_TO_EDGE)
+		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, cast(i32)gl.CLAMP_TO_EDGE)
+		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, cast(i32)gl.LINEAR)
+	}
+	return texture
+}
+is_power_of_two :: proc(n: int) -> bool {
+	return (n & (n - 1)) == 0
+}
 
 start :: proc() -> (ok: bool) {
 	state.started = true
@@ -111,25 +157,30 @@ start :: proc() -> (ok: bool) {
 		return false
 	}
 	
-	vs_source : string = `
-attribute vec4 aVertexPosition;
-attribute vec4 aVertexColor;
+	vs_source : string = `#version 300 es
+in vec4 aVertexPosition;
+in vec2 aTextureCoord;
 
 uniform mat4 uModelViewMatrix;
 uniform mat4 uProjectionMatrix;
 
-varying lowp vec4 vColor;
+out vec2 vTextureCoord;
 
 void main() {
 	gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-	vColor = aVertexColor;
+	vTextureCoord = aTextureCoord;
 }
 `
-	fs_source : string = `
-varying lowp vec4 vColor;
+	fs_source : string = `#version 300 es
+precision highp float;
+in vec2 vTextureCoord;
+
+uniform sampler2D uSampler;
+out vec4 fragColor;
 
 void main() {
-	gl_FragColor = vColor;
+	vec4 col = texture(uSampler, vTextureCoord);
+	fragColor = col;
 }
 `
 	program: gl.Program
@@ -142,16 +193,19 @@ void main() {
 		program = program,
 		attrib_locations = {
 			vertex_position = gl.GetAttribLocation(program, "aVertexPosition"),
-			vertex_color = gl.GetAttribLocation(program, "aVertexColor"),
+			texture_coord = gl.GetAttribLocation(program, "aTextureCoord"),
 		}, 
 		uniform_locations = {
 			projection_matrix = gl.GetUniformLocation(program, "uProjectionMatrix"),
 			model_view_matrix = gl.GetUniformLocation(program, "uModelViewMatrix"),
+			u_sampler = gl.GetUniformLocation(program, "uSampler"),
 		},
 	}
 	gl.UseProgram(program)
 
 	state.buffers = init_buffers()
+	state.texture = load_texture()
+	gl.PixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1)
 
 	return check_gl_error()
 }
@@ -182,22 +236,22 @@ set_position_attribute :: proc() {
 	)
 	gl.EnableVertexAttribArray(state.program_info.attrib_locations.vertex_position)
 }
-set_color_attribute :: proc() {
-	num_components := 4
+set_texture_attribute :: proc() {
+	num := 2
 	type := gl.FLOAT
 	normalize := false
 	stride := 0
-	offset: uintptr = 0
-	gl.BindBuffer(gl.ARRAY_BUFFER, state.buffers.color)
+	offset : uintptr = 0
+	gl.BindBuffer(gl.ARRAY_BUFFER, state.buffers.texture_coord)
 	gl.VertexAttribPointer(
-		state.program_info.attrib_locations.vertex_color,
-		num_components,
+		state.program_info.attrib_locations.texture_coord,
+		num,
 		type,
 		normalize,
 		stride,
 		offset,
 	)
-	gl.EnableVertexAttribArray(state.program_info.attrib_locations.vertex_color)
+	gl.EnableVertexAttribArray(state.program_info.attrib_locations.texture_coord)
 }
 
 draw_scene :: proc() {
@@ -221,7 +275,7 @@ draw_scene :: proc() {
 	model_view_mat := trans * rot_z * rot_y * rot_x
 
 	set_position_attribute()
-	set_color_attribute()
+	set_texture_attribute()
 
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, state.buffers.indices)
 	
@@ -234,6 +288,9 @@ draw_scene :: proc() {
 		state.program_info.uniform_locations.model_view_matrix,
 		model_view_mat,
 	)
+	gl.ActiveTexture(gl.TEXTURE0)
+	gl.BindTexture(gl.TEXTURE_2D, state.texture)
+	gl.Uniform1i(state.program_info.uniform_locations.u_sampler, 0)
 	{
 		vertex_count := 36
 		type := gl.UNSIGNED_SHORT
