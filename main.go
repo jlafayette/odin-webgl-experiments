@@ -57,20 +57,8 @@ func watch(src string) error {
 					// log.Println("Skipping backup-file/public")
 				} else {
 					// log.Printf("EVENT: %#v\n", event)
-					switch event.Op {
-					case 1: // Create Op  = 1 << iota
-						log.Println("-> Create")
-						rebuild = true
-					case 2: // Write --> copy
-						log.Println("-> Write")
-						rebuild = true
-					case 4: // Remove --> remove
-						log.Println("-> Remove")
-						rebuild = true
-					case 8: // Rename --> remove
-						log.Println("-> Rename")
-						rebuild = true
-					}
+					log.Println("-> ", event.Op.String())
+					rebuild = true
 				}
 			case err := <-watcher.Errors:
 				log.Println("WatcherError:", err)
