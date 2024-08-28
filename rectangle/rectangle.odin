@@ -57,7 +57,7 @@ init_color_buffer :: proc() -> gl.Buffer {
 	buffer := gl.CreateBuffer()
 	gl.BindBuffer(gl.ARRAY_BUFFER, buffer)
 	data : [16]f32 = {
-		1, 1, 1, 1,
+		1, 1, 0, 1,
 		1, 0, 0, 1,
 		0, 1, 0, 1,
 		0, 0, 1, 1,
