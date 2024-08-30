@@ -13,6 +13,7 @@ KeysDown :: struct {
 	rt: bool,
 	up: bool,
 	dn: bool,
+	turbo: bool,
 }
 Input :: struct {
 	mouse_left_down: bool,
@@ -48,28 +49,26 @@ on_wheel :: proc(e: js.Event) {
 }
 
 on_key_down :: proc(e: js.Event) {
-	switch e.key.code {
-		case "KeyA": state.input.keys_down.a = true
-		case "KeyD": state.input.keys_down.d = true
-		case "KeyS": state.input.keys_down.s = true
-		case "KeyW": state.input.keys_down.w = true
-		case "ArrowLeft":  state.input.keys_down.lf = true
-		case "ArrowRight": state.input.keys_down.rt = true
-		case "ArrowDown":  state.input.keys_down.dn = true
-		case "ArrowUp":    state.input.keys_down.up = true
-	}
+	if e.key.code == "KeyA" { state.input.keys_down.a = true }
+	if e.key.code == "KeyD" { state.input.keys_down.d = true }
+	if e.key.code == "KeyS" { state.input.keys_down.s = true }
+	if e.key.code == "KeyW" { state.input.keys_down.w = true }
+	if e.key.code == "ArrowLeft" {  state.input.keys_down.lf = true }
+	if e.key.code == "ArrowRight" { state.input.keys_down.rt = true }
+	if e.key.code == "ArrowDown" {  state.input.keys_down.dn = true }
+	if e.key.code == "ArrowUp" {    state.input.keys_down.up = true }
+	if e.key.code == "ShiftLeft" {    state.input.keys_down.turbo = true }
 }
 on_key_up :: proc(e: js.Event) {
-	switch e.key.code {
-		case "KeyA": state.input.keys_down.a = false
-		case "KeyD": state.input.keys_down.d = false
-		case "KeyS": state.input.keys_down.s = false
-		case "KeyW": state.input.keys_down.w = false
-		case "ArrowLeft":  state.input.keys_down.lf = false
-		case "ArrowRight": state.input.keys_down.rt = false
-		case "ArrowDown":  state.input.keys_down.dn = false
-		case "ArrowUp":    state.input.keys_down.up = false
-	}
+	if e.key.code == "KeyA" { state.input.keys_down.a = false }
+	if e.key.code == "KeyD" { state.input.keys_down.d = false }
+	if e.key.code == "KeyS" { state.input.keys_down.s = false }
+	if e.key.code == "KeyW" { state.input.keys_down.w = false }
+	if e.key.code == "ArrowLeft" {  state.input.keys_down.lf = false }
+	if e.key.code == "ArrowRight" { state.input.keys_down.rt = false }
+	if e.key.code == "ArrowDown" {  state.input.keys_down.dn = false }
+	if e.key.code == "ArrowUp" {    state.input.keys_down.up = false }
+	if e.key.code == "ShiftLeft" {    state.input.keys_down.turbo = false }
 }
 
 on_window_focus :: proc(e: js.Event) {
@@ -80,6 +79,7 @@ on_window_blur :: proc(e: js.Event) {
 	state.input.has_focus = false
 	state.input.just_lost_focus = true
 	state.input.mouse_left_down = false
+	state.input.keys_down = KeysDown{}
 }
 update :: proc(dt: f32) {
 	input := state.input
@@ -89,7 +89,10 @@ update :: proc(dt: f32) {
 		state.rotation += dt
 	}
 	pos := input.pos
-	delta := dt * 0.1
+	delta := dt * 2
+	if input.keys_down.turbo {
+		delta *= 5
+	}
 	if input.keys_down.a || input.keys_down.lf {
 		pos.x -= delta
 	}
@@ -102,8 +105,8 @@ update :: proc(dt: f32) {
 	if input.keys_down.s || input.keys_down.dn {
 		pos.y -= delta
 	}
-	pos.x = math.clamp(pos.x, -1, 1)
-	pos.y = math.clamp(pos.y, -1, 1)
+	pos.x = math.clamp(pos.x, -3, 3)
+	pos.y = math.clamp(pos.y, -2, 2)
 	state.input.pos = pos
 }
 

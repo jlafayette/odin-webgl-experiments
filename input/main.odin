@@ -36,7 +36,7 @@ State :: struct {
 	input: Input,
 	rotation: f32,
 }
-state : State = {input={zoom=-6}}
+state : State = {input={has_focus=true, zoom=-6}}
 
 
 temp_arena_buffer: [mem.Megabyte]byte
@@ -209,7 +209,7 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 		if ok = start(); !ok { return false }
 	}
 
-	// update(dt)
+	update(dt)
 
 	draw_scene(paused)
 	
