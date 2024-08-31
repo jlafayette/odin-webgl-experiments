@@ -13,6 +13,14 @@
 	<script type="text/javascript">
 		window.addEventListener('load', function () {
 			odin.runWasm("./_main.wasm", {});
+
+			console.log("hello?");
+			window.addEventListener("gamepadconnected", (e) => {
+				const gp = navigator.getGamepads()[e.gamepad.index];
+				console.log(
+					`Gamepad connected at index ${gp.index}: ${gp.id} with ${gp.buttons.length} buttons, ${gp.axes.length} axes.`,
+				);
+			});
 		});
 	</script>
 	<canvas id="canvas-1" width="640" height="480"></canvas>

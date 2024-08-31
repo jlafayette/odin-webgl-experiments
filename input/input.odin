@@ -31,6 +31,7 @@ on_mouse_down :: proc(e: js.Event) {
 		// click up can be lost
 		case 2: state.input.mouse_left_down = false
 	}
+	
 }
 on_mouse_up :: proc(e: js.Event) {
 	if e.mouse.button == 0 {
@@ -38,14 +39,14 @@ on_mouse_up :: proc(e: js.Event) {
 	}
 }
 on_wheel :: proc(e: js.Event) {
-	fmt.println("wheel:", e.wheel.delta, " mode:", e.wheel.delta_mode)
+	// fmt.println("wheel:", e.wheel.delta, " mode:", e.wheel.delta_mode)
 	y := cast(f32)e.wheel.delta.y
 	y = y / 200
-	fmt.println("y:", y)
+	// fmt.println("y:", y)
 	zoom := state.input.zoom
 	zoom = math.clamp(zoom + y, -10, -0.1)
 	state.input.zoom = zoom
-	fmt.println(state.input.zoom)
+	// fmt.println(state.input.zoom)
 }
 
 on_key_down :: proc(e: js.Event) {
@@ -120,4 +121,9 @@ register_event_listeners :: proc() {
 	
 	js.add_window_event_listener(.Focus, {}, on_window_focus)
 	js.add_window_event_listener(.Blur, {}, on_window_blur)
+}
+
+@export
+gamepad_handler :: proc() {
+	fmt.println("gamepad_handler!")
 }

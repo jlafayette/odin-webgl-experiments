@@ -6,7 +6,6 @@ import "core:math"
 import gl "vendor:wasm/WebGL"
 import glm "core:math/linalg/glsl"
 
-
 main :: proc() {}
 
 vert_source := #load("rect.vert", string)
@@ -38,6 +37,9 @@ State :: struct {
 }
 state : State = {input={has_focus=true, zoom=-6}}
 
+arena_buffer: [mem.Megabyte]byte
+arena: mem.Arena = {data=arena_buffer[:]}
+arena_allocator := mem.arena_allocator(&arena)
 
 temp_arena_buffer: [mem.Megabyte]byte
 temp_arena: mem.Arena = {data = temp_arena_buffer[:]}
