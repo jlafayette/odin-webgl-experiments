@@ -1785,10 +1785,6 @@
 
 		exports._start();
 
-		if (exports.gamepad_handler) {
-			exports.gamepad_handler();
-		}
-
 		exports.alloc_123();
 		let ptr = exports.get_buffer_pointer();
 		let size = exports.get_buffer_size();

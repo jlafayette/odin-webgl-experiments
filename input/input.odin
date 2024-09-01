@@ -22,7 +22,6 @@ Input :: struct {
 	zoom: f32,
 	pos: [2]f32,
 	keys_down: KeysDown,
-	gp: Gamepad,
 }
 
 on_mouse_down :: proc(e: js.Event) {
@@ -146,7 +145,3 @@ register_event_listeners :: proc() {
 	js.add_window_event_listener(.Blur, {}, on_window_blur)
 }
 
-@export
-gamepad_handler :: proc() {
-	fmt.println("gamepad_handler!")
-}
