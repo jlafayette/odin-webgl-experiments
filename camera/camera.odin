@@ -222,7 +222,21 @@ draw_scene :: proc() {
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 	// camera pos
-	view_mat := glm.mat4Translate(g_camera_mov)
+	camera_pos := g_camera_mov
+	camera_tgt : glm.vec3 = {0, 0, 0}
+	// camera_dir := glm.normalize(camera_pos - camera_tgt)
+	up : glm.vec3 = {0, 1, 0}
+	// camera_right := glm.normalize(glm.cross(up, camera_dir))
+	// camera_up := glm.cross(camera_dir, camera_right)
+	
+	view_mat := glm.mat4LookAt(camera_pos, camera_tgt, up)
+	// view_mat = glm.mat4Translate(g_camera_mov)
+	{
+		radius: f32 = 10
+		cam_x := math.sin(g_time) * radius
+		cam_z := math.cos(g_time) * radius
+		view_mat = glm.mat4LookAt({cam_x, 0, cam_z}, {0, 0, 0}, {0, 1, 0})
+	}
 
 	// fov : f32 = glm.radians_f32(45)
 	aspect : f32 = 640.0 / 480.0 // TODO: gl.canvas.clientWidth and gl.canvas.clientHeight
@@ -271,9 +285,9 @@ draw_scene :: proc() {
 		model *= glm.mat4Scale({0.5, 0.5, 0.5})
 		// rotate
 		angle : f32 = glm.radians_f32(20.0 * f32(i))
-		if i % 3 == 0 {
-			angle = state.rotation
-		}
+		// if i % 3 == 0 {
+		// 	angle = state.rotation
+		// }
 		model *= glm.mat4Rotate(pos, angle)
 		// translate
 		model *= glm.mat4Translate(pos)

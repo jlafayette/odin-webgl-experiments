@@ -6,9 +6,12 @@ import "../shared/gamepad"
 
 g_fov : f32 = glm.radians_f32(45)
 g_wheel : f32 = 0
-g_camera_mov : glm.vec3 = {0, 0, -3}
+g_camera_mov : glm.vec3 = {0, 0, 3}
+g_time : f32 = 0
 
 update :: proc(dt: f32) {
+	g_time += dt
+	
 	if gamepad.SIZE > 0 && gamepad.POINTER.connected {
 		gp := gamepad.POINTER
 		state.rotation += dt + (dt * gp.buttons[6].value) + (dt * gp.buttons[7].value)
