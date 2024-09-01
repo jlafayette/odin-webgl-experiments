@@ -51,3 +51,68 @@ print_f32_array :: proc() {
 	fmt.println("In Odin pos=", pos)
 }
 
+Gamepad :: struct {
+	connected: bool,
+	btn_a_pressed: bool,
+	btn_b_pressed: bool,
+	btn_x_pressed: bool,
+	btn_y_pressed: bool,
+	trigger_left: f32,
+	trigger_right: f32,
+	stick_left: [2]f32,
+	stick_right: [2]f32,
+}
+
+GAMEPAD_POINTER: ^Gamepad
+GAMEPAD_SIZE: i32 = 0
+
+@export
+gamepad_alloc :: proc() -> ^Gamepad {
+	fmt.println("alloc_gamepad ...")
+	gp := new(Gamepad, allocator=arena_allocator)
+	gp.stick_left.x = 0.123
+	gp.stick_left.y = 0.789
+	GAMEPAD_POINTER = gp
+	GAMEPAD_SIZE = size_of(Gamepad)
+	fmt.println("allocated:", gp)
+	return gp
+}
+@export
+gamepad_connect_offset :: proc() -> i32 {
+	return cast(i32)offset_of(Gamepad, connected)
+}
+@export
+gamepad_btn_a_pressed_offset :: proc() -> i32 {
+	return cast(i32)offset_of(Gamepad, btn_a_pressed)
+}
+@export
+gamepad_btn_b_pressed_offset :: proc() -> i32 {
+	return cast(i32)offset_of(Gamepad, btn_b_pressed)
+}
+@export
+gamepad_btn_x_pressed_offset :: proc() -> i32 {
+	return cast(i32)offset_of(Gamepad, btn_x_pressed)
+}
+@export
+gamepad_btn_y_pressed_offset :: proc() -> i32 {
+	return cast(i32)offset_of(Gamepad, btn_y_pressed)
+}
+
+
+@export
+gamepad_trigger_left_offset :: proc() -> i32 {
+	return cast(i32)offset_of(Gamepad, trigger_left)
+}
+@export
+gamepad_trigger_right_offset :: proc() -> i32 {
+	return cast(i32)offset_of(Gamepad, trigger_right)
+}
+
+@export
+gamepad_stick_left_offset :: proc() -> i32 {
+	return cast(i32)offset_of(Gamepad, stick_left)
+}
+@export
+gamepad_stick_right_offset :: proc() -> i32 {
+	return cast(i32)offset_of(Gamepad, stick_right)
+}

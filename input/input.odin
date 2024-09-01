@@ -22,6 +22,7 @@ Input :: struct {
 	zoom: f32,
 	pos: [2]f32,
 	keys_down: KeysDown,
+	gp: Gamepad,
 }
 
 on_mouse_down :: proc(e: js.Event) {
@@ -31,7 +32,6 @@ on_mouse_down :: proc(e: js.Event) {
 		// click up can be lost
 		case 2: state.input.mouse_left_down = false
 	}
-	
 }
 on_mouse_up :: proc(e: js.Event) {
 	if e.mouse.button == 0 {
@@ -90,6 +90,29 @@ update :: proc(dt: f32) {
 		state.rotation += dt
 	}
 	pos := input.pos
+	if GAMEPAD_SIZE > 0 && GAMEPAD_POINTER.connected {
+		gp := GAMEPAD_POINTER
+		// move with left stick (left trigger is turbo)
+		{
+			delta := dt * 2
+			turbo := (gp.trigger_left * 4) + 1
+			delta *= turbo
+			stick := gp.stick_left
+			stick.y = -1 * stick.y
+			pos += delta * stick
+		}
+		// zoom with right stick
+		{
+			stick := gp.stick_right
+			y := dt * stick.y * 2
+			zoom := state.input.zoom
+			zoom = math.clamp(zoom + y, -15, -0.1)
+			state.input.zoom = zoom
+		}
+	}
+	// could turn off key input if also recieving gamepad
+	// input or limit the total input from both sources
+	// (if we actually cared that we weren't doubling input)
 	delta := dt * 2
 	if input.keys_down.turbo {
 		delta *= 5
