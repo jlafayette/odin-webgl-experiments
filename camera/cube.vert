@@ -6,15 +6,16 @@ in vec4 aVertexPosition;
 in vec4 aVertexColor;
 in vec3 aVertexNormal;
 
-uniform mat4 uNormalMatrix;
-uniform mat4 uModelViewMatrix;
+uniform mat4 uModelMatrix;
+uniform mat4 uViewMatrix;
 uniform mat4 uProjectionMatrix;
+uniform mat4 uNormalMatrix;
 
 out vec3 vLighting;
 out vec4 vColor;
 
 void main() {
-	gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+	gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aVertexPosition.xyz, 1.0);
 	vColor = aVertexColor;
 
 	// apply lighting effect

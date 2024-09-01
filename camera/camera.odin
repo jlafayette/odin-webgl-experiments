@@ -7,7 +7,6 @@ import "core:math"
 import "core:mem"
 import gl "vendor:wasm/WebGL"
 import glm "core:math/linalg/glsl"
-import "../shared/gamepad"
 
 main :: proc() {}
 
@@ -26,7 +25,8 @@ AttribLocations :: struct {
 }
 UniformLocations :: struct {
 	projection_matrix: i32,
-	model_view_matrix: i32,
+	model_matrix: i32,
+	view_matrix: i32,
 	normal_matrix: i32,
 }
 Buffers :: struct {
@@ -119,6 +119,8 @@ start :: proc() -> (ok: bool) {
 	context.temp_allocator = temp_arena_allocator
 	defer free_all(context.temp_allocator)
 
+	setup_event_listeners()
+
 	if ok = gl.SetCurrentContextById("canvas-1"); !ok {
 		fmt.eprintln("Failed to set current context to 'canvas-1'")
 		return false
@@ -138,7 +140,8 @@ start :: proc() -> (ok: bool) {
 		}, 
 		uniform_locations = {
 			projection_matrix = gl.GetUniformLocation(program, "uProjectionMatrix"),
-			model_view_matrix = gl.GetUniformLocation(program, "uModelViewMatrix"),
+			model_matrix = gl.GetUniformLocation(program, "uModelMatrix"),
+			view_matrix = gl.GetUniformLocation(program, "uViewMatrix"),
 			normal_matrix = gl.GetUniformLocation(program, "uNormalMatrix"),
 		},
 	}
@@ -218,19 +221,15 @@ draw_scene :: proc() {
 	gl.DepthFunc(gl.LEQUAL)
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-	fov : f32 = (45.0 * math.PI) / 180.0
+	// camera pos
+	view_mat := glm.mat4Translate(g_camera_mov)
+
+	// fov : f32 = glm.radians_f32(45)
 	aspect : f32 = 640.0 / 480.0 // TODO: gl.canvas.clientWidth and gl.canvas.clientHeight
 	z_near : f32 = 0.1
 	z_far : f32 = 100.0
-	projection_mat := glm.mat4Perspective(fov, aspect, z_near, z_far)
+	projection_mat := glm.mat4Perspective(g_fov, aspect, z_near, z_far)
 	
-	trans := glm.mat4Translate({-0, 0, -6})
-	rot_z := glm.mat4Rotate({0, 0, 1}, state.rotation)
-	rot_y := glm.mat4Rotate({0, 1, 0}, state.rotation * 0.7)
-	rot_x := glm.mat4Rotate({1, 0, 0}, state.rotation * 0.3)
-	model_view_mat := trans * rot_z * rot_y * rot_x
-	normal_matrix := glm.inverse_transpose_matrix4x4(model_view_mat)
-
 	set_position_attribute()
 	set_color_attribute()
 	set_normal_attribute()
@@ -243,19 +242,56 @@ draw_scene :: proc() {
 		projection_mat,
 	)
 	gl.UniformMatrix4fv(
-		state.program_info.uniform_locations.model_view_matrix,
-		model_view_mat,
+		state.program_info.uniform_locations.view_matrix,
+		view_mat,
 	)
-	gl.UniformMatrix4fv(
-		state.program_info.uniform_locations.normal_matrix,
-		normal_matrix,
-	)
-	{
+
+	cube_positions : [10]glm.vec3 = {
+		{0, 0, 0}, // 0
+		{2, 5, -15},
+		{-1.5, -2.2, -2.5},
+		{-3.8, -2, -12.3}, // 3
+		{2.4, -0.4, -3.5},
+		{-1.7, 3, -7.5},
+		{1.3, -2, -2.5}, // 6
+		{1.5, 2, -2.5},
+		{1.5, 0.2, -1.5},
+		{-1.3, 1, -1.5}, // 9
+	}
+	for &pos, i in cube_positions {
+		pos *= 2
+		// rotating around zero length vectors results in a matrix
+		// with Nan values and the cube disapears
+		if glm.length(pos) == 0.0 {
+			pos += {0.0003, 0.0007, 0.0002}
+		}
+		model := glm.mat4(1)
+		
+		// scale
+		model *= glm.mat4Scale({0.5, 0.5, 0.5})
+		// rotate
+		angle : f32 = glm.radians_f32(20.0 * f32(i))
+		if i % 3 == 0 {
+			angle = state.rotation
+		}
+		model *= glm.mat4Rotate(pos, angle)
+		// translate
+		model *= glm.mat4Translate(pos)
+		
+		gl.UniformMatrix4fv(
+			state.program_info.uniform_locations.model_matrix,
+			model,
+		)
+		gl.UniformMatrix4fv(
+			state.program_info.uniform_locations.normal_matrix,
+			glm.inverse_transpose_matrix4x4(model),
+		)
 		vertex_count := 36
 		type := gl.UNSIGNED_SHORT
 		offset : rawptr
 		gl.DrawElements(gl.TRIANGLES, vertex_count, type, offset)
 	}
+	
 	check_gl_error()
 }
 
@@ -269,12 +305,7 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 		if ok = start(); !ok { return false }
 	}
 
-	if gamepad.SIZE > 0 && gamepad.POINTER.connected {
-		gp := gamepad.POINTER
-		state.rotation += dt * (gp.buttons[6].value + 1) * (gp.buttons[7].value + 1)
-	} else {
-		state.rotation += dt
-	}
+	update(dt)
 
 	draw_scene()
 	
