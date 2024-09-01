@@ -3,6 +3,7 @@ package input
 import "core:fmt"
 import "core:math"
 import "vendor:wasm/js"
+import gamepad "../shared/gamepad"
 
 KeysDown :: struct {
 	w: bool,
@@ -91,8 +92,8 @@ update :: proc(dt: f32) {
 		state.rotation += dt
 	}
 	pos := input.pos
-	if GAMEPAD_SIZE > 0 && GAMEPAD_POINTER.connected {
-		gp := GAMEPAD_POINTER
+	if gamepad.SIZE > 0 && gamepad.POINTER.connected {
+		gp := gamepad.POINTER
 		// move with left stick (left trigger is turbo)
 		{
 			delta := dt * 2
