@@ -37,13 +37,15 @@ on_mouse_up :: proc(e: js.Event) {
 		state.input.mouse_left_down = false
 	}
 }
+zoom_min :: -15
+zoom_max :: -0.1
 on_wheel :: proc(e: js.Event) {
 	// fmt.println("wheel:", e.wheel.delta, " mode:", e.wheel.delta_mode)
 	y := cast(f32)e.wheel.delta.y
 	y = y / 200
 	// fmt.println("y:", y)
 	zoom := state.input.zoom
-	zoom = math.clamp(zoom + y, -10, -0.1)
+	zoom = math.clamp(zoom + y, zoom_min, zoom_max)
 	state.input.zoom = zoom
 	// fmt.println(state.input.zoom)
 }
@@ -94,18 +96,17 @@ update :: proc(dt: f32) {
 		// move with left stick (left trigger is turbo)
 		{
 			delta := dt * 2
-			turbo := (gp.trigger_left * 4) + 1
+			turbo := (gp.buttons[6].value * 4) + 1
 			delta *= turbo
-			stick := gp.stick_left
-			stick.y = -1 * stick.y
+			stick : [2]f32 = {gp.axes[0], -1 * gp.axes[1]}
 			pos += delta * stick
 		}
 		// zoom with right stick
 		{
-			stick := gp.stick_right
+			stick : [2]f32 = {gp.axes[2], gp.axes[3]}
 			y := dt * stick.y * 2
 			zoom := state.input.zoom
-			zoom = math.clamp(zoom + y, -15, -0.1)
+			zoom = math.clamp(zoom + y, zoom_min, zoom_max)
 			state.input.zoom = zoom
 		}
 	}
