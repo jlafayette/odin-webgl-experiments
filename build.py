@@ -38,9 +38,18 @@ def main(args: Args):
 			"-o:minimal",
 		])
 	
-	runtime_js_dst = public_dst / "runtime.js"
-	if not runtime_js_dst.is_file():
-		copy_runtime_js(runtime_js_dst)
+	runtime2 = "runtime-2.js" in (public_dst / "index.html").read_text()
+	if runtime2:
+		gamepad_dst = public_dst / "gamepad-copy.js"
+		if not gamepad_dst.is_file():
+			copy_gamepad_js(gamepad_dst)
+		runtime_js_dst = public_dst / "runtime-2.js"
+		if not runtime_js_dst.is_file():
+			copy_runtime2_js(runtime_js_dst)
+	else:
+		runtime_js_dst = public_dst / "runtime.js"
+		if not runtime_js_dst.is_file():
+			copy_runtime_js(runtime_js_dst)
 
 	os.chdir(public_dst)
 
@@ -58,11 +67,35 @@ def clean(p: Path):
 		p.rmdir()
 
 
+def copy_gamepad_js(dst: Path):
+	src = Path("input/public/gamepad.js")
+	shutil.copy(src, dst)
+
+
 def copy_runtime_js(dst: Path):
 	# <!-- Copy `vendor:wasm/js/runtime.js` into your web server -->
 	r = subprocess.check_output(["odin", "root"])
 	src = Path(r.decode()) / "vendor/wasm/js/runtime.js"
 	shutil.copy(src, dst)
+
+
+def copy_runtime2_js(dst: Path):
+	"""Load gamepad js bindings and patch them into runtime.js file."""
+	r = subprocess.check_output(["odin", "root"])
+	src = Path(r.decode()) / "vendor/wasm/js/runtime.js"
+	
+	src_lines = src.read_text().splitlines()
+
+	dst_lines = []
+	for line in src_lines:
+		dst_lines.append(line)
+		if line.strip() == '"use strict";':
+			dst_lines.append("import * as gamepad from './gamepad-copy.js';")
+		elif line.strip() == 'exports._start();':
+			dst_lines.append("gamepad.setup(wasmMemoryInterface, exports);")
+		elif line.strip() == 'const step = (currTimeStamp) => {':
+			dst_lines.append("gamepad.step(wasmMemoryInterface, exports);")
+	dst.write_text("\n".join(dst_lines))
 
 
 def args():

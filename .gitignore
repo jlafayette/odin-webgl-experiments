@@ -1,3 +1,5 @@
 **/_main.wasm
 **/main.exe
 **/runtime.js
+**/runtime-2.js
+**/gamepad-copy.js
