@@ -9,13 +9,20 @@
 </head>
 
 <body>
+	<canvas id="canvas-1" width="640" height="480"></canvas>
 	<script type="module" src="./runtime-2.js"></script>
 	<script type="text/javascript">
 		window.addEventListener('load', function () {
 			odin.runWasm("./_main.wasm", {});
 		});
+		let canvas = document.getElementById("canvas-1");
+		canvas.addEventListener("click", async () => {
+			await canvas.requestPointerLock({
+				unadjustedMovement: true,
+			});
+		});
 	</script>
-	<canvas id="canvas-1" width="640" height="480"></canvas>
+
 </body>
 
 </html>

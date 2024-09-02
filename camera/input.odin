@@ -1,5 +1,6 @@
 package camera
 
+import "core:fmt"
 import "core:math"
 import "vendor:wasm/js"
 import glm "core:math/linalg/glsl"
@@ -12,10 +13,12 @@ g_camera_front : glm.vec3 = {0, 0, -1}
 g_camera_up    : glm.vec3 = {0, 1, 0}
 g_time : f32 = 0
 g_has_focus : bool = true
+g_yaw : f32 = -90
+g_pitch : f32 = 0
 
 update :: proc(dt: f32) {
 	g_time += dt
-	camera_speed := 2.5 * dt
+	camera_speed := 5 * dt
 	
 	if gamepad.SIZE > 0 && gamepad.POINTER.connected {
 		gp := gamepad.POINTER
@@ -30,6 +33,11 @@ update :: proc(dt: f32) {
 		g_camera_pos += -gp.axes[1] * camera_speed * g_camera_front
 		// strafe (side to side)
 		g_camera_pos += gp.axes[0] * glm.normalize(glm.cross(g_camera_front, g_camera_up)) * camera_speed
+
+		// yaw and pitch
+		sensitivity : f32 = 100
+		g_yaw += gp.axes[2] * dt * sensitivity
+		g_pitch += -gp.axes[3] * dt * sensitivity
 		
 	} else {
 		state.rotation += dt
@@ -44,11 +52,47 @@ update :: proc(dt: f32) {
 	if g_key_right { strafe += 1 }
 	g_camera_pos += forward * camera_speed * g_camera_front
 	g_camera_pos += strafe * camera_speed * glm.normalize(glm.cross(g_camera_front, g_camera_up))
+
+	// mouse inputs (yaw and pitch)
+	sensitivity : f32 = 5
+	// fmt.println(g_mouse_diff)
+	g_yaw += g_mouse_diff.x * dt * sensitivity
+	g_pitch += -g_mouse_diff.y * dt * sensitivity
+	// reset so mouse doesn't drift. This is required since this is only
+	// set in on_mouse_move handler which won't fire on mouse stopping to
+	// update it to 0,0
+	g_mouse_diff = {0, 0} 
+
+	// rotate camera
+	if g_pitch > 89.9 { g_pitch = 89.9 }
+	if g_pitch < -89.9 { g_pitch = -89.9 }
+	yaw := glm.radians(g_yaw)
+	pitch := glm.radians(g_pitch)
+	dir : glm.vec3 = {0, 0, 0}
+	dir.x = math.cos(yaw) * math.cos(pitch)
+	dir.y = math.sin(pitch)
+	dir.z = math.sin(yaw) * math.cos(pitch)
+	g_camera_front = glm.normalize(dir)
 	
+	// fov control
 	g_fov += g_wheel * dt
 	g_wheel = 0
 }
 
+g_mouse_init : bool = true
+g_last_mouse_offset : [2]i64
+g_mouse_diff : glm.vec2
+on_mouse_move :: proc(e: js.Event) {
+	offset := e.mouse.offset
+	movement := e.mouse.movement
+	if !g_mouse_init {
+		g_last_mouse_offset = offset 
+		g_mouse_init = true
+	}
+	diff_i64 := offset - g_last_mouse_offset
+	g_last_mouse_offset = offset
+	g_mouse_diff = {f32(movement.x), f32(movement.y)}
+}
 on_wheel :: proc(e: js.Event) {
 	change := cast(f32)e.wheel.delta.y
 }
@@ -83,6 +127,7 @@ setup_event_listeners :: proc() {
 	js.add_window_event_listener(.Wheel, {}, on_wheel)
 	js.add_window_event_listener(.Key_Down, {}, on_key_down)
 	js.add_window_event_listener(.Key_Up, {}, on_key_up)
+	js.add_window_event_listener(.Mouse_Move, {}, on_mouse_move)
 	js.add_window_event_listener(.Focus, {}, on_focus)
 	js.add_window_event_listener(.Blur, {}, on_blur)
 }
