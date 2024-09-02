@@ -6,8 +6,6 @@ import "vendor:wasm/js"
 import glm "core:math/linalg/glsl"
 import "../shared/gamepad"
 
-g_fov : f32 = glm.radians_f32(45)
-g_wheel : f32 = 0
 g_camera_pos   : glm.vec3 = {0, 0, 3}
 g_camera_front : glm.vec3 = {0, 0, -1}
 g_camera_up    : glm.vec3 = {0, 1, 0}
@@ -16,6 +14,10 @@ g_has_focus : bool = true
 g_yaw : f32 = -90
 g_pitch : f32 = 0
 
+deadzone :: proc(v: f32) -> f32 {
+	if math.abs(v) < 0.1 { return 0 }
+	else { return v }
+}
 update :: proc(dt: f32) {
 	g_time += dt
 	camera_speed := 5 * dt
@@ -24,20 +26,15 @@ update :: proc(dt: f32) {
 		gp := gamepad.POINTER
 		state.rotation += dt + (dt * gp.buttons[6].value) + (dt * gp.buttons[7].value)
 
-		// prev
-		// g_camera_pos.x += dt * gp.axes[0]
-		// g_camera_pos.y += dt * -gp.axes[1]
-		// g_camera_pos.z += (dt * gp.buttons[6].value) + (dt * -gp.buttons[7].value)
-		
 		// forward and backwards
-		g_camera_pos += -gp.axes[1] * camera_speed * g_camera_front
+		g_camera_pos += deadzone(-gp.axes[1]) * camera_speed * g_camera_front
 		// strafe (side to side)
-		g_camera_pos += gp.axes[0] * glm.normalize(glm.cross(g_camera_front, g_camera_up)) * camera_speed
+		g_camera_pos += deadzone(gp.axes[0]) * glm.normalize(glm.cross(g_camera_front, g_camera_up)) * camera_speed
 
 		// yaw and pitch
 		sensitivity : f32 = 100
-		g_yaw += gp.axes[2] * dt * sensitivity
-		g_pitch += -gp.axes[3] * dt * sensitivity
+		g_yaw += deadzone(gp.axes[2]) * dt * sensitivity
+		g_pitch += deadzone(-gp.axes[3]) * dt * sensitivity
 		
 	} else {
 		state.rotation += dt
@@ -79,22 +76,16 @@ update :: proc(dt: f32) {
 	g_wheel = 0
 }
 
-g_mouse_init : bool = true
-g_last_mouse_offset : [2]i64
 g_mouse_diff : glm.vec2
 on_mouse_move :: proc(e: js.Event) {
-	offset := e.mouse.offset
 	movement := e.mouse.movement
-	if !g_mouse_init {
-		g_last_mouse_offset = offset 
-		g_mouse_init = true
-	}
-	diff_i64 := offset - g_last_mouse_offset
-	g_last_mouse_offset = offset
 	g_mouse_diff = {f32(movement.x), f32(movement.y)}
 }
+g_fov : f32 = glm.radians_f32(45)
+g_wheel : f32 = 0
 on_wheel :: proc(e: js.Event) {
 	change := cast(f32)e.wheel.delta.y
+	g_wheel += change / 100
 }
 g_key_forward : bool
 g_key_back : bool
