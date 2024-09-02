@@ -222,7 +222,7 @@ draw_scene :: proc() {
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 	// camera pos
-	camera_pos := g_camera_mov
+	camera_pos := g_camera_pos
 	camera_tgt : glm.vec3 = {0, 0, 0}
 	// camera_dir := glm.normalize(camera_pos - camera_tgt)
 	up : glm.vec3 = {0, 1, 0}
@@ -236,6 +236,9 @@ draw_scene :: proc() {
 		cam_x := math.sin(g_time) * radius
 		cam_z := math.cos(g_time) * radius
 		view_mat = glm.mat4LookAt({cam_x, 0, cam_z}, {0, 0, 0}, {0, 1, 0})
+	}
+	{
+		view_mat = glm.mat4LookAt(g_camera_pos, g_camera_pos + g_camera_front, g_camera_up)
 	}
 
 	// fov : f32 = glm.radians_f32(45)
@@ -318,6 +321,8 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 	if !state.started {
 		if ok = start(); !ok { return false }
 	}
+
+	if (!g_has_focus) { return true }
 
 	update(dt)
 
