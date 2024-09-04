@@ -1,5 +1,6 @@
 package create_atlas
 
+import "core:bytes"
 import "core:fmt"
 import "core:image"
 import "core:image/bmp"
@@ -11,23 +12,8 @@ import "core:strings"
 import stb_image "vendor:stb/image"
 import tt "vendor:stb/truetype"
 
-FontData :: struct {
-	info:     tt.fontinfo,
-	scale:    f32,
-	ascent:   i32,
-	descent:  i32,
-	line_gap: i32,
-}
-CharData :: struct {
-	w:                 i32,
-	h:                 i32,
-	x:                 i32,
-	y:                 i32,
-	xoff:              i32,
-	yoff:              i32,
-	advance_width:     i32,
-	left_side_bearing: i32,
-}
+import "./shared/text"
+
 PackData :: struct {
 	w:          i32,
 	h:          i32,
@@ -41,7 +27,7 @@ pack_reset :: proc(pack: ^PackData) {
 	pack.y = 0
 	pack.row_height = 0
 }
-pack_wrap_if_needed :: proc(pack: ^PackData, ch: CharData) -> bool {
+pack_wrap_if_needed :: proc(pack: ^PackData, ch: text.Char) -> bool {
 	if (pack.x + ch.w + pack.gap) >= pack.w {
 		pack.y += pack.row_height + pack.gap
 		pack.row_height = 0
@@ -52,14 +38,17 @@ pack_wrap_if_needed :: proc(pack: ^PackData, ch: CharData) -> bool {
 	}
 	return true
 }
-pack_add_char :: proc(pack: ^PackData, ch: CharData) -> bool {
+pack_add_char :: proc(pack: ^PackData, ch: text.Char) -> bool {
 	ok := pack_wrap_if_needed(pack, ch)
 	if !ok {return false}
 	pack.row_height = math.max(pack.row_height, ch.h)
 	pack.x += ch.w + pack.gap
 	return true
 }
-create_atlas :: proc(fd: ^FontData, ttf_file: string, pixel_height: f32) -> bool {
+scaled :: proc(value: i32, scale: f32) -> i32 {
+	return cast(i32)math.round(f32(value) * scale)
+}
+create_atlas :: proc(ttf_file: string, pixel_height: f32) -> bool {
 	data, err := os.read_entire_file_from_filename_or_err(ttf_file)
 	if err != nil {
 		fmt.println("ERROR: reading file:", err)
@@ -67,20 +56,27 @@ create_atlas :: proc(fd: ^FontData, ttf_file: string, pixel_height: f32) -> bool
 	}
 	defer delete(data)
 
-	ok := cast(bool)tt.InitFont(&fd.info, &data[0], 0)
+	info: tt.fontinfo
+	ok := cast(bool)tt.InitFont(&info, &data[0], 0)
 	if !ok {
 		fmt.println("ERROR: init font")
 		return false
 	}
 
-	scale := tt.ScaleForPixelHeight(&fd.info, pixel_height)
+	scale := tt.ScaleForPixelHeight(&info, pixel_height)
 	ascent, descent, line_gap: i32
-	tt.GetFontVMetrics(&fd.info, &ascent, &descent, &line_gap)
-	ascent = cast(i32)math.round(f32(ascent) * scale)
-	descent = cast(i32)math.round(f32(descent) * scale)
-	line_gap = cast(i32)math.round(f32(line_gap) * scale)
+	tt.GetFontVMetrics(&info, &ascent, &descent, &line_gap)
+	out_header: text.Header = {
+		scale              = scale,
+		pixel_height       = pixel_height,
+		ascent             = scaled(ascent, scale),
+		descent            = scaled(descent, scale),
+		line_gap           = scaled(line_gap, scale),
+		starting_codepoint = 33,
+	}
+	out_chars: [dynamic]text.Char
 	fmt.printf(
-		"Writer height:%.2f, scale:%.2f, ascent:%d, descent:%d, line_gap:%d\n",
+		"pixel_height:%.2f, scale:%.2f, ascent:%d, descent:%d, line_gap:%d\n",
 		pixel_height,
 		scale,
 		ascent,
@@ -93,14 +89,14 @@ create_atlas :: proc(fd: ^FontData, ttf_file: string, pixel_height: f32) -> bool
 		h   = 64,
 		gap = 1,
 	}
-	ch: CharData
+	ch: text.Char
 	// 0-31 are control chars, 32 is space
 	for {
 		pack_reset(&pack)
 		done := true
 		for i := 33; i < 128; i += 1 {
 			x0, y0, x1, y1: i32
-			tt.GetCodepointBitmapBox(&fd.info, rune(i), scale, scale, &x0, &y0, &x1, &y1)
+			tt.GetCodepointBitmapBox(&info, rune(i), scale, scale, &x0, &y0, &x1, &y1)
 			ch.w = x1 - x0
 			ch.h = y1 - y0
 			prev_y := pack.y
@@ -127,12 +123,17 @@ create_atlas :: proc(fd: ^FontData, ttf_file: string, pixel_height: f32) -> bool
 
 	pixels := make([][3]u8, pack.w * pack.h)
 	defer delete(pixels)
+	raw_pixels := make([]u8, pack.w * pack.h)
+	defer delete(raw_pixels)
 
 	pack_reset(&pack)
 	for i := 33; i < 128; i += 1 {
-		tt.GetCodepointHMetrics(&fd.info, rune(i), &ch.advance_width, &ch.left_side_bearing)
+		out_header.codepoint_count += 1
+		tt.GetCodepointHMetrics(&info, rune(i), &ch.advance_width, &ch.left_side_bearing)
+		ch.advance_width = scaled(ch.advance_width, scale)
+		ch.left_side_bearing = scaled(ch.left_side_bearing, scale)
 		bitmap := tt.GetCodepointBitmap(
-			&fd.info,
+			&info,
 			scale,
 			scale,
 			rune(i),
@@ -142,6 +143,7 @@ create_atlas :: proc(fd: ^FontData, ttf_file: string, pixel_height: f32) -> bool
 			&ch.yoff,
 		)
 		defer tt.FreeBitmap(bitmap, nil)
+		append(&out_chars, ch)
 
 		ok := pack_wrap_if_needed(&pack, ch)
 		if !ok {
@@ -165,6 +167,7 @@ create_atlas :: proc(fd: ^FontData, ttf_file: string, pixel_height: f32) -> bool
 
 					di := dx + dy * int(pack.w)
 					pixels[di] = px
+					raw_pixels[di] = px1
 				}
 			}
 		}
@@ -186,13 +189,48 @@ create_atlas :: proc(fd: ^FontData, ttf_file: string, pixel_height: f32) -> bool
 		return false
 	}
 
+	// save raw pixel data (single channel)
+	err = os.write_entire_file_or_err("atlas_pixel_data", raw_pixels)
+	if err != nil {
+		fmt.println("ERROR: failed to save pixel data with:", err)
+		return false
+	}
+
+	// encode data and write to file
+	buffer: bytes.Buffer
+	buffer_len := text.encode_len(out_header, len(out_chars))
+	bytes.buffer_init_allocator(&buffer, buffer_len, buffer_len)
+	written: int
+	written, ok = text.encode(&buffer, out_header, out_chars[:])
+	if !ok {
+		fmt.println("ERROR: failed to encode atlas data")
+		return false
+	}
+	fmt.printf("written %d bytes\n", written)
+	// decode for testing
+	{
+		header2, chars2, ok := text.decode(buffer.buf[:written])
+		if !ok {
+			fmt.println("ERROR: failed to decode atlas data")
+			return false
+		}
+		fmt.println(header2)
+		fmt.println(len(chars2))
+		fmt.println(chars2[0])
+	}
+	err = os.write_entire_file_or_err("atlas_data", buffer.buf[:written])
+	if err != nil {
+		fmt.println("ERROR: failed to save data with:", err)
+		return false
+	}
+
+
 	return true
 }
 
 main :: proc() {
 	// open font file
-	fd: FontData
-	ok := create_atlas(&fd, "Terminal.ttf", 32)
+	ok := create_atlas("Terminal.ttf", 32)
 	fmt.println(ok)
 
 	// save all the chars to an atlas texture
