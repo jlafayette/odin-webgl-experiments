@@ -99,30 +99,11 @@ create_atlas :: proc(fd: ^FontData, ttf_file: string, pixel_height: f32) -> bool
 		pack_reset(&pack)
 		done := true
 		for i := 33; i < 128; i += 1 {
-			tt.GetCodepointHMetrics(&fd.info, rune(i), &ch.advance_width, &ch.left_side_bearing)
-			bitmap := tt.GetCodepointBitmap(
-				&fd.info,
-				scale,
-				scale,
-				rune(i),
-				&ch.w,
-				&ch.h,
-				&ch.xoff,
-				&ch.yoff,
-			)
-			defer tt.FreeBitmap(bitmap, nil)
-			if pack.w == 256 && (i == 33 || i == 51 || i == 67) {
-				fmt.printf(
-					"checking if %v (%dx%d) can write to %d,%d\n",
-					rune(i),
-					ch.w,
-					ch.h,
-					pack.x,
-					pack.y,
-				)
-			}
+			x0, y0, x1, y1: i32
+			tt.GetCodepointBitmapBox(&fd.info, rune(i), scale, scale, &x0, &y0, &x1, &y1)
+			ch.w = x1 - x0
+			ch.h = y1 - y0
 			prev_y := pack.y
-			// fmt.printf("%v %dx%d, x,y=(%d,%d)\n", rune(i), width, height, x, y)
 			ok := pack_add_char(&pack, ch)
 			if !ok {
 				done = false
@@ -134,9 +115,6 @@ create_atlas :: proc(fd: ^FontData, ttf_file: string, pixel_height: f32) -> bool
 					rune(i),
 				)
 				break
-			}
-			if prev_y != pack.y && (i == 33 || i == 51 || i == 67) {
-				fmt.println("  nope!")
 			}
 		}
 		if done {
@@ -170,17 +148,12 @@ create_atlas :: proc(fd: ^FontData, ttf_file: string, pixel_height: f32) -> bool
 			fmt.printf("ERROR: doesn't fit, char %d [%v] would not fit\n", i, rune(i))
 			return false
 		}
-		// write image into slice
-		// fmt.printf("%dx%d, off: %d,%d\n", width, height, xoff, yoff)
+		// write image into pixels slice
 		{
 			sw := int(ch.w)
 			sh := int(ch.h)
 			dx_off := int(pack.x)
 			dy_off := int(pack.y)
-			if i == 33 || i == 51 || i == 67 {
-				fmt.printf("writing %v (%dx%d) to %d,%d\n", rune(i), sw, sh, dx_off, dy_off)
-			}
-
 			for sy := 0; sy < sh; sy += 1 {
 				for sx := 0; sx < sw; sx += 1 {
 					// map from source x,y to dest x,y
@@ -195,16 +168,12 @@ create_atlas :: proc(fd: ^FontData, ttf_file: string, pixel_height: f32) -> bool
 				}
 			}
 		}
-
-		// fmt.printf("%v %dx%d, x,y=(%d,%d)\n", rune(i), width, height, x, y)
 		ok = pack_add_char(&pack, ch)
 		if !ok {
 			fmt.printf("ERROR: doesn't fit, char %d [%v] would not fit\n", i, rune(i))
 			return false
 		}
-		// fmt.printf("%dx%d\nbitmap:\n%v\n", width, height, bitmap)
 	}
-
 	img, ok2 := image.pixels_to_image(pixels, cast(int)pack.w, cast(int)pack.h)
 	if !ok2 {
 		fmt.println("ERROR creating Image from slice")
