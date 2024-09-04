@@ -6,7 +6,7 @@ import "core:mem"
 
 Header :: struct {
 	scale:              f32,
-	pixel_height:       f32,
+	px:                 i32,
 	ascent:             i32,
 	descent:            i32,
 	line_gap:           i32,

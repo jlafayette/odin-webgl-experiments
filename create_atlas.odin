@@ -48,7 +48,7 @@ pack_add_char :: proc(pack: ^PackData, ch: text.Char) -> bool {
 scaled :: proc(value: i32, scale: f32) -> i32 {
 	return cast(i32)math.round(f32(value) * scale)
 }
-create_atlas :: proc(ttf_file: string, pixel_height: f32) -> bool {
+create_atlas :: proc(ttf_file: string, pixel_height: i32) -> bool {
 	data, err := os.read_entire_file_from_filename_or_err(ttf_file)
 	if err != nil {
 		fmt.println("ERROR: reading file:", err)
@@ -62,13 +62,12 @@ create_atlas :: proc(ttf_file: string, pixel_height: f32) -> bool {
 		fmt.println("ERROR: init font")
 		return false
 	}
-
-	scale := tt.ScaleForPixelHeight(&info, pixel_height)
+	scale := tt.ScaleForPixelHeight(&info, f32(pixel_height))
 	ascent, descent, line_gap: i32
 	tt.GetFontVMetrics(&info, &ascent, &descent, &line_gap)
 	out_header: text.Header = {
 		scale              = scale,
-		pixel_height       = pixel_height,
+		px                 = pixel_height,
 		ascent             = scaled(ascent, scale),
 		descent            = scaled(descent, scale),
 		line_gap           = scaled(line_gap, scale),
@@ -76,12 +75,12 @@ create_atlas :: proc(ttf_file: string, pixel_height: f32) -> bool {
 	}
 	out_chars: [dynamic]text.Char
 	fmt.printf(
-		"pixel_height:%.2f, scale:%.2f, ascent:%d, descent:%d, line_gap:%d\n",
-		pixel_height,
-		scale,
-		ascent,
-		descent,
-		line_gap,
+		"px:%d, scale:%.2f, ascent:%d, descent:%d, line_gap:%d\n",
+		out_header.px,
+		out_header.scale,
+		out_header.ascent,
+		out_header.descent,
+		out_header.line_gap,
 	)
 
 	pack: PackData = {
@@ -183,14 +182,14 @@ create_atlas :: proc(ttf_file: string, pixel_height: f32) -> bool {
 		return false
 	}
 	fmt.println(img)
-	save_err := bmp.save_to_file("atlas.bmp", &img)
+	save_err := bmp.save_to_file(fmt.tprintf("atlas_%d.bmp", pixel_height), &img)
 	if save_err != nil {
 		fmt.println("ERROR: saving to bmp file:", save_err)
 		return false
 	}
 
 	// save raw pixel data (single channel)
-	err = os.write_entire_file_or_err("atlas_pixel_data", raw_pixels)
+	err = os.write_entire_file_or_err(fmt.tprintf("atlas_pixel_data_%d", pixel_height), raw_pixels)
 	if err != nil {
 		fmt.println("ERROR: failed to save pixel data with:", err)
 		return false
@@ -218,23 +217,22 @@ create_atlas :: proc(ttf_file: string, pixel_height: f32) -> bool {
 		fmt.println(len(chars2))
 		fmt.println(chars2[0])
 	}
-	err = os.write_entire_file_or_err("atlas_data", buffer.buf[:written])
+	err = os.write_entire_file_or_err(
+		fmt.tprintf("atlas_data_%d", pixel_height),
+		buffer.buf[:written],
+	)
 	if err != nil {
 		fmt.println("ERROR: failed to save data with:", err)
 		return false
 	}
-
-
 	return true
 }
 
 main :: proc() {
-	// open font file
-	ok := create_atlas("Terminal.ttf", 32)
-	fmt.println(ok)
-
-	// save all the chars to an atlas texture
-	// save metadata to a data file for each char
-
+	sizes: [7]i32 = {72, 60, 48, 36, 24, 18, 12}
+	for size, i in sizes {
+		ok := create_atlas("Terminal.ttf", size)
+		fmt.println(size, ok)
+	}
 }
 
