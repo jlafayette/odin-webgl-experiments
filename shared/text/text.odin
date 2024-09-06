@@ -12,18 +12,24 @@ Header :: struct {
 	ascent:             i32,
 	descent:            i32,
 	line_gap:           i32,
+	kern:               i32,
 	starting_codepoint: i32,
 	codepoint_count:    i32,
 }
+
+// xoff/yoff are the offset it pixel space from the glyph origin to the top-left of the bitmap
+// leftSideBearing is the offset from the current horizontal position to the left edge of the character
+// advanceWidth is the offset from the current horizontal position to the next horizontal position
+//   these are expressed in unscaled coordinates
 Char :: struct {
-	w:                 i32,
-	h:                 i32,
-	x:                 i32,
-	y:                 i32,
-	xoff:              i32,
-	yoff:              i32,
-	advance_width:     i32,
-	left_side_bearing: i32,
+	w:                 f32,
+	h:                 f32,
+	x:                 f32,
+	y:                 f32,
+	xoff:              f32,
+	yoff:              f32,
+	advance_width:     f32,
+	left_side_bearing: f32,
 }
 encode_len :: proc(header: Header, char_count: int) -> int {
 	header_size :: size_of(Header)

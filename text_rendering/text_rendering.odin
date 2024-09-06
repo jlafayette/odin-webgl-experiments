@@ -36,6 +36,7 @@ TriState :: struct {
 State :: struct {
 	started: bool,
 	writer:  Writer,
+	writer2: Writer,
 	tri:     TriState,
 }
 g_state: State = {}
@@ -67,9 +68,21 @@ start :: proc() -> (ok: bool) {
 		fmt.println("es version:", es_major, es_minor)
 	}
 
-	ok = writer_init(&g_state.writer)
+	ok = writer_init(&g_state.writer, 20, 20, "abcdefghijklmnopqrstuvwxyz!@#$%^&*()_+-=")
 	if !ok {
 		fmt.eprintln("Failed to init writer")
+		return ok
+	}
+	line_gap := g_state.writer.header.line_gap
+	px := g_state.writer.header.px
+	ok = writer_init(
+		&g_state.writer2,
+		20,
+		20 + px + line_gap,
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ {}[]\\|/?.,<>\"'",
+	)
+	if !ok {
+		fmt.eprintln("Failed to init writer2")
 		return ok
 	}
 
@@ -175,6 +188,7 @@ draw :: proc(dt: f32) {
 		}
 	}
 	writer_draw(&g_state.writer)
+	writer_draw(&g_state.writer2)
 }
 
 @(export)

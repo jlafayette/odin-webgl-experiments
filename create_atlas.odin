@@ -22,12 +22,22 @@ PackData :: struct {
 	row_height: i32,
 	gap:        i32,
 }
+Char :: struct {
+	w:                 i32,
+	h:                 i32,
+	x:                 i32,
+	y:                 i32,
+	xoff:              i32,
+	yoff:              i32,
+	advance_width:     i32,
+	left_side_bearing: i32,
+}
 pack_reset :: proc(pack: ^PackData) {
 	pack.x = 0
 	pack.y = 0
 	pack.row_height = 0
 }
-pack_wrap_if_needed :: proc(pack: ^PackData, ch: text.Char) -> bool {
+pack_wrap_if_needed :: proc(pack: ^PackData, ch: Char) -> bool {
 	if (pack.x + ch.w + pack.gap) >= pack.w {
 		pack.y += pack.row_height + pack.gap
 		pack.row_height = 0
@@ -38,7 +48,7 @@ pack_wrap_if_needed :: proc(pack: ^PackData, ch: text.Char) -> bool {
 	}
 	return true
 }
-pack_add_char :: proc(pack: ^PackData, ch: text.Char) -> bool {
+pack_add_char :: proc(pack: ^PackData, ch: Char) -> bool {
 	ok := pack_wrap_if_needed(pack, ch)
 	if !ok {return false}
 	pack.row_height = math.max(pack.row_height, ch.h)
@@ -71,9 +81,10 @@ create_atlas :: proc(ttf_file: string, pixel_height: i32) -> bool {
 		ascent             = scaled(ascent, scale),
 		descent            = scaled(descent, scale),
 		line_gap           = scaled(line_gap, scale),
-		starting_codepoint = 33,
+		kern               = scaled(info.kern, scale),
+		starting_codepoint = 32,
 	}
-	out_chars: [dynamic]text.Char
+	out_chars: [dynamic]Char
 	fmt.printf(
 		"px:%d, scale:%.2f, ascent:%d, descent:%d, line_gap:%d\n",
 		out_header.px,
@@ -88,12 +99,12 @@ create_atlas :: proc(ttf_file: string, pixel_height: i32) -> bool {
 		h   = 64,
 		gap = 1,
 	}
-	ch: text.Char
+	ch: Char
 	// 0-31 are control chars, 32 is space
 	for {
 		pack_reset(&pack)
 		done := true
-		for i := 33; i < 128; i += 1 {
+		for i := 32; i < 128; i += 1 {
 			x0, y0, x1, y1: i32
 			tt.GetCodepointBitmapBox(&info, rune(i), scale, scale, &x0, &y0, &x1, &y1)
 			ch.w = x1 - x0
@@ -126,7 +137,7 @@ create_atlas :: proc(ttf_file: string, pixel_height: i32) -> bool {
 	defer delete(raw_pixels)
 
 	pack_reset(&pack)
-	for i := 33; i < 128; i += 1 {
+	for i := 32; i < 128; i += 1 {
 		out_header.codepoint_count += 1
 		tt.GetCodepointHMetrics(&info, rune(i), &ch.advance_width, &ch.left_side_bearing)
 		ch.advance_width = scaled(ch.advance_width, scale)
@@ -142,13 +153,15 @@ create_atlas :: proc(ttf_file: string, pixel_height: i32) -> bool {
 			&ch.yoff,
 		)
 		defer tt.FreeBitmap(bitmap, nil)
-		append(&out_chars, ch)
 
 		ok := pack_wrap_if_needed(&pack, ch)
 		if !ok {
 			fmt.printf("ERROR: doesn't fit, char %d [%v] would not fit\n", i, rune(i))
 			return false
 		}
+		ch.x = pack.x
+		ch.y = pack.y
+		append(&out_chars, ch)
 		// write image into pixels slice
 		{
 			sw := int(ch.w)
@@ -159,6 +172,13 @@ create_atlas :: proc(ttf_file: string, pixel_height: i32) -> bool {
 				for sx := 0; sx < sw; sx += 1 {
 					// map from source x,y to dest x,y
 					px1: u8 = bitmap[sx + sy * sw]
+					// may not be good for all fonts, but I think it helps with Terminal to
+					// make things look crisper
+					if px1 > 127 {
+						px1 = 255
+					} else {
+						px1 = 0
+					}
 					px: [3]u8 = {px1, px1, px1}
 
 					dx := sx + dx_off
@@ -175,7 +195,16 @@ create_atlas :: proc(ttf_file: string, pixel_height: i32) -> bool {
 			fmt.printf("ERROR: doesn't fit, char %d [%v] would not fit\n", i, rune(i))
 			return false
 		}
+
+		fmt.printf("off(%v):%dx%d  ", rune(i), ch.xoff, ch.yoff)
+
+		// // debug kerning
+		// for j := 33; j < 128; j += 1 {
+		// 	a := tt.GetCodepointKernAdvance(&info, rune(i), rune(j))
+		// 	fmt.printf("%v->%v(%d) ", rune(i), rune(j), a)
+		// }
 	}
+
 	img, ok2 := image.pixels_to_image(pixels, cast(int)pack.w, cast(int)pack.h)
 	if !ok2 {
 		fmt.println("ERROR creating Image from slice")
@@ -204,7 +233,23 @@ create_atlas :: proc(ttf_file: string, pixel_height: i32) -> bool {
 	buffer_len := text.encode_len(out_header, len(out_chars))
 	bytes.buffer_init_allocator(&buffer, buffer_len, buffer_len)
 	written: int
-	written, ok = text.encode(&buffer, out_header, out_chars[:])
+	// convert Char -> text.Char
+	out_text_chars := make([]text.Char, len(out_chars))
+	for ch, i in out_chars {
+		w_mult: f32 = 1.0 / f32(out_header.atlas_w)
+		h_mult: f32 = 1.0 / f32(out_header.atlas_h)
+		out_text_chars[i] = text.Char {
+			w                 = f32(ch.w),
+			h                 = f32(ch.h),
+			x                 = f32(ch.x),
+			y                 = f32(ch.y),
+			xoff              = f32(ch.xoff),
+			yoff              = f32(ch.yoff),
+			advance_width     = f32(ch.advance_width),
+			left_side_bearing = f32(ch.left_side_bearing),
+		}
+	}
+	written, ok = text.encode(&buffer, out_header, out_text_chars)
 	if !ok {
 		fmt.println("ERROR: failed to encode atlas data")
 		return false
