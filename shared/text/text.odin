@@ -5,6 +5,8 @@ import "core:fmt"
 import "core:mem"
 
 Header :: struct {
+	atlas_w:            i32,
+	atlas_h:            i32,
 	scale:              f32,
 	px:                 i32,
 	ascent:             i32,

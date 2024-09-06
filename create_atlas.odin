@@ -188,6 +188,10 @@ create_atlas :: proc(ttf_file: string, pixel_height: i32) -> bool {
 		return false
 	}
 
+	// update header with final w,h
+	out_header.atlas_w = pack.w
+	out_header.atlas_h = pack.h
+
 	// save raw pixel data (single channel)
 	err = os.write_entire_file_or_err(fmt.tprintf("atlas_pixel_data_%d", pixel_height), raw_pixels)
 	if err != nil {
@@ -229,7 +233,8 @@ create_atlas :: proc(ttf_file: string, pixel_height: i32) -> bool {
 }
 
 main :: proc() {
-	sizes: [7]i32 = {72, 60, 48, 36, 24, 18, 12}
+	// sizes: [7]i32 = {72, 60, 48, 36, 24, 18, 12}
+	sizes: [1]i32 = {24}
 	for size, i in sizes {
 		ok := create_atlas("Terminal.ttf", size)
 		fmt.println(size, ok)

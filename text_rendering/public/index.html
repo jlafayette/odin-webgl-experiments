@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8" />
+	<title>Text Rendering</title>
+	<link rel="preload" href="_main.wasm" as="fetch" type="application/wasm" crossorigin="anonymous" />
+
+</head>
+
+<body>
+	<script type="module" src="./runtime.js"></script>
+	<script type="text/javascript">
+		window.addEventListener('load', function () {
+			odin.runWasm("./_main.wasm", {});
+		});
+	</script>
+	<canvas id="canvas-1" width="640" height="480"></canvas>
+</body>
+
+</html>
