@@ -104,7 +104,7 @@ create_atlas :: proc(ttf_file: string, pixel_height: i32) -> bool {
 	for {
 		pack_reset(&pack)
 		done := true
-		for i := 32; i < 128; i += 1 {
+		for i in 32 ..< 128 {
 			x0, y0, x1, y1: i32
 			tt.GetCodepointBitmapBox(&info, rune(i), scale, scale, &x0, &y0, &x1, &y1)
 			ch.w = x1 - x0
@@ -137,7 +137,7 @@ create_atlas :: proc(ttf_file: string, pixel_height: i32) -> bool {
 	defer delete(raw_pixels)
 
 	pack_reset(&pack)
-	for i := 32; i < 128; i += 1 {
+	for i in 32 ..< 128 {
 		out_header.codepoint_count += 1
 		tt.GetCodepointHMetrics(&info, rune(i), &ch.advance_width, &ch.left_side_bearing)
 		ch.advance_width = scaled(ch.advance_width, scale)
@@ -168,8 +168,8 @@ create_atlas :: proc(ttf_file: string, pixel_height: i32) -> bool {
 			sh := int(ch.h)
 			dx_off := int(pack.x)
 			dy_off := int(pack.y)
-			for sy := 0; sy < sh; sy += 1 {
-				for sx := 0; sx < sw; sx += 1 {
+			for sy in 0 ..< sh {
+				for sx in 0 ..< sw {
 					// map from source x,y to dest x,y
 					px1: u8 = bitmap[sx + sy * sw]
 					// may not be good for all fonts, but I think it helps with Terminal to
@@ -196,10 +196,11 @@ create_atlas :: proc(ttf_file: string, pixel_height: i32) -> bool {
 			return false
 		}
 
-		fmt.printf("off(%v):%dx%d  ", rune(i), ch.xoff, ch.yoff)
+		// // debug offset
+		// fmt.printf("off(%v):%dx%d  ", rune(i), ch.xoff, ch.yoff)
 
 		// // debug kerning
-		// for j := 33; j < 128; j += 1 {
+		// for j in 33 ..< 128 {
 		// 	a := tt.GetCodepointKernAdvance(&info, rune(i), rune(j))
 		// 	fmt.printf("%v->%v(%d) ", rune(i), rune(j), a)
 		// }
