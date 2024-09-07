@@ -4,45 +4,49 @@ import "core:bytes"
 import "core:fmt"
 import "core:image/png"
 import "core:math"
+import glm "core:math/linalg/glsl"
 import "core:mem"
 import gl "vendor:wasm/WebGL"
-import glm "core:math/linalg/glsl"
 
 main :: proc() {}
 
 texture_data := #load("odin_logo.png")
+vs_source := #load("cube.vert", string)
+fs_source := #load("cube.frag", string)
 
 ProgramInfo :: struct {
-	program: gl.Program,
-	attrib_locations: AttribLocations,
+	program:           gl.Program,
+	attrib_locations:  AttribLocations,
 	uniform_locations: UniformLocations,
 }
 AttribLocations :: struct {
 	vertex_position: i32,
-	texture_coord: i32,
+	texture_coord:   i32,
 }
 UniformLocations :: struct {
 	projection_matrix: i32,
 	model_view_matrix: i32,
-	u_sampler: i32,
+	u_sampler:         i32,
 }
 Buffers :: struct {
-	position: gl.Buffer,
-	indices: gl.Buffer,
+	position:      gl.Buffer,
+	indices:       gl.Buffer,
 	texture_coord: gl.Buffer,
 }
 State :: struct {
-	started: bool,
+	started:      bool,
 	program_info: ProgramInfo,
-	buffers: Buffers,
-	rotation: f32,
-	texture: gl.Texture,
+	buffers:      Buffers,
+	rotation:     f32,
+	texture:      gl.Texture,
 }
-state : State = {}
+state: State = {}
 
 
-temp_arena_buffer: [mem.Megabyte*4]byte
-temp_arena: mem.Arena = {data = temp_arena_buffer[:]}
+temp_arena_buffer: [mem.Megabyte * 4]byte
+temp_arena: mem.Arena = {
+	data = temp_arena_buffer[:],
+}
 temp_arena_allocator := mem.arena_allocator(&temp_arena)
 
 init_buffers :: proc() -> Buffers {
@@ -55,13 +59,79 @@ init_buffers :: proc() -> Buffers {
 init_position_buffer :: proc() -> gl.Buffer {
 	buffer := gl.CreateBuffer()
 	gl.BindBuffer(gl.ARRAY_BUFFER, buffer)
-	data : [12*6]f32 = {
-		-1,-1,  1, 1, -1, 1,  1, 1,  1,-1,  1, 1, // front
-		-1,-1, -1,-1,  1,-1,  1, 1, -1, 1, -1,-1, // back
-		-1, 1, -1,-1,  1, 1,  1, 1,  1, 1,  1,-1, // top
-		-1,-1, -1, 1, -1,-1,  1,-1,  1,-1, -1, 1, // bottom
-		 1,-1, -1, 1,  1,-1,  1, 1,  1, 1, -1, 1, // right
-		-1,-1, -1,-1, -1, 1, -1, 1,  1,-1,  1,-1, // left
+	data: [12 * 6]f32 = {
+		-1,
+		-1,
+		1,
+		1,
+		-1,
+		1,
+		1,
+		1,
+		1,
+		-1,
+		1,
+		1, // front
+		-1,
+		-1,
+		-1,
+		-1,
+		1,
+		-1,
+		1,
+		1,
+		-1,
+		1,
+		-1,
+		-1, // back
+		-1,
+		1,
+		-1,
+		-1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		-1, // top
+		-1,
+		-1,
+		-1,
+		1,
+		-1,
+		-1,
+		1,
+		-1,
+		1,
+		-1,
+		-1,
+		1, // bottom
+		1,
+		-1,
+		-1,
+		1,
+		1,
+		-1,
+		1,
+		1,
+		1,
+		1,
+		-1,
+		1, // right
+		-1,
+		-1,
+		-1,
+		-1,
+		-1,
+		1,
+		-1,
+		1,
+		1,
+		-1,
+		1,
+		-1, // left
 	}
 	gl.BufferDataSlice(gl.ARRAY_BUFFER, data[:], gl.STATIC_DRAW)
 	return buffer
@@ -69,13 +139,43 @@ init_position_buffer :: proc() -> gl.Buffer {
 init_index_buffer :: proc() -> gl.Buffer {
 	buffer := gl.CreateBuffer()
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer)
-	data : [36]u16 = {
-		 0, 1, 2,  0, 2, 3, // front
-		 4, 5, 6,  4, 6, 7, // back
-		 8, 9,10,  8,10,11, // top
-		12,13,14, 12,14,15, // bottom
-		16,17,18, 16,18,19, // right
-		20,21,22, 20,22,23, // left
+	data: [36]u16 = {
+		0,
+		1,
+		2,
+		0,
+		2,
+		3, // front
+		4,
+		5,
+		6,
+		4,
+		6,
+		7, // back
+		8,
+		9,
+		10,
+		8,
+		10,
+		11, // top
+		12,
+		13,
+		14,
+		12,
+		14,
+		15, // bottom
+		16,
+		17,
+		18,
+		16,
+		18,
+		19, // right
+		20,
+		21,
+		22,
+		20,
+		22,
+		23, // left
 	}
 	gl.BufferDataSlice(gl.ELEMENT_ARRAY_BUFFER, data[:], gl.STATIC_DRAW)
 	return buffer
@@ -83,13 +183,55 @@ init_index_buffer :: proc() -> gl.Buffer {
 init_texture_buffer :: proc() -> gl.Buffer {
 	tex_coord_buffer := gl.CreateBuffer()
 	gl.BindBuffer(gl.ARRAY_BUFFER, tex_coord_buffer)
-	data : [8*6]f32 = {
-		0, 0, 1, 0, 1, 1, 0, 1, // front
-		0, 0, 1, 0, 1, 1, 0, 1, // back
-		0, 0, 1, 0, 1, 1, 0, 1, // top
-		0, 0, 1, 0, 1, 1, 0, 1, // bottom
-		0, 0, 1, 0, 1, 1, 0, 1, // right
-		0, 0, 1, 0, 1, 1, 0, 1, // left
+	data: [8 * 6]f32 = {
+		0,
+		0,
+		1,
+		0,
+		1,
+		1,
+		0,
+		1, // front
+		0,
+		0,
+		1,
+		0,
+		1,
+		1,
+		0,
+		1, // back
+		0,
+		0,
+		1,
+		0,
+		1,
+		1,
+		0,
+		1, // top
+		0,
+		0,
+		1,
+		0,
+		1,
+		1,
+		0,
+		1, // bottom
+		0,
+		0,
+		1,
+		0,
+		1,
+		1,
+		0,
+		1, // right
+		0,
+		0,
+		1,
+		0,
+		1,
+		1,
+		0,
+		1, // left
 	}
 	gl.BufferDataSlice(gl.ARRAY_BUFFER, data[:], gl.STATIC_DRAW)
 	return tex_coord_buffer
@@ -101,8 +243,12 @@ load_texture :: proc() -> gl.Texture {
 	fmt.println("texture data len:", len(texture_data))
 
 	// options : png.Options = {.do_not_decompress_image}
-	options : png.Options = {}
-	img, err := png.load_from_bytes(texture_data, options=options, allocator=context.temp_allocator)
+	options: png.Options = {}
+	img, err := png.load_from_bytes(
+		texture_data,
+		options = options,
+		allocator = context.temp_allocator,
+	)
 	if err != nil {
 		fmt.eprintln("error loading image:", err)
 		return texture
@@ -110,8 +256,8 @@ load_texture :: proc() -> gl.Texture {
 	fmt.println(img.width, "x", img.height, "chan:", img.channels)
 	data := bytes.buffer_to_bytes(&img.pixels)
 	fmt.println("data len:", len(data))
-	level : i32 = 0
-	border : i32 = 0
+	level: i32 = 0
+	border: i32 = 0
 	internal_format := gl.RGBA
 	format := gl.RGBA
 	if img.channels == 3 {
@@ -156,33 +302,7 @@ start :: proc() -> (ok: bool) {
 		fmt.eprintln("Failed to set current context to 'canvas-1'")
 		return false
 	}
-	
-	vs_source : string = `#version 300 es
-in vec4 aVertexPosition;
-in vec2 aTextureCoord;
 
-uniform mat4 uModelViewMatrix;
-uniform mat4 uProjectionMatrix;
-
-out vec2 vTextureCoord;
-
-void main() {
-	gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-	vTextureCoord = aTextureCoord;
-}
-`
-	fs_source : string = `#version 300 es
-precision highp float;
-in vec2 vTextureCoord;
-
-uniform sampler2D uSampler;
-out vec4 fragColor;
-
-void main() {
-	vec4 col = texture(uSampler, vTextureCoord);
-	fragColor = col;
-}
-`
 	program: gl.Program
 	program, ok = gl.CreateProgramFromStrings({vs_source}, {fs_source})
 	if !ok {
@@ -192,9 +312,9 @@ void main() {
 	state.program_info = {
 		program = program,
 		attrib_locations = {
-			vertex_position = gl.GetAttribLocation(program, "aVertexPosition"),
-			texture_coord = gl.GetAttribLocation(program, "aTextureCoord"),
-		}, 
+			vertex_position = gl.GetAttribLocation(program, "aPos"),
+			texture_coord = gl.GetAttribLocation(program, "aTexCoord"),
+		},
 		uniform_locations = {
 			projection_matrix = gl.GetUniformLocation(program, "uProjectionMatrix"),
 			model_view_matrix = gl.GetUniformLocation(program, "uModelViewMatrix"),
@@ -241,7 +361,7 @@ set_texture_attribute :: proc() {
 	type := gl.FLOAT
 	normalize := false
 	stride := 0
-	offset : uintptr = 0
+	offset: uintptr = 0
 	gl.BindBuffer(gl.ARRAY_BUFFER, state.buffers.texture_coord)
 	gl.VertexAttribPointer(
 		state.program_info.attrib_locations.texture_coord,
@@ -262,12 +382,12 @@ draw_scene :: proc() {
 	gl.DepthFunc(gl.LEQUAL)
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-	fov : f32 = (45.0 * math.PI) / 180.0
-	aspect : f32 = 640.0 / 480.0 // TODO: gl.canvas.clientWidth and gl.canvas.clientHeight
-	z_near : f32 = 0.1
-	z_far : f32 = 100.0
+	fov: f32 = (45.0 * math.PI) / 180.0
+	aspect: f32 = 640.0 / 480.0 // TODO: gl.canvas.clientWidth and gl.canvas.clientHeight
+	z_near: f32 = 0.1
+	z_far: f32 = 100.0
 	projection_mat := glm.mat4Perspective(fov, aspect, z_near, z_far)
-	
+
 	trans := glm.mat4Translate({-0, 0, -6})
 	rot_z := glm.mat4Rotate({0, 0, 1}, state.rotation)
 	rot_y := glm.mat4Rotate({0, 1, 0}, state.rotation * 0.7)
@@ -278,40 +398,35 @@ draw_scene :: proc() {
 	set_texture_attribute()
 
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, state.buffers.indices)
-	
+
 	gl.UseProgram(state.program_info.program)
-	gl.UniformMatrix4fv(
-		state.program_info.uniform_locations.projection_matrix,
-		projection_mat,
-	)
-	gl.UniformMatrix4fv(
-		state.program_info.uniform_locations.model_view_matrix,
-		model_view_mat,
-	)
+	gl.UniformMatrix4fv(state.program_info.uniform_locations.projection_matrix, projection_mat)
+	gl.UniformMatrix4fv(state.program_info.uniform_locations.model_view_matrix, model_view_mat)
 	gl.ActiveTexture(gl.TEXTURE0)
 	gl.BindTexture(gl.TEXTURE_2D, state.texture)
 	gl.Uniform1i(state.program_info.uniform_locations.u_sampler, 0)
 	{
 		vertex_count := 36
 		type := gl.UNSIGNED_SHORT
-		offset : rawptr
+		offset: rawptr
 		gl.DrawElements(gl.TRIANGLES, vertex_count, type, offset)
 	}
 }
 
-@export
+@(export)
 step :: proc(dt: f32) -> (keep_going: bool) {
 	context.temp_allocator = temp_arena_allocator
 	defer free_all(context.temp_allocator)
 
 	ok: bool
 	if !state.started {
-		if ok = start(); !ok { return false }
+		if ok = start(); !ok {return false}
 	}
 
 	state.rotation += dt
 
 	draw_scene()
-	
+
 	return check_gl_error()
 }
+
