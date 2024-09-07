@@ -37,6 +37,7 @@ State :: struct {
 	started: bool,
 	writer:  Writer,
 	writer2: Writer,
+	writer3: Writer,
 	tri:     TriState,
 }
 g_state: State = {}
@@ -68,21 +69,31 @@ start :: proc() -> (ok: bool) {
 		fmt.println("es version:", es_major, es_minor)
 	}
 
-	ok = writer_init(&g_state.writer, 20, 20, "abcdefghijklmnopqrstuvwxyz!@#$%^&*()_+-=")
+	ok = writer_init(&g_state.writer, 20, 20, "abcdefghijklmnopqrstuvwxyz!@#$%^&*()_+-=", false)
 	if !ok {
 		fmt.eprintln("Failed to init writer")
 		return ok
 	}
-	line_gap := g_state.writer.header.line_gap
-	px := g_state.writer.header.px
+	// line_gap := g_state.writer.header.line_gap
+	// px := g_state.writer.header.px
+	line_offset :=
+		g_state.writer.header.ascent -
+		g_state.writer.header.descent +
+		g_state.writer.header.line_gap
 	ok = writer_init(
 		&g_state.writer2,
 		20,
-		20 + px + line_gap,
+		20 + line_offset,
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ {}[]\\|/?.,<>\"'",
+		false,
 	)
 	if !ok {
 		fmt.eprintln("Failed to init writer2")
+		return ok
+	}
+	ok = writer_init(&g_state.writer3, 20, 20 + line_offset * 2, "... ", true)
+	if !ok {
+		fmt.eprintln("Failed to init writer3")
 		return ok
 	}
 
@@ -189,6 +200,7 @@ draw :: proc(dt: f32) {
 	}
 	writer_draw(&g_state.writer)
 	writer_draw(&g_state.writer2)
+	writer_draw(&g_state.writer3)
 }
 
 @(export)
