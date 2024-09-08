@@ -9,14 +9,16 @@ import gl "vendor:wasm/WebGL"
 main :: proc() {}
 
 State :: struct {
-	started:  bool,
-	rotation: f32,
-	shader2:  CubeShader,
-	buffers2: Buffers2,
+	started:         bool,
+	rotation:        f32,
+	shader2:         CubeShader,
+	buffers2:        Buffers2,
+	current_texture: TextureId,
+	textures:        Textures,
 }
 state: State = {}
 
-temp_arena_buffer: [mem.Megabyte * 4]byte
+temp_arena_buffer: [mem.Megabyte * 8]byte
 temp_arena: mem.Arena = {
 	data = temp_arena_buffer[:],
 }
@@ -67,6 +69,9 @@ start :: proc() -> (ok: bool) {
 	state.buffers2.tex = buffers.tex.b
 	state.buffers2.indices = buffers.indices.b
 
+	ok = textures_init(&state.textures)
+	if !ok {return}
+
 	return check_gl_error()
 }
 
@@ -79,7 +84,7 @@ check_gl_error :: proc() -> (ok: bool) {
 	return true
 }
 
-draw_scene :: proc() {
+draw_scene :: proc() -> (ok: bool) {
 	gl.ClearColor(0, 0, 0, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.ClearDepth(1)
@@ -103,9 +108,16 @@ draw_scene :: proc() {
 		model_view_matrix = model_view_mat,
 		projection_matrix = projection_mat,
 	}
-	shader_use(&state.shader2, uniforms, state.buffers2)
+	ok = shader_use(
+		&state.shader2,
+		uniforms,
+		state.buffers2,
+		state.textures[state.current_texture],
+	)
+	if !ok {return}
 	count := 36
 	buffer_draw(state.shader2.buffer_indices, count, state.buffers2.indices)
+	return ok
 }
 
 @(export)
@@ -120,7 +132,8 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 
 	state.rotation += dt * 0.2
 
-	draw_scene()
+	ok = draw_scene()
+	if !ok {return false}
 
 	return check_gl_error()
 }
