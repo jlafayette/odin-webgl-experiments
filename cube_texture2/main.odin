@@ -12,7 +12,7 @@ State :: struct {
 	started:         bool,
 	rotation:        f32,
 	shader2:         CubeShader,
-	buffers2:        Buffers2,
+	buffers_cube:    BuffersCube,
 	current_texture: TextureId,
 	textures:        Textures,
 }
@@ -32,42 +32,9 @@ start :: proc() -> (ok: bool) {
 		return false
 	}
 
-	pos_data: [6][4][3]f32 = {
-		{{-1, -1, 1}, {1, -1, 1}, {1, 1, 1}, {-1, 1, 1}}, // front
-		{{-1, -1, -1}, {-1, 1, -1}, {1, 1, -1}, {1, -1, -1}}, // back
-		{{-1, 1, -1}, {-1, 1, 1}, {1, 1, 1}, {1, 1, -1}}, // top
-		{{-1, -1, -1}, {1, -1, -1}, {1, -1, 1}, {-1, -1, 1}}, // bottom
-		{{1, -1, -1}, {1, 1, -1}, {1, 1, 1}, {1, -1, 1}}, // right
-		{{-1, -1, -1}, {-1, -1, 1}, {-1, 1, 1}, {-1, 1, -1}}, // left
-	}
-	tex_data: [6][4][2]f32 = {
-		{{0, 0}, {1, 0}, {1, 1}, {0, 1}}, // front
-		{{0, 0}, {1, 0}, {1, 1}, {0, 1}}, // back
-		{{0, 0}, {1, 0}, {1, 1}, {0, 1}}, // top
-		{{0, 0}, {1, 0}, {1, 1}, {0, 1}}, // bottom
-		{{0, 0}, {1, 0}, {1, 1}, {0, 1}}, // right
-		{{0, 0}, {1, 0}, {1, 1}, {0, 1}}, // left
-	}
-	indices_data: [6][6]u16 = {
-		{0, 1, 2, 0, 2, 3}, // front
-		{4, 5, 6, 4, 6, 7}, // back
-		{8, 9, 10, 8, 10, 11}, // top
-		{12, 13, 14, 12, 14, 15}, // bottom
-		{16, 17, 18, 16, 18, 19}, // right
-		{20, 21, 22, 20, 22, 23}, // left
-	}
-	buffers: InitBuffers = {
-		pos     = {pos_data[:], {3, gl.FLOAT, gl.ARRAY_BUFFER, gl.STATIC_DRAW}},
-		tex     = {tex_data[:], {2, gl.FLOAT, gl.ARRAY_BUFFER, gl.STATIC_DRAW}},
-		indices = {
-			indices_data[:],
-			{1, gl.UNSIGNED_SHORT, gl.ELEMENT_ARRAY_BUFFER, gl.STATIC_DRAW},
-		},
-	}
-	shader_init(&state.shader2, buffers)
-	state.buffers2.pos = buffers.pos.b
-	state.buffers2.tex = buffers.tex.b
-	state.buffers2.indices = buffers.indices.b
+	shader_init(&state.shader2)
+
+	buffers_cube_init(&state.buffers_cube)
 
 	ok = textures_init(&state.textures)
 	if !ok {return}
@@ -104,19 +71,19 @@ draw_scene :: proc() -> (ok: bool) {
 	rot_x := glm.mat4Rotate({1, 0, 0}, state.rotation * 0.3)
 	model_view_mat := trans * rot_z * rot_y * rot_x
 
-	uniforms: Uniforms = {
+	uniforms: CubeUniforms = {
 		model_view_matrix = model_view_mat,
 		projection_matrix = projection_mat,
 	}
 	ok = shader_use(
 		&state.shader2,
 		uniforms,
-		state.buffers2,
+		state.buffers_cube.pos,
+		state.buffers_cube.tex,
 		state.textures[state.current_texture],
 	)
 	if !ok {return}
-	count := 36
-	buffer_draw(state.shader2.buffer_indices, count, state.buffers2.indices)
+	ea_buffer_draw(state.buffers_cube.indices)
 	return ok
 }
 
