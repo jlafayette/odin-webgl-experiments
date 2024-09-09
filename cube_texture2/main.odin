@@ -5,14 +5,21 @@ import "core:math"
 import glm "core:math/linalg/glsl"
 import "core:mem"
 import gl "vendor:wasm/WebGL"
+import "vendor:wasm/js"
 
 main :: proc() {}
 
+GeoId :: enum {
+	Cube,
+	Pyramid,
+}
+Geos :: [GeoId]Buffers
 State :: struct {
 	started:         bool,
 	rotation:        f32,
 	shader2:         CubeShader,
-	buffers_cube:    BuffersCube,
+	current_geo:     GeoId,
+	geo_buffers:     Geos,
 	current_texture: TextureId,
 	textures:        Textures,
 }
@@ -32,9 +39,12 @@ start :: proc() -> (ok: bool) {
 		return false
 	}
 
+	init_input(&g_input)
+
 	shader_init(&state.shader2)
 
-	buffers_cube_init(&state.buffers_cube)
+	cube_buffers_init(&state.geo_buffers[.Cube])
+	pyramid_buffers_init(&state.geo_buffers[.Pyramid])
 
 	ok = textures_init(&state.textures)
 	if !ok {return}
@@ -65,11 +75,13 @@ draw_scene :: proc() -> (ok: bool) {
 	z_far: f32 = 100.0
 	projection_mat := glm.mat4Perspective(fov, aspect, z_near, z_far)
 
-	trans := glm.mat4Translate({-0, 0, -6})
-	rot_z := glm.mat4Rotate({0, 0, 1}, state.rotation)
-	rot_y := glm.mat4Rotate({0, 1, 0}, state.rotation * 0.7)
-	rot_x := glm.mat4Rotate({1, 0, 0}, state.rotation * 0.3)
-	model_view_mat := trans * rot_z * rot_y * rot_x
+	// trans := glm.mat4Translate({-0, 0, -6})
+	// rot_z := glm.mat4Rotate({0, 0, 1}, state.rotation)
+	// rot_y := glm.mat4Rotate({0, 1, 0}, state.rotation * 0.7)
+	// rot_x := glm.mat4Rotate({1, 0, 0}, state.rotation * 0.3)
+	// model_view_mat := trans * rot_z * rot_y * rot_x
+
+	model_view_mat := glm.mat4LookAt(g_input.camera_pos, {0, 0, 0}, {0, 1, 0})
 
 	uniforms: CubeUniforms = {
 		model_view_matrix = model_view_mat,
@@ -78,12 +90,12 @@ draw_scene :: proc() -> (ok: bool) {
 	ok = shader_use(
 		&state.shader2,
 		uniforms,
-		state.buffers_cube.pos,
-		state.buffers_cube.tex,
+		state.geo_buffers[state.current_geo].pos,
+		state.geo_buffers[state.current_geo].tex,
 		state.textures[state.current_texture],
 	)
 	if !ok {return}
-	ea_buffer_draw(state.buffers_cube.indices)
+	ea_buffer_draw(state.geo_buffers[state.current_geo].indices)
 	return ok
 }
 
@@ -98,6 +110,7 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 	}
 
 	state.rotation += dt * 0.2
+	update_input(&g_input, dt)
 
 	ok = draw_scene()
 	if !ok {return false}

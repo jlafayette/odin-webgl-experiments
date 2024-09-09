@@ -6,7 +6,6 @@ import "core:image"
 import "core:image/bmp"
 import "core:image/png"
 import gl "vendor:wasm/WebGL"
-import "vendor:wasm/js"
 
 odin_data := #load("odin_logo.png")
 uv_data := #load("uv.bmp")
@@ -22,8 +21,6 @@ TextureInfo :: struct {
 }
 
 textures_init :: proc(t: ^Textures) -> (ok: bool) {
-	js.add_window_event_listener(.Key_Down, {}, on_key_down)
-
 	{
 		img, err := png.load_from_bytes(odin_data, allocator = context.temp_allocator)
 		if err != nil {
@@ -45,22 +42,6 @@ textures_init :: proc(t: ^Textures) -> (ok: bool) {
 	return true
 }
 
-@(private = "file")
-on_key_down :: proc(e: js.Event) {
-	if e.key.repeat {
-		return
-	}
-	if e.key.code == "KeyT" {
-		current := state.current_texture
-		new: TextureId
-		if current == .Odin {
-			new = .Uv
-		} else if current == .Uv {
-			new = .Odin
-		}
-		state.current_texture = new
-	}
-}
 
 @(private = "file")
 load_texture :: proc(img: ^image.Image) -> gl.Texture {
