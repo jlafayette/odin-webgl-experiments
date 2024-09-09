@@ -6,8 +6,8 @@ import gl "vendor:wasm/WebGL"
 
 pyramid_buffers_init :: proc(buffers: ^Buffers) {
 	pos_data: [16][3]f32 = {
-		{1, -1, 1},
 		{-1, -1, 1},
+		{1, -1, 1},
 		{0, 1, 0}, // front
 		{1, -1, -1},
 		{-1, -1, -1},
