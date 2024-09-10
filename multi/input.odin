@@ -47,9 +47,12 @@ update_input :: proc(input: ^Input, dt: f32) {
 	if input.cycle_geo {
 		current := state.current_geo
 		new: GeoId
-		if current == .Cube {
+		switch current {
+		case .Cube:
 			new = .Pyramid
-		} else if current == .Pyramid {
+		case .Pyramid:
+			new = .Icosphere
+		case .Icosphere:
 			new = .Cube
 		}
 		state.current_geo = new
@@ -85,3 +88,4 @@ on_key_down :: proc(e: js.Event) {
 		g_input.cycle_shader = true
 	}
 }
+

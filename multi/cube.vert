@@ -11,6 +11,7 @@ uniform mat4 uProjectionMatrix;
 out vec2 vTexCoord;
 
 void main() {
+    gl_PointSize = 10.0;
     gl_Position = uProjectionMatrix * uModelViewMatrix * aPos;
     vTexCoord = aTexCoord;
 }

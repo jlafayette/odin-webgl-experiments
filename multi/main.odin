@@ -11,6 +11,7 @@ main :: proc() {}
 GeoId :: enum {
 	Cube,
 	Pyramid,
+	Icosphere,
 }
 Geos :: [GeoId]Buffers
 ShaderId :: enum {
@@ -28,7 +29,9 @@ State :: struct {
 	current_texture: TextureId,
 	textures:        Textures,
 }
-state: State = {}
+state: State = {
+	current_geo = .Icosphere,
+}
 
 temp_arena_buffer: [mem.Megabyte * 8]byte
 temp_arena: mem.Arena = {
@@ -51,6 +54,7 @@ start :: proc() -> (ok: bool) {
 
 	cube_buffers_init(&state.geo_buffers[.Cube])
 	pyramid_buffers_init(&state.geo_buffers[.Pyramid])
+	icosphere_buffers_init(&state.geo_buffers[.Icosphere])
 
 	ok = textures_init(&state.textures)
 	if !ok {return}
@@ -116,7 +120,14 @@ draw_scene :: proc() -> (ok: bool) {
 		)
 		if !ok {return}
 	}
-	ea_buffer_draw(state.geo_buffers[state.current_geo].indices)
+	if state.current_geo == .Icosphere {
+		// b := state.geo_buffers[.Icosphere]
+		// gl.BindBuffer(b.pos.target, b.pos.id)
+		// gl.DrawArrays(gl.POINTS, 0, 12)
+		ea_buffer_draw(state.geo_buffers[state.current_geo].indices)
+	} else {
+		ea_buffer_draw(state.geo_buffers[state.current_geo].indices)
+	}
 	return ok
 }
 
@@ -138,3 +149,4 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 
 	return check_gl_error()
 }
+
