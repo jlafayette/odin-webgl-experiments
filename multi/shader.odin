@@ -1,8 +1,6 @@
-package cube_texture2
+package multi
 
-import "core:bytes"
 import "core:fmt"
-import "core:image/png"
 import glm "core:math/linalg/glsl"
 import gl "vendor:wasm/WebGL"
 
@@ -73,4 +71,3 @@ shader_set_attribute :: proc(index: i32, b: Buffer) {
 	gl.VertexAttribPointer(index, b.size, b.type, false, 0, 0)
 	gl.EnableVertexAttribArray(index)
 }
-

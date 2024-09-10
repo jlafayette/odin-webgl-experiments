@@ -1,11 +1,10 @@
-package cube_texture2
+package multi
 
 import "core:fmt"
 import "core:math"
 import glm "core:math/linalg/glsl"
 import "core:mem"
 import gl "vendor:wasm/WebGL"
-import "vendor:wasm/js"
 
 main :: proc() {}
 
@@ -86,8 +85,6 @@ draw_scene :: proc() -> (ok: bool) {
 	camera_matrix := glm.mat4LookAt(g_input.camera_pos, {0, 0, 0}, {0, 1, 0})
 	view_projection_matrix := projection_matrix * camera_matrix
 	world_matrix := glm.mat4(1) * glm.mat4Rotate({0, 1, 0}, state.rotation * 5.0)
-	world_view_projection_matrix := view_projection_matrix * world_matrix
-	world_inverse_matrix := glm.inverse_mat4(world_matrix)
 	world_inverse_transpose_matrix := glm.inverse_transpose_matrix4x4(world_matrix)
 
 	if state.current_shader == .Cube {
@@ -141,4 +138,3 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 
 	return check_gl_error()
 }
-

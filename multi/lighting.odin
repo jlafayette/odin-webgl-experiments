@@ -1,8 +1,6 @@
-package cube_texture2
+package multi
 
-import "core:bytes"
 import "core:fmt"
-import "core:image/png"
 import glm "core:math/linalg/glsl"
 import gl "vendor:wasm/WebGL"
 
@@ -79,4 +77,3 @@ lighting_shader_use :: proc(
 
 	return check_gl_error()
 }
-

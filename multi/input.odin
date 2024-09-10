@@ -1,6 +1,5 @@
-package cube_texture2
+package multi
 
-import "core:fmt"
 import glm "core:math/linalg/glsl"
 import "vendor:wasm/js"
 
@@ -86,4 +85,3 @@ on_key_down :: proc(e: js.Event) {
 		g_input.cycle_shader = true
 	}
 }
-

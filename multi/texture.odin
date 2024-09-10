@@ -1,4 +1,4 @@
-package cube_texture2
+package multi
 
 import "core:bytes"
 import "core:fmt"
@@ -87,4 +87,3 @@ load_texture :: proc(img: ^image.Image) -> gl.Texture {
 is_power_of_two :: proc(n: int) -> bool {
 	return (n & (n - 1)) == 0
 }
-

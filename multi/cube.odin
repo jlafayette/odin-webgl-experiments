@@ -1,7 +1,5 @@
-package cube_texture2
+package multi
 
-import "core:fmt"
-import glm "core:math/linalg/glsl"
 import gl "vendor:wasm/WebGL"
 
 Buffers :: struct {
@@ -105,4 +103,3 @@ cube_buffers_init :: proc(buffers: ^Buffers) {
 	}
 	ea_buffer_init(&buffers.indices, indices_data[:])
 }
-
