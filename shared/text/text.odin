@@ -2,7 +2,6 @@ package text
 
 import "core:bytes"
 import "core:fmt"
-import "core:mem"
 
 Header :: struct {
 	atlas_w:            i32,
@@ -50,7 +49,7 @@ encode :: proc(output: ^bytes.Buffer, header: Header, chars: []Char) -> (int, bo
 	copy(output.buf[:], header_bytes[:written])
 	// fmt.println("buf (header):", output.buf[:written])
 
-	for char, i in chars {
+	for char in chars {
 		char_bytes := transmute([char_size]byte)char
 		copy(output.buf[written:], char_bytes[:char_size])
 		written += char_size
@@ -94,4 +93,3 @@ decode :: proc(data: []byte) -> (Header, [dynamic]Char, bool) {
 
 	return header, chars, true
 }
-
