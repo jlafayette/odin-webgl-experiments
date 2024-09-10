@@ -14,10 +14,16 @@ GeoId :: enum {
 	Pyramid,
 }
 Geos :: [GeoId]Buffers
+ShaderId :: enum {
+	Cube,
+	Lighting,
+}
 State :: struct {
 	started:         bool,
 	rotation:        f32,
-	shader2:         CubeShader,
+	current_shader:  ShaderId,
+	cube_shader:     CubeShader,
+	lighting_shader: LightingShader,
 	current_geo:     GeoId,
 	geo_buffers:     Geos,
 	current_texture: TextureId,
@@ -41,7 +47,8 @@ start :: proc() -> (ok: bool) {
 
 	init_input(&g_input)
 
-	shader_init(&state.shader2)
+	shader_init(&state.cube_shader)
+	lighting_shader_init(&state.lighting_shader)
 
 	cube_buffers_init(&state.geo_buffers[.Cube])
 	pyramid_buffers_init(&state.geo_buffers[.Pyramid])
@@ -69,32 +76,49 @@ draw_scene :: proc() -> (ok: bool) {
 	gl.DepthFunc(gl.LEQUAL)
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
+	// Compute the projection matrix
 	fov: f32 = (45.0 * math.PI) / 180.0
 	aspect: f32 = 640.0 / 480.0 // TODO: gl.canvas.clientWidth and gl.canvas.clientHeight
 	z_near: f32 = 0.1
-	z_far: f32 = 100.0
-	projection_mat := glm.mat4Perspective(fov, aspect, z_near, z_far)
+	z_far: f32 = 2000.0
+	projection_matrix := glm.mat4Perspective(fov, aspect, z_near, z_far)
 
-	// trans := glm.mat4Translate({-0, 0, -6})
-	// rot_z := glm.mat4Rotate({0, 0, 1}, state.rotation)
-	// rot_y := glm.mat4Rotate({0, 1, 0}, state.rotation * 0.7)
-	// rot_x := glm.mat4Rotate({1, 0, 0}, state.rotation * 0.3)
-	// model_view_mat := trans * rot_z * rot_y * rot_x
+	camera_matrix := glm.mat4LookAt(g_input.camera_pos, {0, 0, 0}, {0, 1, 0})
+	view_projection_matrix := projection_matrix * camera_matrix
+	world_matrix := glm.mat4(1) * glm.mat4Rotate({0, 1, 0}, state.rotation * 5.0)
+	world_view_projection_matrix := view_projection_matrix * world_matrix
+	world_inverse_matrix := glm.inverse_mat4(world_matrix)
+	world_inverse_transpose_matrix := glm.inverse_transpose_matrix4x4(world_matrix)
 
-	model_view_mat := glm.mat4LookAt(g_input.camera_pos, {0, 0, 0}, {0, 1, 0})
-
-	uniforms: CubeUniforms = {
-		model_view_matrix = model_view_mat,
-		projection_matrix = projection_mat,
+	if state.current_shader == .Cube {
+		uniforms: CubeUniforms = {
+			model_view_matrix = camera_matrix * world_matrix,
+			projection_matrix = projection_matrix,
+		}
+		ok = shader_use(
+			&state.cube_shader,
+			uniforms,
+			state.geo_buffers[state.current_geo].pos,
+			state.geo_buffers[state.current_geo].tex,
+			state.textures[state.current_texture],
+		)
+		if !ok {return}
+	} else if state.current_shader == .Lighting {
+		uniforms: LightingUniforms = {
+			normal_matrix          = world_inverse_transpose_matrix,
+			model_matrix           = world_matrix,
+			view_projection_matrix = view_projection_matrix,
+		}
+		ok = lighting_shader_use(
+			&state.lighting_shader,
+			uniforms,
+			state.geo_buffers[state.current_geo].pos,
+			state.geo_buffers[state.current_geo].tex,
+			state.geo_buffers[state.current_geo].normal,
+			state.textures[state.current_texture],
+		)
+		if !ok {return}
 	}
-	ok = shader_use(
-		&state.shader2,
-		uniforms,
-		state.geo_buffers[state.current_geo].pos,
-		state.geo_buffers[state.current_geo].tex,
-		state.textures[state.current_texture],
-	)
-	if !ok {return}
 	ea_buffer_draw(state.geo_buffers[state.current_geo].indices)
 	return ok
 }

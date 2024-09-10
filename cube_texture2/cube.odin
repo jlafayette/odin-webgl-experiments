@@ -7,6 +7,7 @@ import gl "vendor:wasm/WebGL"
 Buffers :: struct {
 	pos:     Buffer,
 	tex:     Buffer,
+	normal:  Buffer,
 	indices: EaBuffer,
 }
 Buffer :: struct {
@@ -74,6 +75,22 @@ cube_buffers_init :: proc(buffers: ^Buffers) {
 		usage  = gl.STATIC_DRAW,
 	}
 	buffer_init(&buffers.tex, tex_data[:])
+
+	normal_data: [6][4][3]f32 = {
+		{{0, 0, 1}, {0, 0, 1}, {0, 0, 1}, {0, 0, 1}}, // front
+		{{0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}}, // back
+		{{0, 1, 0}, {0, 1, 0}, {0, 1, 0}, {0, 1, 0}}, // top
+		{{0, -1, 0}, {0, -1, 0}, {0, -1, 0}, {0, -1, 0}}, // bottom
+		{{1, 0, 0}, {1, 0, 0}, {1, 0, 0}, {1, 0, 0}}, // right
+		{{-1, 0, 0}, {-1, 0, 0}, {-1, 0, 0}, {-1, 0, 0}}, // left
+	}
+	buffers.normal = {
+		size   = 3,
+		type   = gl.FLOAT,
+		target = gl.ARRAY_BUFFER,
+		usage  = gl.STATIC_DRAW,
+	}
+	buffer_init(&buffers.normal, normal_data[:])
 
 	indices_data: [6][6]u16 = {
 		{0, 1, 2, 0, 2, 3}, // front

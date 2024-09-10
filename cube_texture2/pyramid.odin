@@ -57,6 +57,32 @@ pyramid_buffers_init :: proc(buffers: ^Buffers) {
 	}
 	buffer_init(&buffers.tex, tex_data[:])
 
+	normal_data: [16][3]f32 = {
+		{0, 0, 1},
+		{0, 0, 1},
+		{0, 0, 1}, // front
+		{0, 0, -1},
+		{0, 0, -1},
+		{0, 0, -1}, // back
+		{1, 0, 0},
+		{1, 0, 0},
+		{1, 0, 0}, // right
+		{-1, 0, 0},
+		{-1, 0, 0},
+		{-1, 0, 0}, // left
+		{0, -1, 0},
+		{0, -1, 0},
+		{0, -1, 0},
+		{0, -1, 0}, // bottom
+	}
+	buffers.normal = {
+		size   = 3,
+		type   = gl.FLOAT,
+		target = gl.ARRAY_BUFFER,
+		usage  = gl.STATIC_DRAW,
+	}
+	buffer_init(&buffers.normal, normal_data[:])
+
 	indices_data: [18]u16 = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 12, 14, 15}
 	buffers.indices = {
 		usage = gl.STATIC_DRAW,

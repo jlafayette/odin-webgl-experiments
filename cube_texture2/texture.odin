@@ -42,7 +42,6 @@ textures_init :: proc(t: ^Textures) -> (ok: bool) {
 	return true
 }
 
-
 @(private = "file")
 load_texture :: proc(img: ^image.Image) -> gl.Texture {
 	texture := gl.CreateTexture()

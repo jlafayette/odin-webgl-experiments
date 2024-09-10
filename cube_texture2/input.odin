@@ -7,6 +7,7 @@ import "vendor:wasm/js"
 Input :: struct {
 	cycle_texture: bool,
 	cycle_geo:     bool,
+	cycle_shader:  bool,
 	mouse_diff:    glm.vec2,
 	camera_pos:    glm.vec3,
 }
@@ -55,6 +56,17 @@ update_input :: proc(input: ^Input, dt: f32) {
 		state.current_geo = new
 		input.cycle_geo = false
 	}
+	if input.cycle_shader {
+		current := state.current_shader
+		new: ShaderId
+		if current == .Cube {
+			new = .Lighting
+		} else if current == .Lighting {
+			new = .Cube
+		}
+		state.current_shader = new
+		input.cycle_shader = false
+	}
 }
 
 on_mouse_move :: proc(e: js.Event) {
@@ -70,6 +82,8 @@ on_key_down :: proc(e: js.Event) {
 		g_input.cycle_texture = true
 	} else if e.key.code == "KeyG" {
 		g_input.cycle_geo = true
+	} else if e.key.code == "KeyS" {
+		g_input.cycle_shader = true
 	}
 }
 
