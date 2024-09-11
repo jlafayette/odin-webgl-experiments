@@ -51,8 +51,16 @@ update_input :: proc(input: ^Input, dt: f32) {
 		case .Cube:
 			new = .Pyramid
 		case .Pyramid:
-			new = .Icosphere
-		case .Icosphere:
+			new = .Icosphere0
+		case .Icosphere0:
+			new = .Icosphere1
+		case .Icosphere1:
+			new = .Icosphere2
+		case .Icosphere2:
+			new = .Icosphere3
+		case .Icosphere3:
+			new = .Icosphere4
+		case .Icosphere4:
 			new = .Cube
 		}
 		state.current_geo = new

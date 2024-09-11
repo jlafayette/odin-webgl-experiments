@@ -40,9 +40,60 @@ get_middle_point :: proc(
 	return middle, true
 }
 
-icosphere_create :: proc() -> ([NVertex1]glm.vec3, [NFace1][3]u16) {
-	context.allocator = temp_arena_allocator
+icosphere_refine :: proc(pos1: []glm.vec3, indices1: [][3]u16) -> ([]glm.vec3, [][3]u16) {
+	// NVertex :: 12, 42, 162, 642, ...
+	// NFace :: 20, 80, 320, 1280, ...
+	pos2_len := (len(pos1) - 2) * 4 + 2
+	pos2 := make_slice([]glm.vec3, pos2_len)
+	for p1, i in pos1 {
+		pos2[i] = p1
+	}
+	next_pos2_i := len(pos1)
+	indices2 := make_slice([][3]u16, len(indices1) * 4)
+	next_indices_i := 0
 
+	m := make(map[int]PosI)
+	defer delete_map(m)
+
+	// loop over faces in indices1
+	for tri, i in indices1 {
+		p1: PosI = {pos1[tri.x], tri.x}
+		p2: PosI = {pos1[tri.y], tri.y}
+		p3: PosI = {pos1[tri.z], tri.z}
+
+		// for each edge, find midpoints
+		// for new ones, add to pos2 and store index in map for lookup
+		a, b, c: PosI
+		new: bool
+		a, new = get_middle_point(next_pos2_i, &m, p1, p2)
+		if new {
+			pos2[next_pos2_i] = glm.normalize(a.pos)
+			next_pos2_i += 1
+		}
+		b, new = get_middle_point(next_pos2_i, &m, p2, p3)
+		if new {
+			pos2[next_pos2_i] = glm.normalize(b.pos)
+			next_pos2_i += 1
+		}
+		c, new = get_middle_point(next_pos2_i, &m, p3, p1)
+		if new {
+			pos2[next_pos2_i] = glm.normalize(c.pos)
+			next_pos2_i += 1
+		}
+
+		// add 4 new faces to indices2
+		indices2[next_indices_i + 0] = {p1.i, a.i, c.i}
+		indices2[next_indices_i + 1] = {p2.i, b.i, a.i}
+		indices2[next_indices_i + 2] = {p3.i, c.i, b.i}
+		indices2[next_indices_i + 3] = {a.i, b.i, c.i}
+		next_indices_i += 4
+
+	}
+	fmt.println(next_pos2_i, next_indices_i, "----")
+	return pos2, indices2
+}
+
+icosphere_buffers_init :: proc(buffers: ^Buffers, refine_steps: u32) {
 	// create 12 vertices of a icosahedron
 	t: f32 = (1 + math.sqrt(f32(5))) / 2
 	pos1: [12]glm.vec3 = {
@@ -85,191 +136,24 @@ icosphere_create :: proc() -> ([NVertex1]glm.vec3, [NFace1][3]u16) {
 		{8, 6, 7},
 		{9, 8, 1},
 	}
-	pos2: [NVertex1]glm.vec3
-	for p1, i in pos1 {
-		pos2[i] = p1
-	}
-	next_pos2_i := 12
-	indices2: [NFace1][3]u16
-	next_indices_i := 0
-
-	m := make(map[int]PosI)
-
-	// loop over faces in indices1
-	for tri, i in indices1 {
-		p1: PosI = {pos1[tri.x], tri.x}
-		p2: PosI = {pos1[tri.y], tri.y}
-		p3: PosI = {pos1[tri.z], tri.z}
-
-		// for each edge, find midpoints
-		// for new ones, add to pos2 and store index in map for lookup
-		a, b, c: PosI
-		new: bool
-		a, new = get_middle_point(next_pos2_i, &m, p1, p2)
-		if new {
-			pos2[next_pos2_i] = a.pos
-			next_pos2_i += 1
-		}
-		b, new = get_middle_point(next_pos2_i, &m, p2, p3)
-		if new {
-			pos2[next_pos2_i] = b.pos
-			next_pos2_i += 1
-		}
-		c, new = get_middle_point(next_pos2_i, &m, p3, p1)
-		if new {
-			pos2[next_pos2_i] = c.pos
-			next_pos2_i += 1
-		}
-
-		// add 4 new faces to indices2
-		indices2[next_indices_i + 0] = {p1.i, a.i, c.i}
-		indices2[next_indices_i + 1] = {p2.i, b.i, a.i}
-		indices2[next_indices_i + 2] = {p3.i, c.i, b.i}
-		indices2[next_indices_i + 3] = {a.i, b.i, c.i}
-		next_indices_i += 4
-
-	}
-	return pos2, indices2
-
-}
-
-NVertex0 :: 12
-NFace0 :: 20
-
-NVertex1 :: 42
-NFace1 :: 80
-
-NVertex2 :: 162
-NFace2 :: 320
-
-NVertex3 :: 642
-NFace3 :: 1280
-
-icosphere_refine :: proc(
-	pos1: [NVertex1]glm.vec3,
-	indices1: [NFace1][3]u16,
-) -> (
-	[NVertex2]glm.vec3,
-	[NFace2][3]u16,
-) {
-	context.allocator = temp_arena_allocator
-	for &pos in pos1 {
-		pos = glm.normalize(pos)
-	}
-	pos2: [NVertex2]glm.vec3
-	for p1, i in pos1 {
-		pos2[i] = p1
-	}
-	next_pos2_i := NVertex1
-	indices2: [NFace2][3]u16
-	next_indices_i := 0
-
-	m := make(map[int]PosI)
-
-	// loop over faces in indices1
-	for tri, i in indices1 {
-		p1: PosI = {pos1[tri.x], tri.x}
-		p2: PosI = {pos1[tri.y], tri.y}
-		p3: PosI = {pos1[tri.z], tri.z}
-
-		// for each edge, find midpoints
-		// for new ones, add to pos2 and store index in map for lookup
-		a, b, c: PosI
-		new: bool
-		a, new = get_middle_point(next_pos2_i, &m, p1, p2)
-		if new {
-			pos2[next_pos2_i] = a.pos
-			next_pos2_i += 1
-		}
-		b, new = get_middle_point(next_pos2_i, &m, p2, p3)
-		if new {
-			pos2[next_pos2_i] = b.pos
-			next_pos2_i += 1
-		}
-		c, new = get_middle_point(next_pos2_i, &m, p3, p1)
-		if new {
-			pos2[next_pos2_i] = c.pos
-			next_pos2_i += 1
-		}
-
-		// add 4 new faces to indices2
-		indices2[next_indices_i + 0] = {p1.i, a.i, c.i}
-		indices2[next_indices_i + 1] = {p2.i, b.i, a.i}
-		indices2[next_indices_i + 2] = {p3.i, c.i, b.i}
-		indices2[next_indices_i + 3] = {a.i, b.i, c.i}
-		next_indices_i += 4
-
-	}
-	return pos2, indices2
-}
-
-
-icosphere_refine2 :: proc(
-	pos1: [NVertex2]glm.vec3,
-	indices1: [NFace2][3]u16,
-) -> (
-	[NVertex3]glm.vec3,
-	[NFace3][3]u16,
-) {
-	context.allocator = temp_arena_allocator
-	for &pos in pos1 {
-		pos = glm.normalize(pos)
-	}
-	pos2: [NVertex3]glm.vec3
-	for p1, i in pos1 {
-		pos2[i] = p1
-	}
-	next_pos2_i := NVertex2
-	indices2: [NFace3][3]u16
-	next_indices_i := 0
-
-	m := make(map[int]PosI)
-
-	// loop over faces in indices1
-	for tri, i in indices1 {
-		p1: PosI = {pos1[tri.x], tri.x}
-		p2: PosI = {pos1[tri.y], tri.y}
-		p3: PosI = {pos1[tri.z], tri.z}
-
-		// for each edge, find midpoints
-		// for new ones, add to pos2 and store index in map for lookup
-		a, b, c: PosI
-		new: bool
-		a, new = get_middle_point(next_pos2_i, &m, p1, p2)
-		if new {
-			pos2[next_pos2_i] = a.pos
-			next_pos2_i += 1
-		}
-		b, new = get_middle_point(next_pos2_i, &m, p2, p3)
-		if new {
-			pos2[next_pos2_i] = b.pos
-			next_pos2_i += 1
-		}
-		c, new = get_middle_point(next_pos2_i, &m, p3, p1)
-		if new {
-			pos2[next_pos2_i] = c.pos
-			next_pos2_i += 1
-		}
-
-		// add 4 new faces to indices2
-		indices2[next_indices_i + 0] = {p1.i, a.i, c.i}
-		indices2[next_indices_i + 1] = {p2.i, b.i, a.i}
-		indices2[next_indices_i + 2] = {p3.i, c.i, b.i}
-		indices2[next_indices_i + 3] = {a.i, b.i, c.i}
-		next_indices_i += 4
-
-	}
-	fmt.println(next_pos2_i, next_indices_i, "----")
-	return pos2, indices2
-}
-
-icosphere_buffers_init :: proc(buffers: ^Buffers) {
-	pos_data1, indices_data1 := icosphere_create()
-	pos_data2, indices_data2 := icosphere_refine(pos_data1, indices_data1)
-	pos_data, indices_data := icosphere_refine2(pos_data2, indices_data2)
-	final_NVertex :: NVertex3
+	prev_pos := pos1[:]
+	prev_indices := indices1[:]
+	pos_data: []glm.vec3 = pos1[:]
+	indices_data: [][3]u16 = indices1[:]
 	for &pos in pos_data {
 		pos = glm.normalize(pos)
+	}
+	for x in 0 ..< refine_steps {
+		pos_data, indices_data = icosphere_refine(prev_pos, prev_indices)
+		if x > 0 {
+			delete(prev_pos);delete(prev_indices)
+		}
+		prev_pos = pos_data;prev_indices = indices_data
+	}
+	defer {
+		if refine_steps > 0 {
+			delete(pos_data);delete(indices_data)
+		}
 	}
 	buffers.pos = {
 		size   = 3,
@@ -277,20 +161,22 @@ icosphere_buffers_init :: proc(buffers: ^Buffers) {
 		target = gl.ARRAY_BUFFER,
 		usage  = gl.STATIC_DRAW,
 	}
-	buffer_init(&buffers.pos, pos_data[:])
+	buffer_init(&buffers.pos, pos_data)
 
-	tex_data: [final_NVertex][3]f32
+	tex_data := make_slice([][2]f32, len(pos_data))
+	defer delete(tex_data)
 	buffers.tex = {
 		size   = 2,
 		type   = gl.FLOAT,
 		target = gl.ARRAY_BUFFER,
 		usage  = gl.STATIC_DRAW,
 	}
-	buffer_init(&buffers.tex, tex_data[:])
+	buffer_init(&buffers.tex, tex_data)
 
-	normal_data: [final_NVertex]glm.vec3
+	normal_data := make_slice([]glm.vec3, len(pos_data))
+	defer delete(normal_data)
 	for pos, i in pos_data {
-		normal_data[i] = glm.normalize_vec3(pos)
+		normal_data[i] = pos
 	}
 	buffers.normal = {
 		size   = 3,
@@ -298,11 +184,11 @@ icosphere_buffers_init :: proc(buffers: ^Buffers) {
 		target = gl.ARRAY_BUFFER,
 		usage  = gl.STATIC_DRAW,
 	}
-	buffer_init(&buffers.normal, normal_data[:])
+	buffer_init(&buffers.normal, normal_data)
 
 	buffers.indices = {
 		usage = gl.STATIC_DRAW,
 	}
-	ea_buffer_init(&buffers.indices, indices_data[:])
+	ea_buffer_init(&buffers.indices, indices_data)
 }
 

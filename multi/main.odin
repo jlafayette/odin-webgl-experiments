@@ -11,7 +11,11 @@ main :: proc() {}
 GeoId :: enum {
 	Cube,
 	Pyramid,
-	Icosphere,
+	Icosphere0,
+	Icosphere1,
+	Icosphere2,
+	Icosphere3,
+	Icosphere4,
 }
 Geos :: [GeoId]Buffers
 ShaderId :: enum {
@@ -30,7 +34,7 @@ State :: struct {
 	textures:        Textures,
 }
 state: State = {
-	current_geo = .Icosphere,
+	current_geo = .Icosphere0,
 }
 
 temp_arena_buffer: [mem.Megabyte * 32]byte
@@ -54,7 +58,11 @@ start :: proc() -> (ok: bool) {
 
 	cube_buffers_init(&state.geo_buffers[.Cube])
 	pyramid_buffers_init(&state.geo_buffers[.Pyramid])
-	icosphere_buffers_init(&state.geo_buffers[.Icosphere])
+	icosphere_buffers_init(&state.geo_buffers[.Icosphere0], 0)
+	icosphere_buffers_init(&state.geo_buffers[.Icosphere1], 1)
+	icosphere_buffers_init(&state.geo_buffers[.Icosphere2], 2)
+	icosphere_buffers_init(&state.geo_buffers[.Icosphere3], 3)
+	icosphere_buffers_init(&state.geo_buffers[.Icosphere4], 4)
 
 	ok = textures_init(&state.textures)
 	if !ok {return}
@@ -120,14 +128,7 @@ draw_scene :: proc() -> (ok: bool) {
 		)
 		if !ok {return}
 	}
-	if state.current_geo == .Icosphere {
-		// b := state.geo_buffers[.Icosphere]
-		// gl.BindBuffer(b.pos.target, b.pos.id)
-		// gl.DrawArrays(gl.POINTS, 0, 12)
-		ea_buffer_draw(state.geo_buffers[state.current_geo].indices)
-	} else {
-		ea_buffer_draw(state.geo_buffers[state.current_geo].indices)
-	}
+	ea_buffer_draw(state.geo_buffers[state.current_geo].indices)
 	return ok
 }
 
