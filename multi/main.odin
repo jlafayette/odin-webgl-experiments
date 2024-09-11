@@ -33,7 +33,7 @@ state: State = {
 	current_geo = .Icosphere,
 }
 
-temp_arena_buffer: [mem.Megabyte * 8]byte
+temp_arena_buffer: [mem.Megabyte * 32]byte
 temp_arena: mem.Arena = {
 	data = temp_arena_buffer[:],
 }

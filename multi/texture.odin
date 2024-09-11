@@ -22,7 +22,7 @@ TextureInfo :: struct {
 
 textures_init :: proc(t: ^Textures) -> (ok: bool) {
 	{
-		img, err := png.load_from_bytes(odin_data, allocator = context.temp_allocator)
+		img, err := png.load_from_bytes(odin_data)
 		if err != nil {
 			fmt.eprintln("error loading odin image:", err)
 			return false
@@ -87,3 +87,4 @@ load_texture :: proc(img: ^image.Image) -> gl.Texture {
 is_power_of_two :: proc(n: int) -> bool {
 	return (n & (n - 1)) == 0
 }
+

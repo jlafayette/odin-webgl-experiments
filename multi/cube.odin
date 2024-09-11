@@ -103,3 +103,4 @@ cube_buffers_init :: proc(buffers: ^Buffers) {
 	}
 	ea_buffer_init(&buffers.indices, indices_data[:])
 }
+
