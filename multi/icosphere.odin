@@ -41,6 +41,9 @@ get_middle_point :: proc(
 }
 
 icosphere_refine :: proc(pos1: []glm.vec3, indices1: [][3]u16) -> ([]glm.vec3, [][3]u16) {
+	// useful reference:
+	// http://blog.andreaskahler.com/2009/06/creating-icosphere-mesh-in-code.html
+
 	// NVertex :: 12, 42, 162, 642, ...
 	// NFace :: 20, 80, 320, 1280, ...
 	pos2_len := (len(pos1) - 2) * 4 + 2
