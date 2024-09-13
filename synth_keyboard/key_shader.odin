@@ -16,6 +16,7 @@ KeyShader :: struct {
 	program:                  gl.Program,
 	a_pos:                    i32,
 	a_tex_coord:              i32,
+	a_matrix:                 i32,
 	u_model_matrix:           i32,
 	u_view_projection_matrix: i32,
 	u_sampler:                i32,
@@ -36,6 +37,7 @@ key_shader_init :: proc(s: ^KeyShader) -> (ok: bool) {
 
 	s.a_pos = gl.GetAttribLocation(program, "aPos")
 	s.a_tex_coord = gl.GetAttribLocation(program, "aTexCoord")
+	s.a_matrix = gl.GetAttribLocation(program, "aMatrix")
 	s.u_model_matrix = gl.GetUniformLocation(program, "uModelMatrix")
 	s.u_view_projection_matrix = gl.GetUniformLocation(program, "uViewProjectionMatrix")
 
@@ -46,6 +48,7 @@ shader_use :: proc(
 	u: KeyUniforms,
 	buffer_pos: Buffer,
 	buffer_tex: Buffer,
+	buffer_matrix: Buffer,
 	texture: TextureInfo,
 ) -> (
 	ok: bool,
@@ -54,6 +57,7 @@ shader_use :: proc(
 	// set attributes
 	shader_set_attribute(s.a_pos, buffer_pos)
 	shader_set_attribute(s.a_tex_coord, buffer_tex)
+	shader_set_matrix_attribute(s.a_matrix, buffer_matrix)
 
 	// set uniforms
 	gl.UniformMatrix4fv(s.u_model_matrix, u.model_matrix)
@@ -70,5 +74,16 @@ shader_set_attribute :: proc(index: i32, b: Buffer) {
 	gl.BindBuffer(b.target, b.id)
 	gl.VertexAttribPointer(index, b.size, b.type, false, 0, 0)
 	gl.EnableVertexAttribArray(index)
+}
+shader_set_matrix_attribute :: proc(index: i32, b: Buffer) {
+	gl.BindBuffer(b.target, b.id)
+	matrix_size := size_of(glm.mat4)
+	for i in 0 ..< 4 {
+		loc: i32 = i32(index) + i32(i)
+		gl.EnableVertexAttribArray(loc)
+		offset: uintptr = uintptr(i) * 16
+		gl.VertexAttribPointer(loc, b.size, b.type, false, matrix_size, offset)
+		gl.VertexAttribDivisor(u32(loc), 1)
+	}
 }
 

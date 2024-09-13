@@ -1,10 +1,10 @@
 #version 300 es
 
-precision lowp float;
+precision highp float;
 
 in vec4 aPos;
 in vec2 aTexCoord;
-// in mat4 matrix;
+in mat4 aMatrix;
 
 uniform mat4 uModelMatrix;
 uniform mat4 uViewProjectionMatrix;
@@ -12,7 +12,6 @@ uniform mat4 uViewProjectionMatrix;
 out vec2 vTexCoord;
 
 void main() {
-    gl_Position = uViewProjectionMatrix * uModelMatrix * aPos;
-    // gl_Position = uViewProjectionMatrix * matrix * uModelMatrix * aPos;
+    gl_Position = uViewProjectionMatrix * uModelMatrix * aMatrix * aPos;
     vTexCoord = aTexCoord;
 }

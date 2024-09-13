@@ -55,7 +55,7 @@ check_gl_error :: proc() -> (ok: bool) {
 	return true
 }
 
-draw_scene :: proc() -> (ok: bool) {
+draw_scene :: proc(dt: f32) -> (ok: bool) {
 	gl.ClearColor(0.5, 0.5, 0.5, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.ClearDepth(1)
@@ -68,11 +68,26 @@ draw_scene :: proc() -> (ok: bool) {
 	w := gl.DrawingBufferWidth()
 	h := gl.DrawingBufferHeight()
 
-	view_projection_matrix := glm.mat4Ortho3d(0, f32(w), f32(h), 0, -1, 1)
+	view_projection_matrix := glm.mat4Ortho3d(0, f32(w), f32(h), 0, -100, 100)
 
 	model_matrix := glm.mat4(1)
 	model_matrix *= glm.mat4Translate({5, 5, 0})
 	model_matrix *= glm.mat4Scale({1, 1, 1})
+
+	// update matrix data per frame
+
+	matrix_data: [3]glm.mat4 = {
+		glm.mat4Translate({0, 0, 0}),
+		glm.mat4Translate({52, 0, 0}),
+		glm.mat4Translate({104, 0, 0}),
+		// glm.mat4Rotate({0, 0, 1}, g_r - 12) * glm.mat4Scale({0.5, 2.1, 1}),
+		// glm.mat4Rotate({0, 0, 1}, g_r + 23), // glm.mat4(1) * glm.mat4Translate({300, 200, 0}),
+		// glm.mat4Translate({g_r, 0, 0}),
+		// glm.mat4Rotate({0, 0, 1}, g_r),
+	}
+	gl.BindBuffer(gl.ARRAY_BUFFER, state.key_buffers.matrices.id)
+	gl.BufferSubDataSlice(gl.ARRAY_BUFFER, 0, matrix_data[:])
+	// shader_set_matrix_attribute(state.key_shader.a_matrix, state.key_buffers.matrices)
 
 	uniforms: KeyUniforms = {
 		model_matrix           = model_matrix,
@@ -83,12 +98,22 @@ draw_scene :: proc() -> (ok: bool) {
 		uniforms,
 		state.key_buffers.pos,
 		state.key_buffers.tex,
+		state.key_buffers.matrices,
 		state.textures[.Corner],
 	)
 	if !ok {return}
-	ea_buffer_draw(state.key_buffers.indices)
+	// ea_buffer_draw(state.key_buffers.indices)
+	{
+		b := state.key_buffers.indices
+		gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.id)
+		// fmt.println("count:", b.count)
+		instance_count := 3
+		gl.DrawElementsInstanced(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, 0, instance_count)
+	}
 	return ok
 }
+
+g_r: f32 = 0
 
 @(export)
 step :: proc(dt: f32) -> (keep_going: bool) {
@@ -101,8 +126,9 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 	}
 
 	update_input(&g_input, dt)
+	g_r += dt * 1
 
-	ok = draw_scene()
+	ok = draw_scene(dt)
 	if !ok {return false}
 
 	return check_gl_error()

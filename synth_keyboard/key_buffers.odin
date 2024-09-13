@@ -5,10 +5,10 @@ import glm "core:math/linalg/glsl"
 import gl "vendor:wasm/WebGL"
 
 Buffers :: struct {
-	pos:     Buffer,
-	tex:     Buffer,
-	indices: EaBuffer,
-	// matrices: Buffer,
+	pos:      Buffer,
+	tex:      Buffer,
+	indices:  EaBuffer,
+	matrices: Buffer,
 }
 Buffer :: struct {
 	id:     gl.Buffer,
@@ -164,8 +164,6 @@ key_buffers_init :: proc(buffers: ^Buffers) {
 	add_verts(x, y, w, h, pos_data[lo:hi])
 	tex_uvs(.Corner, .FlipVH, tex_data[lo:hi])
 
-	fmt.println(pos_data)
-
 	for n in 0 ..< NFace {
 		i := n * 6
 		vo := u16(n * 4)
@@ -176,7 +174,6 @@ key_buffers_init :: proc(buffers: ^Buffers) {
 		indices_data[i + 4] = 2 + vo
 		indices_data[i + 5] = 3 + vo
 	}
-	fmt.println(indices_data)
 
 	buffers.pos = {
 		size   = 3,
@@ -199,17 +196,19 @@ key_buffers_init :: proc(buffers: ^Buffers) {
 	}
 	ea_buffer_init(&buffers.indices, indices_data[:])
 
-	// matrix_data: [3]glm.mat4 = {
-	// 	glm.mat4(1),
-	// 	glm.mat4Translate({64, 0, 0}),
-	// 	glm.mat4Translate({128, 0, 0}),
-	// }
-	// buffers.matrices = {
-	// 	size   = 1,
-	// 	type   = gl.FLOAT,
-	// 	target = gl.ARRAY_BUFFER,
-	// 	usage  = gl.DYNAMIC_DRAW,
-	// }
-	// buffer_init(&buffers.matrices, matrix_data[:])
+	matrix_data: [3]glm.mat4 = {
+		glm.mat4(1),
+		glm.mat4Translate({200, 0, 0}),
+		glm.mat4Translate({400, 0, 0}),
+	}
+	fmt.println("matrix size:", size_of(glm.mat4))
+	buffers.matrices = {
+		size   = 4,
+		type   = gl.FLOAT,
+		target = gl.ARRAY_BUFFER,
+		usage  = gl.DYNAMIC_DRAW,
+	}
+	buffer_init(&buffers.matrices, matrix_data[:])
+	check_gl_error()
 }
 
