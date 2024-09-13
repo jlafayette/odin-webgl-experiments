@@ -1,5 +1,7 @@
 package synth_keyboard
 
+import "../shared/text"
+import "core:fmt"
 import glm "core:math/linalg/glsl"
 import gl "vendor:wasm/WebGL"
 
@@ -10,14 +12,43 @@ AtlasBuffers :: struct {
 	matrices: Buffer,
 }
 
-NKeys :: 3
 
-atlas_buffers_init :: proc(buffers: ^AtlasBuffers) {
-	x: f32 = 0
-	y: f32 = 0
-	w: f32 = 16
-	h: f32 = 24
-	pos_data: [4][2]f32 = {{x + 0, y + 0}, {x + w, y + 0}, {x + w, y + h}, {x + 0, y + h}}
+atlas_buffers_init :: proc(
+	buffers: ^AtlasBuffers,
+	header: text.Header,
+	chars: []text.Char,
+	pos: [2]f32,
+	spacing: f32,
+) {
+
+	data_len := len(chars)
+	pos_data := make([][2]f32, data_len * 4, allocator = context.temp_allocator)
+	tex_data := make([][2]f32, data_len * 4, allocator = context.temp_allocator)
+	indices_data := make([][6]u16, data_len, allocator = context.temp_allocator)
+	x: f32 = pos.x
+	y: f32 = pos.y
+	for ch, ch_i in chars {
+		i := ch_i * 4
+		pos_data[i + 0] = {x, y}
+		pos_data[i + 1] = {x, y + ch.h}
+		pos_data[i + 2] = {x + ch.w, y + ch.h}
+		pos_data[i + 3] = {x + ch.w, y}
+		x += spacing
+
+		w_mult := 1.0 / f32(header.atlas_w)
+		h_mult := 1.0 / f32(header.atlas_h)
+		tx := ch.x * w_mult
+		ty := ch.y * h_mult
+		tx2 := tx + ch.w * w_mult
+		ty2 := ty + ch.h * h_mult
+		tex_data[i + 0] = {tx, ty}
+		tex_data[i + 1] = {tx, ty2}
+		tex_data[i + 2] = {tx2, ty2}
+		tex_data[i + 3] = {tx2, ty}
+
+		o: u16 = u16(i)
+		indices_data[ch_i] = {0 + o, 1 + o, 2 + o, 0 + o, 2 + o, 3 + o}
+	}
 	buffers.pos = {
 		size   = 2,
 		type   = gl.FLOAT,
@@ -25,8 +56,6 @@ atlas_buffers_init :: proc(buffers: ^AtlasBuffers) {
 		usage  = gl.STATIC_DRAW,
 	}
 	buffer_init(&buffers.pos, pos_data[:])
-
-	tex_data: [NKeys * 4][2]f32
 	buffers.tex = {
 		size   = 2,
 		type   = gl.FLOAT,
@@ -34,25 +63,10 @@ atlas_buffers_init :: proc(buffers: ^AtlasBuffers) {
 		usage  = gl.STATIC_DRAW,
 	}
 	buffer_init(&buffers.tex, tex_data[:])
-
-	indices_data: [6]u16 = {0, 1, 2, 0, 2, 3}
 	buffers.indices = {
 		usage = gl.STATIC_DRAW,
 	}
 	ea_buffer_init(&buffers.indices, indices_data[:])
-
-	matrix_data: [NKeys]glm.mat4 = {
-		glm.mat4(1),
-		glm.mat4Translate({200, 0, 0}),
-		glm.mat4Translate({400, 0, 0}),
-	}
-	buffers.matrices = {
-		size   = 4,
-		type   = gl.FLOAT,
-		target = gl.ARRAY_BUFFER,
-		usage  = gl.DYNAMIC_DRAW,
-	}
-	buffer_init(&buffers.matrices, matrix_data[:])
 
 	check_gl_error()
 }

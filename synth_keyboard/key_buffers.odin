@@ -33,6 +33,7 @@ buffer_init :: proc(b: ^Buffer, data: []$T) {
 }
 ea_buffer_init :: proc(b: ^EaBuffer, data: []$T) {
 	b.count = (len(data) * size_of(T)) / 2 // 2 is size of unsigned_short (u16)
+	fmt.println("b.count:", b.count)
 	b.offset = nil
 	b.id = gl.CreateBuffer()
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.id)
@@ -198,15 +199,15 @@ key_buffers_init :: proc(buffers: ^Buffers) {
 
 	matrix_data: [3]glm.mat4 = {
 		glm.mat4(1),
-		glm.mat4Translate({200, 0, 0}),
-		glm.mat4Translate({400, 0, 0}),
+		glm.mat4Translate({52, 0, 0}),
+		glm.mat4Translate({104, 0, 0}),
 	}
 	fmt.println("matrix size:", size_of(glm.mat4))
 	buffers.matrices = {
 		size   = 4,
 		type   = gl.FLOAT,
 		target = gl.ARRAY_BUFFER,
-		usage  = gl.DYNAMIC_DRAW,
+		usage  = gl.STATIC_DRAW,
 	}
 	buffer_init(&buffers.matrices, matrix_data[:])
 	check_gl_error()

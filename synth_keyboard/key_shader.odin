@@ -87,32 +87,4 @@ shader_set_matrix_attribute :: proc(index: i32, b: Buffer) {
 		gl.VertexAttribDivisor(u32(loc), 1)
 	}
 }
-shader_set_instanced_tex_attribute :: proc(index: i32, b: Buffer) {
-	// b.size = 2, b.type = gl.FLOAT
-	gl.BindBuffer(b.target, b.id)
-	vec2_size := size_of(glm.vec2)
-
-	// loc: i32 = i32(index) + i32(i)
-	loc := index
-	gl.EnableVertexAttribArray(loc)
-	stride := 8
-	offset: uintptr = uintptr(0) * 4 * 2
-	gl.VertexAttribPointer(loc, 2, gl.FLOAT, false, stride, offset)
-	gl.VertexAttribDivisor(u32(loc), 1)
-
-	// for i in 0 ..< 4 {
-	// 	loc: i32 = i32(index) + i32(i)
-	// 	gl.EnableVertexAttribArray(loc)
-	// 	offset: uintptr = uintptr(i) * 4 * 2
-	// 	gl.VertexAttribPointer(loc, 3, b.type, false, 32, offset)
-	// 	gl.VertexAttribDivisor(u32(loc), 1)
-	// }
-
-	// set attribute for color
-	// gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-	// gl.enableVertexAttribArray(colorLoc)
-	// gl.vertexAttribPointer(colorLoc, 4, gl.FLOAT, false, 0, 0)
-	// this line says this attribute only changes for each 1 instance
-	// ext.vertexAttribDivisorANGLE(colorLoc, 1)
-}
 

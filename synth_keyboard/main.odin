@@ -1,5 +1,6 @@
 package synth_keyboard
 
+import "../shared/text"
 import "core:fmt"
 import "core:math"
 import glm "core:math/linalg/glsl"
@@ -38,16 +39,25 @@ start :: proc() -> (ok: bool) {
 	// gl.DrawElementsInstanced(...)
 
 	init_input(&g_input)
+	ok = init_keys_atlas(&state.keys_atlas)
+	if !ok {return}
 
 	key_shader_init(&state.key_shader)
 
 	key_buffers_init(&state.key_buffers)
 
 	atlas_shader_init(&state.atlas_shader)
-	atlas_buffers_init(&state.atlas_buffers)
 
-	ok = init_keys_atlas(&state.keys_atlas)
-	if !ok {return}
+	chars := make([]text.Char, 8)
+	chars[0] = state.keys_atlas.chars[3] // C
+	chars[1] = state.keys_atlas.chars[4] // D
+	chars[2] = state.keys_atlas.chars[5] // E
+	chars[3] = state.keys_atlas.chars[6] // F
+	chars[4] = state.keys_atlas.chars[7] // G
+	chars[5] = state.keys_atlas.chars[1] // A
+	chars[6] = state.keys_atlas.chars[2] // B
+	chars[7] = state.keys_atlas.chars[3] // C
+	atlas_buffers_init(&state.atlas_buffers, state.keys_atlas.header, chars, {18, 86}, 52)
 
 	ok = textures_init(
 		&state.textures,
@@ -89,17 +99,14 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 
 	// update matrix data per frame
 
-	matrix_data: [3]glm.mat4 = {
-		glm.mat4Translate({0, 0, 0}),
-		glm.mat4Translate({52, 0, 0}),
-		glm.mat4Translate({104, 0, 0}),
-		// glm.mat4Rotate({0, 0, 1}, g_r - 12) * glm.mat4Scale({0.5, 2.1, 1}),
-		// glm.mat4Rotate({0, 0, 1}, g_r + 23), // glm.mat4(1) * glm.mat4Translate({300, 200, 0}),
-		// glm.mat4Translate({g_r, 0, 0}),
-		// glm.mat4Rotate({0, 0, 1}, g_r),
-	}
-	gl.BindBuffer(gl.ARRAY_BUFFER, state.key_buffers.matrices.id)
-	gl.BufferSubDataSlice(gl.ARRAY_BUFFER, 0, matrix_data[:])
+	// matrix_data: [3]glm.mat4 = {
+	// 	glm.mat4Translate({0, 0, 0}),
+	// 	glm.mat4Translate({52, 0, 0}),
+	// 	glm.mat4Translate({104, 0, 0}),
+	// }
+	// gl.BindBuffer(gl.ARRAY_BUFFER, state.key_buffers.matrices.id)
+	// gl.BufferSubDataSlice(gl.ARRAY_BUFFER, 0, matrix_data[:])
+
 	// shader_set_matrix_attribute(state.key_shader.a_matrix, state.key_buffers.matrices)
 
 	uniforms: KeyUniforms = {
@@ -125,50 +132,6 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 	}
 
 	{
-		// draw text labels on keys
-		gl.BindBuffer(gl.ARRAY_BUFFER, state.atlas_buffers.matrices.id)
-		matrix_data: [3]glm.mat4 = {
-			glm.mat4Translate({0 + 16, 100, 0}),
-			glm.mat4Translate({52 + 16, 100, 0}),
-			glm.mat4Translate({104 + 16, 80, 0}),
-			// glm.mat4Rotate({0, 0, 1}, g_r - 12) * glm.mat4Scale({0.5, 2.1, 1}),
-			// glm.mat4Rotate({0, 0, 1}, g_r + 23), // glm.mat4(1) * glm.mat4Translate({300, 200, 0}),
-			// glm.mat4Translate({g_r, 0, 0}),
-			// glm.mat4Rotate({0, 0, 1}, g_r),
-		}
-		gl.BufferSubDataSlice(gl.ARRAY_BUFFER, 0, matrix_data[:])
-
-		// TODO: update uvs 
-		{
-			b := state.atlas_buffers.tex
-			gl.BindBuffer(b.target, b.id)
-			tex_data: [12][2]f32 = {
-				{0, 0},
-				{0.1, 0},
-				{0.1, 0.2},
-				{0, 0.2},
-				{0, 0},
-				{1, 0},
-				{1, 1},
-				{0, 1},
-				{0, 0},
-				{0.5, 0},
-				{0.5, 0.5},
-				{0, 0.5},
-			}
-			gl.BufferSubDataSlice(b.target, 0, tex_data[:])
-
-
-			// gl.VertexAttribDivisor(u32(s.a_tex), 1)
-
-			// set attribute for color
-			// gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-			// gl.enableVertexAttribArray(colorLoc)
-			// gl.vertexAttribPointer(colorLoc, 4, gl.FLOAT, false, 0, 0)
-			// this line says this attribute only changes for each 1 instance
-			// ext.vertexAttribDivisorANGLE(colorLoc, 1)
-		}
-
 		uniforms: AtlasUniforms = {
 			projection = view_projection_matrix * model_matrix,
 			text_color = {0, 0.5, 0.5},
@@ -178,14 +141,9 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 			uniforms,
 			state.atlas_buffers.pos,
 			state.atlas_buffers.tex,
-			state.atlas_buffers.matrices,
 			state.textures[.KeysAtlas],
 		)
-
-		b := state.atlas_buffers.indices
-		gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.id)
-		instance_count := 3
-		gl.DrawElementsInstanced(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, 0, instance_count)
+		ea_buffer_draw(state.atlas_buffers.indices)
 	}
 
 	return ok
