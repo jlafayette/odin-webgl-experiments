@@ -9,10 +9,13 @@ import gl "vendor:wasm/WebGL"
 main :: proc() {}
 
 State :: struct {
-	started:     bool,
-	key_shader:  KeyShader,
-	key_buffers: Buffers,
-	textures:    Textures,
+	started:       bool,
+	key_shader:    KeyShader,
+	key_buffers:   Buffers,
+	atlas_shader:  AtlasShader,
+	atlas_buffers: AtlasBuffers,
+	textures:      Textures,
+	keys_atlas:    KeysAtlas,
 }
 state: State = {}
 
@@ -40,7 +43,17 @@ start :: proc() -> (ok: bool) {
 
 	key_buffers_init(&state.key_buffers)
 
-	ok = textures_init(&state.textures)
+	atlas_shader_init(&state.atlas_shader)
+	atlas_buffers_init(&state.atlas_buffers)
+
+	ok = init_keys_atlas(&state.keys_atlas)
+	if !ok {return}
+
+	ok = textures_init(
+		&state.textures,
+		state.keys_atlas.header.atlas_w,
+		state.keys_atlas.header.atlas_h,
+	)
 	if !ok {return}
 
 	return check_gl_error()
@@ -110,6 +123,71 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 		instance_count := 3
 		gl.DrawElementsInstanced(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, 0, instance_count)
 	}
+
+	{
+		// draw text labels on keys
+		gl.BindBuffer(gl.ARRAY_BUFFER, state.atlas_buffers.matrices.id)
+		matrix_data: [3]glm.mat4 = {
+			glm.mat4Translate({0 + 16, 100, 0}),
+			glm.mat4Translate({52 + 16, 100, 0}),
+			glm.mat4Translate({104 + 16, 80, 0}),
+			// glm.mat4Rotate({0, 0, 1}, g_r - 12) * glm.mat4Scale({0.5, 2.1, 1}),
+			// glm.mat4Rotate({0, 0, 1}, g_r + 23), // glm.mat4(1) * glm.mat4Translate({300, 200, 0}),
+			// glm.mat4Translate({g_r, 0, 0}),
+			// glm.mat4Rotate({0, 0, 1}, g_r),
+		}
+		gl.BufferSubDataSlice(gl.ARRAY_BUFFER, 0, matrix_data[:])
+
+		// TODO: update uvs 
+		{
+			b := state.atlas_buffers.tex
+			gl.BindBuffer(b.target, b.id)
+			tex_data: [12][2]f32 = {
+				{0, 0},
+				{0.1, 0},
+				{0.1, 0.2},
+				{0, 0.2},
+				{0, 0},
+				{1, 0},
+				{1, 1},
+				{0, 1},
+				{0, 0},
+				{0.5, 0},
+				{0.5, 0.5},
+				{0, 0.5},
+			}
+			gl.BufferSubDataSlice(b.target, 0, tex_data[:])
+
+
+			// gl.VertexAttribDivisor(u32(s.a_tex), 1)
+
+			// set attribute for color
+			// gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+			// gl.enableVertexAttribArray(colorLoc)
+			// gl.vertexAttribPointer(colorLoc, 4, gl.FLOAT, false, 0, 0)
+			// this line says this attribute only changes for each 1 instance
+			// ext.vertexAttribDivisorANGLE(colorLoc, 1)
+		}
+
+		uniforms: AtlasUniforms = {
+			projection = view_projection_matrix * model_matrix,
+			text_color = {0, 0.5, 0.5},
+		}
+		ok = atlas_shader_use(
+			&state.atlas_shader,
+			uniforms,
+			state.atlas_buffers.pos,
+			state.atlas_buffers.tex,
+			state.atlas_buffers.matrices,
+			state.textures[.KeysAtlas],
+		)
+
+		b := state.atlas_buffers.indices
+		gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.id)
+		instance_count := 3
+		gl.DrawElementsInstanced(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, 0, instance_count)
+	}
+
 	return ok
 }
 

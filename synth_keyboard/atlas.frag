@@ -14,4 +14,3 @@ void main() {
     vec4 sampled = vec4(1.0, 1.0, 1.0, t.a);
     color = vec4(uTextColor, 1.0) * sampled;
 }
-

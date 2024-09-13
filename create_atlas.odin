@@ -8,6 +8,7 @@ import "core:image/png"
 import "core:math"
 import glm "core:math/linalg/glsl"
 import "core:os"
+import "core:strconv"
 import "core:strings"
 import stb_image "vendor:stb/image"
 import tt "vendor:stb/truetype"
@@ -58,7 +59,12 @@ pack_add_char :: proc(pack: ^PackData, ch: Char) -> bool {
 scaled :: proc(value: i32, scale: f32) -> i32 {
 	return cast(i32)math.round(f32(value) * scale)
 }
-create_atlas :: proc(ttf_file: string, pixel_height: i32) -> bool {
+create_atlas :: proc(
+	ttf_file: string,
+	pixel_height: i32,
+	letters: string,
+	output_arg: string,
+) -> bool {
 	data, err := os.read_entire_file_from_filename_or_err(ttf_file)
 	if err != nil {
 		fmt.println("ERROR: reading file:", err)
@@ -105,6 +111,11 @@ create_atlas :: proc(ttf_file: string, pixel_height: i32) -> bool {
 		pack_reset(&pack)
 		done := true
 		for i in 32 ..< 128 {
+			if len(letters) > 0 {
+				if !strings.contains_rune(letters, rune(i)) {
+					continue
+				}
+			}
 			x0, y0, x1, y1: i32
 			tt.GetCodepointBitmapBox(&info, rune(i), scale, scale, &x0, &y0, &x1, &y1)
 			ch.w = x1 - x0
@@ -138,6 +149,11 @@ create_atlas :: proc(ttf_file: string, pixel_height: i32) -> bool {
 
 	pack_reset(&pack)
 	for i in 32 ..< 128 {
+		if len(letters) > 0 {
+			if !strings.contains_rune(letters, rune(i)) {
+				continue
+			}
+		}
 		out_header.codepoint_count += 1
 		tt.GetCodepointHMetrics(&info, rune(i), &ch.advance_width, &ch.left_side_bearing)
 		ch.advance_width = scaled(ch.advance_width, scale)
@@ -212,7 +228,17 @@ create_atlas :: proc(ttf_file: string, pixel_height: i32) -> bool {
 		return false
 	}
 	fmt.println(img)
-	save_err := bmp.save_to_file(fmt.tprintf("atlas_%d.bmp", pixel_height), &img)
+
+
+	output: string
+	if len(output_arg) == 0 {
+		output = fmt.tprintf("atlas_%d", pixel_height)
+	} else {
+		output = output_arg
+	}
+	fmt.println("output:", output)
+
+	save_err := bmp.save_to_file(fmt.tprintf("%s.bmp", output), &img)
 	if save_err != nil {
 		fmt.println("ERROR: saving to bmp file:", save_err)
 		return false
@@ -223,7 +249,7 @@ create_atlas :: proc(ttf_file: string, pixel_height: i32) -> bool {
 	out_header.atlas_h = pack.h
 
 	// save raw pixel data (single channel)
-	err = os.write_entire_file_or_err(fmt.tprintf("atlas_pixel_data_%d", pixel_height), raw_pixels)
+	err = os.write_entire_file_or_err(fmt.tprintf("%s_pixel_data", output), raw_pixels)
 	if err != nil {
 		fmt.println("ERROR: failed to save pixel data with:", err)
 		return false
@@ -267,10 +293,7 @@ create_atlas :: proc(ttf_file: string, pixel_height: i32) -> bool {
 		fmt.println(len(chars2))
 		fmt.println(chars2[0])
 	}
-	err = os.write_entire_file_or_err(
-		fmt.tprintf("atlas_data_%d", pixel_height),
-		buffer.buf[:written],
-	)
+	err = os.write_entire_file_or_err(fmt.tprintf("%s_data", output), buffer.buf[:written])
 	if err != nil {
 		fmt.println("ERROR: failed to save data with:", err)
 		return false
@@ -278,12 +301,67 @@ create_atlas :: proc(ttf_file: string, pixel_height: i32) -> bool {
 	return true
 }
 
+ParseMode :: enum {
+	None,
+	Size,
+	Output,
+	Letters,
+}
+
 main :: proc() {
-	// sizes: [7]i32 = {72, 60, 48, 36, 24, 18, 12}
-	sizes: [1]i32 = {24}
-	for size, i in sizes {
-		ok := create_atlas("Terminal.ttf", size)
-		fmt.println(size, ok)
+	args := os.args[1:]
+	mode: ParseMode = .None
+	size: int = 24
+	letters: string
+	output: string
+	for arg, i in args {
+		fmt.printf("%d: %v\n", i, arg)
+		switch mode {
+		case .None:
+			{
+				if strings.starts_with(arg, "-s") || arg == "--size" {
+					mode = .Size
+				}
+				if strings.starts_with(arg, "-l") || arg == "--letters" {
+					mode = .Letters
+				}
+				if strings.starts_with(arg, "-o") || arg == "--output" {
+					mode = .Output
+				}
+			}
+		case .Size:
+			{
+				ok: bool
+				size, ok = strconv.parse_int(arg)
+				if !ok {
+					fmt.eprintf("Error parsing size arg, expected int, got %v\n", arg)
+					os.exit(1)
+				}
+				mode = .None
+			}
+		case .Output:
+			{
+				output = arg
+				mode = .None
+			}
+		case .Letters:
+			{
+				letters = arg
+				mode = .None
+			}
+		}
 	}
+	fmt.println("size:", size)
+
+	ok := create_atlas("Terminal.ttf", cast(i32)size, letters, output)
+	fmt.println(size, ok)
+	if !ok {os.exit(1)}
+
+	// sizes: [7]i32 = {72, 60, 48, 36, 24, 18, 12}
+	// sizes: [1]i32 = {24}
+	// for size, i in sizes {
+	// 	ok := create_atlas("Terminal.ttf", size)
+	// 	fmt.println(size, ok)
+	// }
 }
 
