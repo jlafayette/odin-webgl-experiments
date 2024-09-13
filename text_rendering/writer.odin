@@ -9,8 +9,8 @@ import gl "vendor:wasm/WebGL"
 import "vendor:wasm/js"
 
 // Run create_atlas script first
-atlas_pixel_data := #load("../atlas_pixel_data_24")
-atlas_data := #load("../atlas_data_24")
+atlas_pixel_data := #load("../assets/atlas_pixel_data_24")
+atlas_data := #load("../assets/atlas_data_24")
 vert_source := #load("text.vert", string)
 frag_source := #load("text.frag", string)
 
