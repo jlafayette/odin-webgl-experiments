@@ -15,6 +15,8 @@ Layout :: struct {
 	key_width:           f32,
 	key_height:          f32,
 	label_offset_height: f32,
+	w:                   i32,
+	h:                   i32,
 }
 State :: struct {
 	started:       bool,
@@ -41,7 +43,8 @@ start :: proc() -> (ok: bool) {
 		fmt.eprintln("Failed to set current context to 'canvas-1'")
 		return false
 	}
-
+	state.layout.w = gl.DrawingBufferWidth()
+	state.layout.h = gl.DrawingBufferHeight()
 
 	// gl.VertexAttribDivisor(...)
 	// gl.DrawArraysInstanced(...)
@@ -52,7 +55,7 @@ start :: proc() -> (ok: bool) {
 	if !ok {return}
 
 	state.layout.number_of_keys = 10
-	state.layout.label_offset_height = 86
+	state.layout.label_offset_height = 20
 	state.layout.spacing = 52
 
 	key_shader_init(&state.key_shader)
@@ -108,24 +111,15 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 
 	w := gl.DrawingBufferWidth()
 	h := gl.DrawingBufferHeight()
+	state.layout.w = w
+	state.layout.h = h
 
-	view_projection_matrix := glm.mat4Ortho3d(0, f32(w), f32(h), 0, -100, 100)
+	// 0,0 is bottom left
+	view_projection_matrix := glm.mat4Ortho3d(0, f32(w), 0, f32(h), -100, 100)
 
 	model_matrix := glm.mat4(1)
-	model_matrix *= glm.mat4Translate({5, 5, 0})
+	model_matrix *= glm.mat4Translate({5, f32(h) - 5 - state.layout.key_height, 0})
 	model_matrix *= glm.mat4Scale({1, 1, 1})
-
-	// update matrix data per frame
-
-	// matrix_data: [3]glm.mat4 = {
-	// 	glm.mat4Translate({0, 0, 0}),
-	// 	glm.mat4Translate({52, 0, 0}),
-	// 	glm.mat4Translate({104, 0, 0}),
-	// }
-	// gl.BindBuffer(gl.ARRAY_BUFFER, state.key_buffers.matrices.id)
-	// gl.BufferSubDataSlice(gl.ARRAY_BUFFER, 0, matrix_data[:])
-
-	// shader_set_matrix_attribute(state.key_shader.a_matrix, state.key_buffers.matrices)
 
 	uniforms: KeyUniforms = {
 		model_matrix           = model_matrix,
@@ -140,15 +134,7 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 		state.textures[.Corner],
 	)
 	if !ok {return}
-	// ea_buffer_draw(state.key_buffers.indices)
-	{
-		b := state.key_buffers.indices
-		gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.id)
-		// fmt.println("count:", b.count)
-		instance_count := state.layout.number_of_keys
-		gl.DrawElementsInstanced(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, 0, instance_count)
-	}
-
+	ea_buffer_draw(state.key_buffers.indices, instance_count = state.layout.number_of_keys)
 	{
 		uniforms: AtlasUniforms = {
 			projection = view_projection_matrix * model_matrix,
@@ -167,8 +153,6 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 	return ok
 }
 
-g_r: f32 = 0
-
 @(export)
 step :: proc(dt: f32) -> (keep_going: bool) {
 	context.temp_allocator = temp_arena_allocator
@@ -180,7 +164,6 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 	}
 
 	update_input(&g_input, dt)
-	g_r += dt * 1
 
 	ok = draw_scene(dt)
 	if !ok {return false}

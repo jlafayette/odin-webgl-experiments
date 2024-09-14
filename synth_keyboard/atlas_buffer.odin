@@ -43,10 +43,12 @@ atlas_buffers_init :: proc(
 		ty := ch.y * h_mult
 		tx2 := tx + ch.w * w_mult
 		ty2 := ty + ch.h * h_mult
-		tex_data[i + 0] = {tx, ty}
-		tex_data[i + 1] = {tx, ty2}
-		tex_data[i + 2] = {tx2, ty2}
-		tex_data[i + 3] = {tx2, ty}
+
+		// mirror y
+		tex_data[i + 1] = {tx, ty}
+		tex_data[i + 0] = {tx, ty2}
+		tex_data[i + 3] = {tx2, ty2}
+		tex_data[i + 2] = {tx2, ty}
 
 		o: u16 = u16(i)
 		indices_data[ch_i] = {0 + o, 1 + o, 2 + o, 0 + o, 2 + o, 3 + o}

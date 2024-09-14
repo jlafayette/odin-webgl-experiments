@@ -39,9 +39,14 @@ ea_buffer_init :: proc(b: ^EaBuffer, data: []$T) {
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.id)
 	gl.BufferDataSlice(gl.ELEMENT_ARRAY_BUFFER, data[:], b.usage)
 }
-ea_buffer_draw :: proc(b: EaBuffer) {
+ea_buffer_draw :: proc(b: EaBuffer, instance_count: int = 0) {
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.id)
-	gl.DrawElements(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, b.offset)
+	if instance_count > 0 {
+		gl.DrawElementsInstanced(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, 0, instance_count)
+	} else {
+		gl.DrawElements(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, b.offset)
+
+	}
 }
 
 
@@ -166,6 +171,8 @@ key_buffers_init :: proc(buffers: ^Buffers, layout: ^Layout) {
 	tex_uvs(.Corner, .FlipVH, tex_data[lo:hi])
 	layout.key_width = x + w
 	layout.key_height = y + h
+	fmt.println("w:", layout.key_width)
+	fmt.println("h:", layout.key_height)
 
 	for n in 0 ..< NFace {
 		i := n * 6
