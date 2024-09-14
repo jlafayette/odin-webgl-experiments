@@ -9,6 +9,13 @@ import gl "vendor:wasm/WebGL"
 
 main :: proc() {}
 
+Layout :: struct {
+	number_of_keys:      int,
+	spacing:             f32,
+	key_width:           f32,
+	key_height:          f32,
+	label_offset_height: f32,
+}
 State :: struct {
 	started:       bool,
 	key_shader:    KeyShader,
@@ -17,6 +24,7 @@ State :: struct {
 	atlas_buffers: AtlasBuffers,
 	textures:      Textures,
 	keys_atlas:    KeysAtlas,
+	layout:        Layout,
 }
 state: State = {}
 
@@ -34,6 +42,7 @@ start :: proc() -> (ok: bool) {
 		return false
 	}
 
+
 	// gl.VertexAttribDivisor(...)
 	// gl.DrawArraysInstanced(...)
 	// gl.DrawElementsInstanced(...)
@@ -42,22 +51,31 @@ start :: proc() -> (ok: bool) {
 	ok = init_keys_atlas(&state.keys_atlas)
 	if !ok {return}
 
-	key_shader_init(&state.key_shader)
+	state.layout.number_of_keys = 10
+	state.layout.label_offset_height = 86
+	state.layout.spacing = 52
 
-	key_buffers_init(&state.key_buffers)
+	key_shader_init(&state.key_shader)
+	// will fill in key width and height
+	key_buffers_init(&state.key_buffers, &state.layout)
 
 	atlas_shader_init(&state.atlas_shader)
 
-	chars := make([]text.Char, 8)
-	chars[0] = state.keys_atlas.chars[3] // C
-	chars[1] = state.keys_atlas.chars[4] // D
-	chars[2] = state.keys_atlas.chars[5] // E
-	chars[3] = state.keys_atlas.chars[6] // F
-	chars[4] = state.keys_atlas.chars[7] // G
-	chars[5] = state.keys_atlas.chars[1] // A
-	chars[6] = state.keys_atlas.chars[2] // B
-	chars[7] = state.keys_atlas.chars[3] // C
-	atlas_buffers_init(&state.atlas_buffers, state.keys_atlas.header, chars, {18, 86}, 52)
+
+	chars := make([]text.Char, state.layout.number_of_keys)
+	keys_in_scale: int = 7
+	c_index: int = 3
+	char_i := c_index // start at 'C'
+	for i in 0 ..< state.layout.number_of_keys {
+		fmt.printf("i: %d, char_i: %d\n", i, char_i)
+		chars[i] = state.keys_atlas.chars[char_i]
+		char_i = (char_i + 1) % len(state.keys_atlas.chars)
+		// skip '#' at index 0
+		if char_i == 0 {
+			char_i += 1
+		}
+	}
+	atlas_buffers_init(&state.atlas_buffers, state.keys_atlas.header, chars, state.layout)
 
 	ok = textures_init(
 		&state.textures,
@@ -127,14 +145,14 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 		b := state.key_buffers.indices
 		gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.id)
 		// fmt.println("count:", b.count)
-		instance_count := 3
+		instance_count := state.layout.number_of_keys
 		gl.DrawElementsInstanced(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, 0, instance_count)
 	}
 
 	{
 		uniforms: AtlasUniforms = {
 			projection = view_projection_matrix * model_matrix,
-			text_color = {0, 0.5, 0.5},
+			text_color = {0, 0, 0},
 		}
 		ok = atlas_shader_use(
 			&state.atlas_shader,

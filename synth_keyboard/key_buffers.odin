@@ -115,7 +115,7 @@ add_verts :: proc(x, y, w, h: f32, out: [][3]f32) {
 
 NFace :: 9
 
-key_buffers_init :: proc(buffers: ^Buffers) {
+key_buffers_init :: proc(buffers: ^Buffers, layout: ^Layout) {
 	w: f32 = 16
 	h: f32 = 16
 	pos_data: [NFace * 4][3]f32
@@ -164,6 +164,8 @@ key_buffers_init :: proc(buffers: ^Buffers) {
 	x += w
 	add_verts(x, y, w, h, pos_data[lo:hi])
 	tex_uvs(.Corner, .FlipVH, tex_data[lo:hi])
+	layout.key_width = x + w
+	layout.key_height = y + h
 
 	for n in 0 ..< NFace {
 		i := n * 6
@@ -197,12 +199,17 @@ key_buffers_init :: proc(buffers: ^Buffers) {
 	}
 	ea_buffer_init(&buffers.indices, indices_data[:])
 
-	matrix_data: [3]glm.mat4 = {
-		glm.mat4(1),
-		glm.mat4Translate({52, 0, 0}),
-		glm.mat4Translate({104, 0, 0}),
+	matrix_data := make([]glm.mat4, layout.number_of_keys)
+	defer delete(matrix_data)
+	for i in 0 ..< layout.number_of_keys {
+		matrix_data[i] = glm.mat4Translate({f32(i) * layout.spacing, 0, 0})
 	}
-	fmt.println("matrix size:", size_of(glm.mat4))
+	//  {
+	// 	glm.mat4(1),
+	// 	glm.mat4Translate({52, 0, 0}),
+	// 	glm.mat4Translate({104, 0, 0}),
+	// }
+	// fmt.println("matrix size:", size_of(glm.mat4))
 	buffers.matrices = {
 		size   = 4,
 		type   = gl.FLOAT,
