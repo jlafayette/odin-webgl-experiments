@@ -51,6 +51,7 @@ init_input :: proc(input: ^Input, number_of_keys: int) {
 }
 
 update_input :: proc(input: ^Input, dt: f32) {
+	prev_key := input.mouse_key
 	input.mouse_key = -1
 	if input.clicked {
 		for key, i in state.keys {
@@ -60,13 +61,23 @@ update_input :: proc(input: ^Input, dt: f32) {
 			}
 		}
 	}
+	new_key := input.mouse_key
+	if prev_key != new_key {
+		// release prev_key if keyboard ctrl is not pressed
+		if prev_key != -1 && !input.keys_down[prev_key] {
+			note_released(prev_key)
+		}
+		if new_key != -1 && !input.keys_down[new_key] {
+			note_pressed(new_key)
+		}
+	}
 }
 
 on_mouse_move :: proc(e: js.Event) {
 	// movement := e.mouse.movement
 	// mouse_diff := {f32(movement.x), f32(movement.y)}
 	pos := get_mouse_pos("canvas-1", e.mouse.client, true)
-	fmt.println("ffi pos:", pos)
+	// fmt.println("ffi pos:", pos)
 	g_input.mouse_pos = pos
 }
 
@@ -106,6 +117,9 @@ on_key_down :: proc(e: js.Event) {
 		i := k_map[e.key.code]
 		if i < len(g_input.keys_down) {
 			g_input.keys_down[i] = true
+			if g_input.mouse_key != i {
+				note_pressed(i)
+			}
 		}
 	}
 }
@@ -113,16 +127,28 @@ on_key_up :: proc(e: js.Event) {
 	if e.key.code in k_map {
 		i := k_map[e.key.code]
 		if i < len(g_input.keys_down) {
-			g_input.keys_down[i] = false
+			if g_input.keys_down[i] {
+				g_input.keys_down[i] = false
+				if g_input.mouse_key != i {
+					note_released(i)
+				}
+			}
 		}
 	}
 }
 
 on_blur :: proc(e: js.Event) {
-	for &v in g_input.keys_down {
-		v = false
-	}
 	g_input.clicked = false
+	mi := g_input.mouse_key
+	if mi != -1 && g_input.keys_down[mi] {
+		note_released(mi)
+	}
 	g_input.mouse_key = -1
+	for &v, i in g_input.keys_down {
+		if v {
+			note_released(i)
+			v = false
+		}
+	}
 }
 
