@@ -9,26 +9,15 @@
 
 <body>
 	<canvas id="canvas-1" width="640" height="480"></canvas>
-	<script type="module" src="./runtime-3.js"></script>
+	<script type="module" src="./runtime.js"></script>
+	<script type="module" src="./odin-mouse.js"></script>
 	<script type="text/javascript">
 		window.addEventListener('load', function () {
-			odin.runWasm("./_main.wasm", {});
+			wasmMemoryInterface = new odin.WasmMemoryInterface();
+			wasmMemoryInterface.setIntSize(4);
+			let custom_imports = window.odinMouse.setupImports(wasmMemoryInterface);
+			odin.runWasm("./_main.wasm", undefined, custom_imports, wasmMemoryInterface);
 		});
-		// function getMousePos(canvas, evt) {
-		// 	let rect = canvas.getBoundingClientRect();
-		// 	let pos = {
-		// 		x: (evt.clientX - rect.left) / (rect.right - rect.left) * canvas.width,
-		// 		y: (evt.clientY - rect.top) / (rect.bottom - rect.top) * canvas.height
-		// 	};
-		// 	// make 0,0 in lower left instead of upper left
-		// 	pos.y = canvas.height - pos.y;
-		// 	return pos;
-		// }
-		// window.addEventListener('mousemove', function (evt) {
-		// 	let canvas = document.getElementById("canvas-1");
-		// 	let pos = getMousePos(canvas, evt);
-		// 	console.log(pos);
-		// }, false);
 	</script>
 </body>
 

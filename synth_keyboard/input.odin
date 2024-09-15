@@ -1,5 +1,7 @@
 package synth_keyboard
 
+foreign import odin_mouse "odin_mouse"
+
 import "core:fmt"
 import glm "core:math/linalg/glsl"
 import gl "vendor:wasm/WebGL"
@@ -13,28 +15,23 @@ Input :: struct {
 }
 g_input := Input{}
 
-MousePosInterface :: struct {
-	x: f32,
-	y: f32,
+get_mouse_pos :: proc "contextless" (
+	canvas_id: string,
+	client_pos: [2]i64, // from e.mouse.client
+	flip_y: bool, // if true, 0,0 is lower left instead of upper left
+) -> (
+	pos: [2]f32,
+) {
+	@(default_calling_convention = "contextless")
+	foreign odin_mouse {
+		@(link_name = "getMousePos")
+		_getMousePos :: proc(out_pos: ^[2]f64, id: string, client_x, client_y: i64, flip_y: bool) ---
+	}
+	out_pos: [2]f64
+	_getMousePos(&out_pos, canvas_id, client_pos.x, client_pos.y, flip_y)
+	return {f32(out_pos.x), f32(out_pos.y)}
 }
-MOUSE_POS_PTR: ^MousePosInterface
-MOUSE_POS_SIZE: i32
 
-@(export)
-mouse_pos_alloc :: proc() -> ^MousePosInterface {
-	mouse_pos := new(MousePosInterface)
-	MOUSE_POS_PTR = mouse_pos
-	MOUSE_POS_SIZE = size_of(MousePosInterface)
-	return mouse_pos
-}
-@(export)
-mouse_pos_x_offset :: proc() -> i32 {
-	return cast(i32)offset_of(MousePosInterface, x)
-}
-@(export)
-mouse_pos_y_offset :: proc() -> i32 {
-	return cast(i32)offset_of(MousePosInterface, y)
-}
 pos_in_key :: proc(pos: [2]f32, key: Key) -> bool {
 	if pos.x < key.pos.x {return false}
 	if pos.x > key.pos.x + key.w {return false}
@@ -54,11 +51,6 @@ init_input :: proc(input: ^Input, number_of_keys: int) {
 }
 
 update_input :: proc(input: ^Input, dt: f32) {
-	if MOUSE_POS_SIZE > 0 {
-		mouse_pos := MOUSE_POS_PTR
-		input.mouse_pos.x = mouse_pos.x
-		input.mouse_pos.y = mouse_pos.y
-	}
 	input.mouse_key = -1
 	if input.clicked {
 		for key, i in state.keys {
@@ -68,15 +60,14 @@ update_input :: proc(input: ^Input, dt: f32) {
 			}
 		}
 	}
-	// fmt.println(input.mouse_key)
 }
 
 on_mouse_move :: proc(e: js.Event) {
 	// movement := e.mouse.movement
 	// mouse_diff := {f32(movement.x), f32(movement.y)}
-	// fmt.println("mouse screen:", e.mouse.screen)
-	// fmt.println("mouse client:", e.mouse.client)
-	// fmt.println("(odin) mouse pos:", g_input.mouse_pos)
+	pos := get_mouse_pos("canvas-1", e.mouse.client, true)
+	fmt.println("ffi pos:", pos)
+	g_input.mouse_pos = pos
 }
 
 on_mouse_down :: proc(e: js.Event) {
