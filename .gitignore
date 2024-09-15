@@ -1,5 +1,7 @@
 **/_main.wasm
 **/runtime.js
 **/runtime-2.js
+**/runtime-3.js
 **/gamepad-copy.js
+**/mouse-pos-copy.js
 *.exe

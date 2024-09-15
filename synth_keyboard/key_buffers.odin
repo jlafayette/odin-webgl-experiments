@@ -7,6 +7,7 @@ import gl "vendor:wasm/WebGL"
 Buffers :: struct {
 	pos:      Buffer,
 	tex:      Buffer,
+	colors:   Buffer,
 	indices:  EaBuffer,
 	matrices: Buffer,
 }
@@ -224,6 +225,21 @@ key_buffers_init :: proc(buffers: ^Buffers, layout: ^Layout) {
 		usage  = gl.STATIC_DRAW,
 	}
 	buffer_init(&buffers.matrices, matrix_data[:])
+
+	color_data := make([]glm.vec4, layout.number_of_keys)
+	defer delete(color_data)
+	for i in 0 ..< layout.number_of_keys {
+		color_data[i] = {0, 1, 1, 1}
+	}
+	buffers.colors = {
+		size   = 4,
+		type   = gl.FLOAT,
+		target = gl.ARRAY_BUFFER,
+		usage  = gl.DYNAMIC_DRAW,
+	}
+	buffer_init(&buffers.colors, color_data)
+
 	check_gl_error()
+
 }
 

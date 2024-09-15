@@ -45,18 +45,13 @@ start :: proc() -> (ok: bool) {
 	}
 	state.layout.w = gl.DrawingBufferWidth()
 	state.layout.h = gl.DrawingBufferHeight()
-
-	// gl.VertexAttribDivisor(...)
-	// gl.DrawArraysInstanced(...)
-	// gl.DrawElementsInstanced(...)
-
-	init_input(&g_input)
-	ok = init_keys_atlas(&state.keys_atlas)
-	if !ok {return}
-
-	state.layout.number_of_keys = 10
+	state.layout.number_of_keys = 11
 	state.layout.label_offset_height = 20
 	state.layout.spacing = 52
+
+	init_input(&g_input, state.layout.number_of_keys)
+	ok = init_keys_atlas(&state.keys_atlas)
+	if !ok {return}
 
 	key_shader_init(&state.key_shader)
 	// will fill in key width and height
@@ -64,13 +59,11 @@ start :: proc() -> (ok: bool) {
 
 	atlas_shader_init(&state.atlas_shader)
 
-
 	chars := make([]text.Char, state.layout.number_of_keys)
 	keys_in_scale: int = 7
 	c_index: int = 3
 	char_i := c_index // start at 'C'
 	for i in 0 ..< state.layout.number_of_keys {
-		fmt.printf("i: %d, char_i: %d\n", i, char_i)
 		chars[i] = state.keys_atlas.chars[char_i]
 		char_i = (char_i + 1) % len(state.keys_atlas.chars)
 		// skip '#' at index 0
@@ -130,12 +123,28 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 		uniforms,
 		state.key_buffers.pos,
 		state.key_buffers.tex,
+		state.key_buffers.colors,
 		state.key_buffers.matrices,
 		state.textures[.Corner],
 	)
 	if !ok {return}
 	ea_buffer_draw(state.key_buffers.indices, instance_count = state.layout.number_of_keys)
 	{
+
+		// update instance colors
+		color_data := make([]glm.vec4, state.layout.number_of_keys)
+		defer delete(color_data)
+		for i in 0 ..< state.layout.number_of_keys {
+			if g_input.keys_down[i] {
+				color_data[i] = {0, 1, 1, 1}
+			} else {
+				color_data[i] = {1, 1, 1, 1}
+			}
+		}
+		b := state.key_buffers.colors
+		gl.BindBuffer(b.target, b.id)
+		gl.BufferSubDataSlice(b.target, 0, color_data)
+
 		uniforms: AtlasUniforms = {
 			projection = view_projection_matrix * model_matrix,
 			text_color = {0, 0, 0},
