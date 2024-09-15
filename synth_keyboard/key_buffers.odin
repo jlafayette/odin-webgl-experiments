@@ -46,10 +46,8 @@ ea_buffer_draw :: proc(b: EaBuffer, instance_count: int = 0) {
 		gl.DrawElementsInstanced(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, 0, instance_count)
 	} else {
 		gl.DrawElements(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, b.offset)
-
 	}
 }
-
 
 TexId :: enum {
 	Corner,
@@ -121,7 +119,7 @@ add_verts :: proc(x, y, w, h: f32, out: [][3]f32) {
 
 NFace :: 9
 
-key_buffers_init :: proc(buffers: ^Buffers, layout: ^Layout) {
+key_buffers_init :: proc(buffers: ^Buffers, layout: Layout) -> (key_dimensions: [2]f32) {
 	w: f32 = 16
 	h: f32 = 16
 	pos_data: [NFace * 4][3]f32
@@ -170,10 +168,9 @@ key_buffers_init :: proc(buffers: ^Buffers, layout: ^Layout) {
 	x += w
 	add_verts(x, y, w, h, pos_data[lo:hi])
 	tex_uvs(.Corner, .FlipVH, tex_data[lo:hi])
-	layout.key_width = x + w
-	layout.key_height = y + h
-	fmt.println("w:", layout.key_width)
-	fmt.println("h:", layout.key_height)
+	key_dimensions = {x + w, y + h}
+	fmt.println("w:", key_dimensions.x)
+	fmt.println("h:", key_dimensions.y)
 
 	for n in 0 ..< NFace {
 		i := n * 6
@@ -209,9 +206,9 @@ key_buffers_init :: proc(buffers: ^Buffers, layout: ^Layout) {
 
 	matrix_data := make([]glm.mat4, layout.number_of_keys)
 	defer delete(matrix_data)
-	for i in 0 ..< layout.number_of_keys {
-		matrix_data[i] = glm.mat4Translate({f32(i) * layout.spacing, 0, 0})
-	}
+	// for i in 0 ..< layout.number_of_keys {
+	// 	matrix_data[i] = glm.mat4Translate({f32(i) * layout.spacing, 0, 0})
+	// }
 	//  {
 	// 	glm.mat4(1),
 	// 	glm.mat4Translate({52, 0, 0}),
@@ -241,5 +238,16 @@ key_buffers_init :: proc(buffers: ^Buffers, layout: ^Layout) {
 
 	check_gl_error()
 
+	return key_dimensions
+}
+
+key_buffer_update_matrix_data :: proc(keys: []Key, b: Buffer) {
+	matrix_data := make([]glm.mat4, len(keys))
+	defer delete(matrix_data)
+	for key, i in keys {
+		matrix_data[i] = glm.mat4Translate({key.pos.x, key.pos.y, 0})
+	}
+	gl.BindBuffer(b.target, b.id)
+	gl.BufferSubDataSlice(b.target, 0, matrix_data)
 }
 

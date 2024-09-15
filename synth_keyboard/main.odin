@@ -9,14 +9,18 @@ import gl "vendor:wasm/WebGL"
 
 main :: proc() {}
 
-Layout :: struct {
-	number_of_keys:      int,
-	spacing:             f32,
-	key_width:           f32,
-	key_height:          f32,
+Key :: struct {
+	pos:                 [2]f32,
+	w:                   f32,
+	h:                   f32,
+	char:                text.Char,
 	label_offset_height: f32,
-	w:                   i32,
-	h:                   i32,
+}
+Layout :: struct {
+	number_of_keys: int,
+	spacing:        f32,
+	w:              i32,
+	h:              i32,
 }
 State :: struct {
 	started:       bool,
@@ -27,6 +31,7 @@ State :: struct {
 	textures:      Textures,
 	keys_atlas:    KeysAtlas,
 	layout:        Layout,
+	keys:          []Key,
 }
 state: State = {}
 
@@ -46,8 +51,8 @@ start :: proc() -> (ok: bool) {
 	state.layout.w = gl.DrawingBufferWidth()
 	state.layout.h = gl.DrawingBufferHeight()
 	state.layout.number_of_keys = 11
-	state.layout.label_offset_height = 20
 	state.layout.spacing = 52
+	state.keys = make([]Key, state.layout.number_of_keys)
 
 	init_input(&g_input, state.layout.number_of_keys)
 	ok = init_keys_atlas(&state.keys_atlas)
@@ -55,23 +60,36 @@ start :: proc() -> (ok: bool) {
 
 	key_shader_init(&state.key_shader)
 	// will fill in key width and height
-	key_buffers_init(&state.key_buffers, &state.layout)
+	key_dim := key_buffers_init(&state.key_buffers, state.layout)
+	{
+		x: f32 = 5
+		y: f32 = 5
+		for &key, i in state.keys {
+			key.pos = {x, y}
+			key.w = key_dim.x
+			key.h = key_dim.y
+			key.label_offset_height = 20 + (6 * f32(i))
+			x += state.layout.spacing
+		}
+		key_buffer_update_matrix_data(state.keys, state.key_buffers.matrices)
+	}
 
 	atlas_shader_init(&state.atlas_shader)
 
-	chars := make([]text.Char, state.layout.number_of_keys)
-	keys_in_scale: int = 7
-	c_index: int = 3
-	char_i := c_index // start at 'C'
-	for i in 0 ..< state.layout.number_of_keys {
-		chars[i] = state.keys_atlas.chars[char_i]
-		char_i = (char_i + 1) % len(state.keys_atlas.chars)
-		// skip '#' at index 0
-		if char_i == 0 {
-			char_i += 1
+	{
+		keys_in_scale: int = 7
+		c_index: int = 3
+		char_i := c_index // start at 'C'
+		for i in 0 ..< state.layout.number_of_keys {
+			state.keys[i].char = state.keys_atlas.chars[char_i]
+			char_i = (char_i + 1) % len(state.keys_atlas.chars)
+			// skip '#' at index 0
+			if char_i == 0 {
+				char_i += 1
+			}
 		}
 	}
-	atlas_buffers_init(&state.atlas_buffers, state.keys_atlas.header, chars, state.layout)
+	atlas_buffers_init(&state.atlas_buffers, state.keys_atlas.header, state.keys)
 
 	ok = textures_init(
 		&state.textures,
@@ -111,7 +129,7 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 	view_projection_matrix := glm.mat4Ortho3d(0, f32(w), 0, f32(h), -100, 100)
 
 	model_matrix := glm.mat4(1)
-	model_matrix *= glm.mat4Translate({5, f32(h) - 5 - state.layout.key_height, 0})
+	model_matrix *= glm.mat4Translate({0, 0, 0})
 	model_matrix *= glm.mat4Scale({1, 1, 1})
 
 	uniforms: KeyUniforms = {

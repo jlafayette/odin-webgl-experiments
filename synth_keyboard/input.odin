@@ -5,11 +5,6 @@ import glm "core:math/linalg/glsl"
 import gl "vendor:wasm/WebGL"
 import "vendor:wasm/js"
 
-Key :: struct {
-	pos: []f32,
-	w:   f32,
-	h:   f32,
-}
 Input :: struct {
 	keys_down: []bool,
 	clicked:   bool,
