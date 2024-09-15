@@ -50,7 +50,6 @@ load_pixels_to_texture :: proc(pixels: []byte, w, h: i32) -> gl.Texture {
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, i32(gl.CLAMP_TO_EDGE))
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, i32(gl.CLAMP_TO_EDGE))
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, i32(gl.LINEAR))
-
 	return texture
 }
 
@@ -83,16 +82,9 @@ load_texture :: proc(img: ^image.Image) -> gl.Texture {
 		type,
 		data,
 	)
-	if (is_power_of_two(img.width) && is_power_of_two(img.height)) {
-		fmt.println("generating mipmaps")
-		gl.GenerateMipmap(gl.TEXTURE_2D)
-	} else {
-		// wasn't able to test this because non-power-of-2 images fail on the
-		// TexImage2D command
-		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, cast(i32)gl.CLAMP_TO_EDGE)
-		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, cast(i32)gl.CLAMP_TO_EDGE)
-		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, cast(i32)gl.LINEAR)
-	}
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, cast(i32)gl.CLAMP_TO_EDGE)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, cast(i32)gl.CLAMP_TO_EDGE)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, cast(i32)gl.LINEAR)
 	return texture
 }
 @(private = "file")

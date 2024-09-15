@@ -127,6 +127,7 @@ key_buffers_init :: proc(buffers: ^Buffers, layout: Layout) -> (key_dimensions: 
 	indices_data: [NFace * 6]u16
 	lo, hi: int;hi = 4
 	x, y: f32
+	x_overlap: f32 = 0.8
 	// top
 	add_verts(x, y, w, h, pos_data[lo:hi])
 	tex_uvs(.Corner, .None, tex_data[lo:hi])
@@ -135,7 +136,7 @@ key_buffers_init :: proc(buffers: ^Buffers, layout: Layout) -> (key_dimensions: 
 	add_verts(x, y, w, h, pos_data[lo:hi])
 	tex_uvs(.LineH, .None, tex_data[lo:hi])
 	lo = hi;hi += 4
-	x += w
+	x += w - x_overlap
 	add_verts(x, y, w, h, pos_data[lo:hi])
 	tex_uvs(.Corner, .FlipH, tex_data[lo:hi])
 	// middle
@@ -150,7 +151,7 @@ key_buffers_init :: proc(buffers: ^Buffers, layout: Layout) -> (key_dimensions: 
 	add_verts(x, y, w, h, pos_data[lo:hi])
 	tex_uvs(.Open, .None, tex_data[lo:hi])
 	lo = hi;hi += 4
-	x += w
+	x += w - x_overlap
 	add_verts(x, y, w, h, pos_data[lo:hi])
 	tex_uvs(.LineV, .FlipH, tex_data[lo:hi])
 	// bottom
@@ -165,7 +166,7 @@ key_buffers_init :: proc(buffers: ^Buffers, layout: Layout) -> (key_dimensions: 
 	add_verts(x, y, w, h, pos_data[lo:hi])
 	tex_uvs(.LineH, .FlipV, tex_data[lo:hi])
 	lo = hi;hi += 4
-	x += w
+	x += w - x_overlap
 	add_verts(x, y, w, h, pos_data[lo:hi])
 	tex_uvs(.Corner, .FlipVH, tex_data[lo:hi])
 	key_dimensions = {x + w, y + h}

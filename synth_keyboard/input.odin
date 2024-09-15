@@ -35,6 +35,13 @@ mouse_pos_x_offset :: proc() -> i32 {
 mouse_pos_y_offset :: proc() -> i32 {
 	return cast(i32)offset_of(MousePosInterface, y)
 }
+pos_in_key :: proc(pos: [2]f32, key: Key) -> bool {
+	if pos.x < key.pos.x {return false}
+	if pos.x > key.pos.x + key.w {return false}
+	if pos.y < key.pos.y {return false}
+	if pos.y > key.pos.y + key.h {return false}
+	return true
+}
 
 init_input :: proc(input: ^Input, number_of_keys: int) {
 	js.add_window_event_listener(.Key_Down, {}, on_key_down)
@@ -49,11 +56,19 @@ init_input :: proc(input: ^Input, number_of_keys: int) {
 update_input :: proc(input: ^Input, dt: f32) {
 	if MOUSE_POS_SIZE > 0 {
 		mouse_pos := MOUSE_POS_PTR
-		g_input.mouse_pos.x = mouse_pos.x
-		g_input.mouse_pos.y = mouse_pos.y
+		input.mouse_pos.x = mouse_pos.x
+		input.mouse_pos.y = mouse_pos.y
 	}
-	// if clicked and within key, mark that key as down
-	// and mark mouse key so it can be released
+	input.mouse_key = -1
+	if input.clicked {
+		for key, i in state.keys {
+			if pos_in_key(input.mouse_pos, key) {
+				input.mouse_key = i
+				break
+			}
+		}
+	}
+	// fmt.println(input.mouse_key)
 }
 
 on_mouse_move :: proc(e: js.Event) {
@@ -61,18 +76,18 @@ on_mouse_move :: proc(e: js.Event) {
 	// mouse_diff := {f32(movement.x), f32(movement.y)}
 	// fmt.println("mouse screen:", e.mouse.screen)
 	// fmt.println("mouse client:", e.mouse.client)
-	fmt.println("(odin) mouse pos:", g_input.mouse_pos)
+	// fmt.println("(odin) mouse pos:", g_input.mouse_pos)
 }
 
 on_mouse_down :: proc(e: js.Event) {
-	fmt.println("click:", e.mouse.button)
+	// fmt.println("click:", e.mouse.button)
 	if e.mouse.button != 0 {
 		return
 	}
 	g_input.clicked = true
 }
 on_mouse_up :: proc(e: js.Event) {
-	fmt.println("unclick:", e.mouse.button)
+	// fmt.println("unclick:", e.mouse.button)
 	if e.mouse.button != 0 {
 		return
 	}
@@ -117,5 +132,6 @@ on_blur :: proc(e: js.Event) {
 		v = false
 	}
 	g_input.clicked = false
+	g_input.mouse_key = -1
 }
 

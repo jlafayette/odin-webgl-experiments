@@ -18,7 +18,6 @@ Key :: struct {
 }
 Layout :: struct {
 	number_of_keys: int,
-	spacing:        f32,
 	w:              i32,
 	h:              i32,
 }
@@ -51,7 +50,6 @@ start :: proc() -> (ok: bool) {
 	state.layout.w = gl.DrawingBufferWidth()
 	state.layout.h = gl.DrawingBufferHeight()
 	state.layout.number_of_keys = 11
-	state.layout.spacing = 52
 	state.keys = make([]Key, state.layout.number_of_keys)
 
 	init_input(&g_input, state.layout.number_of_keys)
@@ -59,17 +57,19 @@ start :: proc() -> (ok: bool) {
 	if !ok {return}
 
 	key_shader_init(&state.key_shader)
-	// will fill in key width and height
 	key_dim := key_buffers_init(&state.key_buffers, state.layout)
 	{
-		x: f32 = 5
-		y: f32 = 5
+		total_key_width: f32 = key_dim.x * f32(len(state.keys))
+		canvas_w := f32(state.layout.w)
+		spacing := (canvas_w - total_key_width) / f32(len(state.keys) + 1)
+		x: f32 = spacing
+		y: f32 = spacing
 		for &key, i in state.keys {
 			key.pos = {x, y}
 			key.w = key_dim.x
 			key.h = key_dim.y
 			key.label_offset_height = 20 + (6 * f32(i))
-			x += state.layout.spacing
+			x += key.w + spacing
 		}
 		key_buffer_update_matrix_data(state.keys, state.key_buffers.matrices)
 	}
@@ -153,8 +153,8 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 		color_data := make([]glm.vec4, state.layout.number_of_keys)
 		defer delete(color_data)
 		for i in 0 ..< state.layout.number_of_keys {
-			if g_input.keys_down[i] {
-				color_data[i] = {0, 1, 1, 1}
+			if g_input.keys_down[i] || i == g_input.mouse_key {
+				color_data[i] = {0.4, 0.9, 1, 1}
 			} else {
 				color_data[i] = {1, 1, 1, 1}
 			}
