@@ -42,7 +42,7 @@ function setupImports(wasmMemoryInterface, consoleElement, memory) {
 		env,
 		"odin_synth": {
 			note_pressed: (index, freq) => {
-				console.log(`note_pressed(index: ${index}, freq: ${freq})`);
+				// console.log(`note_pressed(index: ${index}, freq: ${freq})`);
 				if (!audioContext) {
 					setup();
 				}
@@ -55,7 +55,7 @@ function setupImports(wasmMemoryInterface, consoleElement, memory) {
 				}
 			},
 			note_released: (index) => {
-				console.log(`note_released(index: ${index})`);
+				// console.log(`note_released(index: ${index})`);
 				if (!audioContext) {
 					setup();
 				}

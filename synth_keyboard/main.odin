@@ -153,7 +153,7 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 		color_data := make([]glm.vec4, state.layout.number_of_keys)
 		defer delete(color_data)
 		for i in 0 ..< state.layout.number_of_keys {
-			if g_input.keys_down[i] || i == g_input.mouse_key {
+			if input_state(i) {
 				color_data[i] = {0.4, 0.9, 1, 1}
 			} else {
 				color_data[i] = {1, 1, 1, 1}
