@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8" />
+	<title>Trails</title>
+	<link rel="preload" href="_main.wasm" as="fetch" type="application/wasm" crossorigin="anonymous" />
+</head>
+
+<body>
+	<canvas id="canvas-1" width="640" height="480"></canvas>
+	<script type="module" src="./runtime.js"></script>
+	<script type="module" src="./odin-mouse.js"></script>
+	<script type="text/javascript">
+		window.addEventListener('load', function () {
+			wasmMemoryInterface = new odin.WasmMemoryInterface();
+			wasmMemoryInterface.setIntSize(4);
+			let custom_imports = {
+				...window.odinMouse.setupImports(wasmMemoryInterface),
+			};
+			odin.runWasm("./_main.wasm", undefined, custom_imports, wasmMemoryInterface);
+		});
+	</script>
+</body>
+
+</html>
