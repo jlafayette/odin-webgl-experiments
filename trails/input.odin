@@ -9,6 +9,7 @@ import "vendor:wasm/js"
 
 Input :: struct {
 	mouse_pos: [2]f32,
+	mouse_vel: [2]f32,
 }
 ListenerInput :: struct {
 	mouse_pos: [2]f32,
@@ -44,7 +45,10 @@ init_input :: proc(input: ^Input) {
 
 // Update global gamestate with listener input
 update_input :: proc(input: ^Input, dt: f32) {
-	input.mouse_pos = i_.mouse_pos
+	old := input.mouse_pos
+	new := i_.mouse_pos
+	input.mouse_pos = new
+	input.mouse_vel = new - old
 }
 
 on_mouse_move :: proc(e: js.Event) {

@@ -26,7 +26,11 @@ func main() {
 }
 
 func build() {
-	cmd := exec.Command("odin", "build", "../", "-out:_main.wasm", "-target:js_wasm32", "-o:minimal")
+	cmd := exec.Command(
+		"odin", "build", "../", "-out:_main.wasm", "-target:js_wasm32",
+		"-o:minimal",
+		// "-o:aggressive", "-disable-assert", "-no-bounds-check",
+	)
 	log.Println("Running command and waiting for it to finish...")
 	err := cmd.Run()
 	if err != nil {

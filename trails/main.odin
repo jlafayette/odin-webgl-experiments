@@ -42,11 +42,9 @@ start :: proc(g: ^GameState) -> (ok: bool) {
 
 	init_input(&g.input)
 
-	n_particles := 10_000
-	particles_per_second := 2_000
-	particle1_buffers_init(&g.particle1_buffers, n_particles)
+	particle1_buffers_init(&g.particle1_buffers, N_PARTICLES)
 	particle1_shader_init(&g.particle1_shader) or_return
-	particle_emitter_init(&g.emitter, n_particles, particles_per_second)
+	particle_emitter_init(&g.emitter)
 
 	return check_gl_error()
 }
@@ -61,7 +59,7 @@ check_gl_error :: proc() -> (ok: bool) {
 }
 
 draw_scene :: proc(g: GameState, dt: f32) -> (ok: bool) {
-	gl.ClearColor(0.5, 0.5, 0.5, 1)
+	gl.ClearColor(0.1, 0.1, 0.1, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.ClearDepth(1)
 	gl.Enable(gl.DEPTH_TEST)
@@ -74,9 +72,6 @@ draw_scene :: proc(g: GameState, dt: f32) -> (ok: bool) {
 	view_projection_matrix := glm.mat4Ortho3d(0, f32(g.w), 0, f32(g.h), -100, 100)
 
 	model_matrix := glm.mat4(1)
-	// model_matrix *= glm.mat4Translate({g.input.mouse_pos.x, g.input.mouse_pos.y, 0})
-	model_matrix *= glm.mat4Translate({f32(g.w) / 2, f32(g.h) / 2, 0})
-	model_matrix *= glm.mat4Scale({1, 1, 1})
 
 	// update instance data
 	{
@@ -109,7 +104,9 @@ draw_scene :: proc(g: GameState, dt: f32) -> (ok: bool) {
 update :: proc(g: ^GameState, dt: f32) {
 	g.w = gl.DrawingBufferWidth()
 	g.h = gl.DrawingBufferHeight()
-	particle_emitter_update(&g.emitter, dt)
+	pos := glm.vec2(g.input.mouse_pos)
+	vel := glm.vec2(g.input.mouse_vel)
+	particle_emitter_update(&g.emitter, dt, pos, vel)
 }
 
 @(export)
