@@ -206,6 +206,16 @@ _main :: proc(png_file: string) -> (ok: bool) {
 				return false
 			}
 		}
+
+		// write encoded data to file
+		err := os.write_entire_file_or_err(
+			"assets/smallest_atlas/data-20.jatlas",
+			buffer.buf[:written],
+		)
+		if err != nil {
+			fmt.println("ERROR: failed to save data with:", err)
+			return false
+		}
 	}
 
 	return true

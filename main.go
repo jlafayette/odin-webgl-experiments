@@ -14,6 +14,7 @@ import (
 func main() {
 	build()
 	go watch("../")
+	go watch("../../shared/")
 
 	fs := http.FileServer(http.Dir("./"))
 	http.Handle("/", fs)
