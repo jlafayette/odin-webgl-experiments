@@ -1,5 +1,6 @@
 package t
 
+import text "../../shared/text2"
 import "core:bytes"
 import "core:fmt"
 import "core:image"
@@ -13,15 +14,6 @@ SrcChar :: struct {
 	h:          int,
 	y_from_top: int,
 	pixels:     []bool,
-}
-DstChar :: struct {
-	w: u8,
-	x: u16,
-}
-DstHeader :: struct {
-	w:          i32,
-	h:          i32,
-	char_count: i32,
 }
 
 _main :: proc(png_file: string) -> (ok: bool) {
@@ -165,7 +157,7 @@ _main :: proc(png_file: string) -> (ok: bool) {
 		for ch in chars {
 			w += ch.w + spacing
 		}
-		dst_chars := make([]DstChar, len(chars))
+		dst_chars := make([]text.Char, len(chars))
 		// unpacked pixels
 		pixels := make([]bool, w * h)
 
@@ -186,7 +178,7 @@ _main :: proc(png_file: string) -> (ok: bool) {
 			dst_left_x += char.w + spacing
 		}
 		// resave to bitdepth 1
-		header: DstHeader
+		header: text.Header
 		header.w = i32(w)
 		header.h = i32(h)
 		header.char_count = i32(len(chars))
@@ -194,24 +186,23 @@ _main :: proc(png_file: string) -> (ok: bool) {
 		// encode header + chars + pixels
 		buffer: bytes.Buffer
 		written: int
-		written, ok = encode(&buffer, header, dst_chars, pixels)
-
+		written, ok = text.encode(&buffer, header, dst_chars, pixels)
 		fmt.println("wrote:", written, "ok:", ok)
-
 
 		// decode the buffer and write to bmp file to debug encode/decode
 		{
-			header2, chars2, pixels2, ok := decode(buffer.buf[:written])
+			header, chars, pixels, ok := text.decode(buffer.buf[:written], 3)
 			fmt.println("decode:", ok)
 			if !ok {return false}
-			fmt.println(header2)
-			fmt.println("len pixels:", len(pixels2), "expected:", header2.w * header2.h)
-			img3, ok3 := image.pixels_to_image(pixels2[:], int(header2.w), int(header2.h))
-			fmt.println("pixels_to_image:", ok3)
-			if !ok3 {return false}
-			err3 := bmp.save_to_file("assets/smallest_atlas/debug-20-decode.bmp", &img3)
-			if err3 != nil {
-				fmt.println("error saving decoded to bmp:", err3)
+			fmt.println(header)
+			fmt.println("len pixels:", len(pixels), "expected:", header.w * header.h)
+			img: image.Image
+			img, ok = image.pixels_to_image(pixels[:], int(header.w), int(header.h))
+			fmt.println("pixels_to_image:", ok)
+			if !ok {return false}
+			err := bmp.save_to_file("assets/smallest_atlas/debug-20-decode.bmp", &img)
+			if err != nil {
+				fmt.println("error saving decoded img to bmp:", err)
 				return false
 			}
 		}
@@ -220,112 +211,12 @@ _main :: proc(png_file: string) -> (ok: bool) {
 	return true
 }
 
-encode :: proc(
-	output: ^bytes.Buffer,
-	header: DstHeader,
-	chars: []DstChar,
-	pixels: []bool,
-) -> (
-	int,
-	bool,
-) {
-	written: int = 0
-
-	if header.w * header.h != i32(len(pixels)) {
-		return 0, false
-	}
-
-	header_size :: size_of(DstHeader)
-	char_size :: size_of(DstChar)
-	pixel_size := pixel_byte_len(len(pixels))
-	total_size := header_size + (char_size * len(chars)) + pixel_size
-	if resize(&output.buf, total_size) != nil {return 0, false}
-	header_bytes := transmute([header_size]byte)header
-	written += header_size
-	copy(output.buf[:], header_bytes[:written])
-
-	for char in chars {
-		char_bytes := transmute([char_size]byte)char
-		copy(output.buf[written:], char_bytes[:char_size])
-		written += char_size
-	}
-	b: byte
-	c: uint
-	for px in pixels {
-		if c == 8 {
-			c = 0
-			// write b to output buf
-			output.buf[written] = b
-			written += 1
-			b = 0
-		}
-		// set single bit in byte
-		if px {
-			b = b | (1 << c)
-		}
-		c += 1
-	}
-	if c > 0 {
-		output.buf[written] = b
-		written += 1
-	}
-	return written, true
-}
-pixel_byte_len :: proc(count: int) -> int {
-	div, mod := math.divmod(count, 8)
-	if mod > 0 {
-		div = div + 1
-	}
-	return div
-}
-
-decode :: proc(data: []byte) -> (DstHeader, [dynamic]DstChar, [dynamic][3]u8, bool) {
-	header_size :: size_of(DstHeader)
-	char_size :: size_of(DstChar)
-
-	buf: [header_size]byte
-	copy(buf[:], data[:header_size])
-	header := transmute(DstHeader)buf
-	offset := header_size
-
-	chars := make([dynamic]DstChar, 0, header.char_count)
-	for _ in 0 ..< header.char_count {
-		buf: [char_size]byte
-		copy(buf[:], data[offset:offset + char_size])
-		char := transmute(DstChar)buf
-		append(&chars, char)
-		offset += char_size
-	}
-	// now pixels at the end
-	fmt.println("decoding pixels, expect:", header.w * header.h, "bytes:", len(data[offset:]))
-	pixels := make([dynamic][3]u8, 0, header.w * header.h)
-	outer: for b in data[offset:] {
-		broken := false
-		for i in 0 ..< 8 {
-			if broken {
-				// should not be doing another loop after break
-				return header, chars, pixels, false
-			}
-			if i32(len(pixels)) >= header.w * header.h {
-				fmt.println("breaking at len(pixels):", len(pixels), "i:", i)
-				broken = true
-				break outer
-			}
-			v: u8 = 1 & (b >> uint(i))
-			px: [3]u8
-			if v > 0 {
-				px = {255, 255, 255}
-			}
-			append(&pixels, px)
-		}
-	}
-	return header, chars, pixels, true
-}
 
 main :: proc() {
 	// do arg handling here
 
-	//     assets\smallest_atlas\Sprite-20.png	
-	_main("assets/smallest_atlas/Sprite-20.png")
+	// assets\smallest_atlas\Sprite-20.png	
+	ok := _main("assets/smallest_atlas/Sprite-20.png")
+	fmt.println("ok:", ok)
 }
 
