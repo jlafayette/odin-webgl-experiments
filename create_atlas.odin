@@ -190,11 +190,11 @@ create_atlas :: proc(
 					px1: u8 = bitmap[sx + sy * sw]
 					// may not be good for all fonts, but I think it helps with Terminal to
 					// make things look crisper
-					if px1 > 127 {
-						px1 = 255
-					} else {
-						px1 = 0
-					}
+					// if px1 > 127 {
+					// 	px1 = 255
+					// } else {
+					// 	px1 = 0
+					// }
 					px: [3]u8 = {px1, px1, px1}
 
 					dx := sx + dx_off
