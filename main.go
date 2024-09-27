@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"net/http"
@@ -33,7 +34,11 @@ func build() {
 		// "-o:aggressive", "-disable-assert", "-no-bounds-check",
 	)
 	log.Println("Running command and waiting for it to finish...")
+	var outb, errb bytes.Buffer
+	cmd.Stdout = &outb
+	cmd.Stderr = &errb
 	err := cmd.Run()
+	fmt.Println("out:", outb.String(), "err:", errb.String())
 	if err != nil {
 		log.Printf("Finished cmd with err: %v\n", err)
 	} else {

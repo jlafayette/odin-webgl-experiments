@@ -162,7 +162,7 @@ start :: proc() -> (ok: bool) {
 
 draw :: proc(dt: f32) {
 
-	gl.ClearColor(0.1, 0.2, 0.2, 1)
+	gl.ClearColor(0, 0, 0, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.ClearDepth(1)
 	gl.Enable(gl.DEPTH_TEST)
@@ -198,9 +198,10 @@ draw :: proc(dt: f32) {
 			gl.DrawElements(gl.TRIANGLES, vertex_count, type, offset)
 		}
 	}
-	writer_draw(&g_state.writer)
-	writer_draw(&g_state.writer2)
-	writer_draw(&g_state.writer3)
+	color: glm.vec3 = {1, 1, 1}
+	writer_draw(&g_state.writer, color)
+	writer_draw(&g_state.writer2, color)
+	writer_draw(&g_state.writer3, color)
 }
 
 @(export)

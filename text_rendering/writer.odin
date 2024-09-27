@@ -225,7 +225,7 @@ writer_update_buffer_data :: proc(w: ^Writer) {
 	}
 	w.buffered = true
 }
-writer_draw :: proc(w: ^Writer) {
+writer_draw :: proc(w: ^Writer, color: glm.vec3) {
 	if !w.buffered {
 		writer_update_buffer_data(w)
 	}
@@ -252,7 +252,7 @@ writer_draw :: proc(w: ^Writer) {
 		// top left (0, 0)
 		projection_mat := glm.mat4Ortho3d(0, W, H, 0, -1, 1)
 		gl.UniformMatrix4fv(uniform_locations.projection, projection_mat)
-		gl.Uniform3fv(uniform_locations.text_color, {0, 1, 1})
+		gl.Uniform3fv(uniform_locations.text_color, color)
 		gl.ActiveTexture(gl.TEXTURE0)
 		gl.BindTexture(gl.TEXTURE_2D, w.texture)
 		gl.Uniform1i(uniform_locations.sampler, 0)

@@ -35,19 +35,63 @@ TriState :: struct {
 	texture:      gl.Texture,
 }
 
-LINE1 :: "abcdefghijklmnopqrstuvwxyz!@#$%^&*()_+-="
-LINE2 :: "ABCDEFGHIJKLMNOPQRSTUVWXYZ {}[]\\|/?.,<>\"'"
+WriterSet :: struct {
+	w:        i32,
+	h:        i32,
+	writer_1: text.Writer(len(LINE1)),
+	writer_2: text.Writer(len(LINE2)),
+	writer_3: text.Writer(len(LINE3)),
+}
+init_writer_set :: proc(
+	ws: ^WriterSet,
+	size: i32,
+	canvas_w: i32,
+	pos: [2]i32,
+) -> (
+	y_pos: i32,
+	ok: bool,
+) {
+	text.writer_init(&ws.writer_1, size, pos.x, pos.y, LINE1, false, canvas_w, false) or_return
+	line_offset := i32(f32(ws.writer_1.header.h) * 1.2)
+	text.writer_init(
+		&ws.writer_2,
+		size,
+		pos.x,
+		pos.y + line_offset,
+		LINE2,
+		false,
+		canvas_w,
+		false,
+	) or_return
+	text.writer_init(
+		&ws.writer_3,
+		size,
+		pos.x,
+		pos.y + line_offset * 2,
+		LINE3,
+		false,
+		canvas_w,
+		false,
+	) or_return
+	return pos.y + line_offset * 3, true
+}
+draw_writer_set :: proc(ws: ^WriterSet, w, h: i32, color: glm.vec3) {
+	text.writer_draw(&ws.writer_1, w, h, color)
+	text.writer_draw(&ws.writer_2, w, h, color)
+	text.writer_draw(&ws.writer_3, w, h, color)
+}
+
+LINE1 :: "!\"#$%&'()*+,-./0123456789:;<=>?@"
+LINE2 :: "ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`"
+LINE3 :: "abcdefghijklmnopqrstuvwxyz{|}~"
 State :: struct {
-	started: bool,
-	writer:  text.Writer(len(LINE1)),
-	writer2: text.Writer(len(LINE2)),
-	writer3: text.Writer(1024),
-	tri:     TriState,
+	started:       bool,
+	writer_20_set: WriterSet,
+	writer_30_set: WriterSet,
+	writer_40_set: WriterSet,
+	tri:           TriState,
 }
 g_state: State = {}
-
-W :: 640
-H :: 480
 
 temp_arena_buffer: [mem.Megabyte]byte
 temp_arena: mem.Arena = {
@@ -73,25 +117,17 @@ start :: proc() -> (ok: bool) {
 		fmt.println("es version:", es_major, es_minor)
 	}
 
-	ok = text.writer_init(&g_state.writer, 20, 20, LINE1, false, W)
-	if !ok {
-		fmt.eprintln("Failed to init writer")
-		return ok
+	canvas_w: i32 = gl.DrawingBufferWidth()
+	canvas_h: i32 = gl.DrawingBufferHeight()
+
+	{
+		y: i32 = 20
+		y = init_writer_set(&g_state.writer_20_set, 20, canvas_w, {20, y}) or_return
+		y = init_writer_set(&g_state.writer_30_set, 30, canvas_w, {20, y + 40}) or_return
+		y = init_writer_set(&g_state.writer_40_set, 40, canvas_w, {20, y + 40}) or_return
 	}
-	// line_gap := g_state.writer.header.line_gap
-	// px := g_state.writer.header.px
-	line_offset := i32(f32(g_state.writer.header.h) * 1.2)
-	ok = text.writer_init(&g_state.writer2, 20, 20 + line_offset, LINE2, false, W)
-	if !ok {
-		fmt.eprintln("Failed to init writer2")
-		return ok
-	}
-	ok = text.writer_init(&g_state.writer3, 20, 20 + line_offset * 2, "... ", true, W)
-	if !ok {
-		fmt.eprintln("Failed to init writer3")
-		return ok
-	}
-	js.add_window_event_listener(.Key_Down, {}, on_key_down)
+
+	// js.add_window_event_listener(.Key_Down, {}, on_key_down)
 
 	// Tri shader and buffers
 	{
@@ -111,8 +147,8 @@ start :: proc() -> (ok: bool) {
 			// just render a square for now
 			x: f32 = 5
 			y: f32 = 5
-			w: f32 = W - 10
-			h: f32 = H - 10
+			w: f32 = f32(canvas_w) - 10
+			h: f32 = f32(canvas_h) - 10
 			pos_data: [4][2]f32
 			pos_data[0] = {x, y + h}
 			pos_data[1] = {x, y}
@@ -126,10 +162,11 @@ start :: proc() -> (ok: bool) {
 			buffer := gl.CreateBuffer()
 			gl.BindBuffer(gl.ARRAY_BUFFER, buffer)
 			w: [3]f32 = {1, 1, 1}
-			r: [3]f32 = {1, 0, 0}
+			r: [3]f32 = {0.5, 0, 0}
 			g: [3]f32 = {0, 1, 0}
-			b: [3]f32 = {0, 0, 1}
-			data: [4][3]f32 = {r, r, b, b}
+			b: [3]f32 = {0, 0, 0.5}
+			black: [3]f32 = {0.2, 0.2, 0.2}
+			data: [4][3]f32 = {black, black, black, black}
 			gl.BufferDataSlice(gl.ARRAY_BUFFER, data[:], gl.STATIC_DRAW)
 			buffers.color = buffer
 		}
@@ -158,7 +195,10 @@ start :: proc() -> (ok: bool) {
 
 draw :: proc(dt: f32) {
 
-	gl.ClearColor(0.1, 0.2, 0.2, 1)
+	canvas_w: i32 = gl.DrawingBufferWidth()
+	canvas_h: i32 = gl.DrawingBufferHeight()
+
+	gl.ClearColor(0, 0, 0, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.ClearDepth(1)
 	gl.Enable(gl.DEPTH_TEST)
@@ -184,7 +224,7 @@ draw :: proc(dt: f32) {
 		gl.UseProgram(program_info.program)
 		// set uniforms
 		uniform_locations := program_info.uniform_locations
-		projection_mat := glm.mat4Ortho3d(0, W, H, 0, -1, 1)
+		projection_mat := glm.mat4Ortho3d(0, f32(canvas_w), f32(canvas_h), 0, -1, 1)
 
 		gl.UniformMatrix4fv(uniform_locations.projection, projection_mat)
 		{
@@ -194,9 +234,10 @@ draw :: proc(dt: f32) {
 			gl.DrawElements(gl.TRIANGLES, vertex_count, type, offset)
 		}
 	}
-	text.writer_draw(&g_state.writer, W, H)
-	text.writer_draw(&g_state.writer2, W, H)
-	text.writer_draw(&g_state.writer3, W, H)
+	color: glm.vec3 = {1, 1, 1}
+	draw_writer_set(&g_state.writer_20_set, canvas_w, canvas_h, color)
+	draw_writer_set(&g_state.writer_30_set, canvas_w, canvas_h, color)
+	draw_writer_set(&g_state.writer_40_set, canvas_w, canvas_h, color)
 }
 
 @(export)
@@ -218,20 +259,20 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 // --- input
 
 on_key_down :: proc(e: js.Event) {
-	w := &g_state.writer3
-	if !w.dyn {
-		return
-	}
-	if e.key.code == "Backspace" {
-		fmt.println("backspace")
-		text.writer_backspace(w)
-		return
-	}
-	if len(e.key.key) != 1 {
-		return
-	}
-	fmt.println("code:", e.key.code, "key:", e.key.key)
-	text.writer_add_char(w, e.key.key[0])
+	// w := &g_state.writer3
+	// if !w.dyn {
+	// 	return
+	// }
+	// if e.key.code == "Backspace" {
+	// 	fmt.println("backspace")
+	// 	text.writer_backspace(w)
+	// 	return
+	// }
+	// if len(e.key.key) != 1 {
+	// 	return
+	// }
+	// fmt.println("code:", e.key.code, "key:", e.key.key)
+	// text.writer_add_char(w, e.key.key[0])
 }
 
 // --- utils

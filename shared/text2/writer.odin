@@ -8,7 +8,9 @@ import gl "vendor:wasm/WebGL"
 import "vendor:wasm/js"
 
 // Run assets/smallest_atlas/t.odin script first
-atlas_data := #load("../../assets/smallest_atlas/data-20.jatlas")
+atlas_20_data := #load("../../assets/smallest_atlas/data-20.jatlas")
+atlas_30_data := #load("../../assets/smallest_atlas/data-30.jatlas")
+atlas_40_data := #load("../../assets/smallest_atlas/data-40.jatlas")
 vert_source := #load("text.vert", string)
 frag_source := #load("text.frag", string)
 
@@ -42,20 +44,38 @@ Writer :: struct(N: uint) {
 	chars:             [dynamic]Char,
 	dyn:               bool,
 	buffered:          bool,
+	wrap:              bool,
 }
 writer_init :: proc(
 	w: ^Writer($N),
+	size: i32,
 	xpos: i32,
 	ypos: i32,
 	str: string,
 	dyn: bool,
 	canvas_w: i32,
+	wrap: bool,
 ) -> (
 	ok: bool,
 ) {
+	atlas_data: []byte
+	switch size {
+	case 20:
+		atlas_data = atlas_20_data
+	case 30:
+		atlas_data = atlas_30_data
+	case 40:
+		atlas_data = atlas_40_data
+	case:
+		{
+			fmt.eprintf("Invalid font size: %d\n", size)
+			return false
+		}
+	}
 	// w.str = "Hello WOdinlingssss!"
 	w.str = str
 	w.dyn = dyn
+	w.wrap = wrap
 	w.xpos = xpos
 	w.ypos = ypos
 	pixels: [dynamic][1]u8
@@ -177,12 +197,14 @@ writer_update_buffer_data :: proc(w: ^Writer($N), canvas_w: i32) {
 		ch: Char = w.chars[char_i]
 
 		// wrap to new line if needed
-		spacing: f32 = 2
-		next_w: f32 = f32(ch.w) + spacing
-		line_gap: f32 = f32(w.header.h) / 2
-		if x + next_w >= f32(canvas_w) {
-			x = f32(w.xpos)
-			y += f32(w.header.h)
+		spacing := f32(w.header.h / 10)
+		if w.wrap {
+			next_w: f32 = f32(ch.w) + spacing
+			line_gap: f32 = f32(w.header.h) / 2
+			if x + next_w >= f32(canvas_w) {
+				x = f32(w.xpos)
+				y += f32(w.header.h)
+			}
 		}
 
 		px := x
@@ -236,7 +258,7 @@ writer_update_buffer_data :: proc(w: ^Writer($N), canvas_w: i32) {
 	}
 	w.buffered = true
 }
-writer_draw :: proc(w: ^Writer($N), canvas_w: i32, canvas_h: i32) {
+writer_draw :: proc(w: ^Writer($N), canvas_w: i32, canvas_h: i32, color: glm.vec3) {
 	if !w.buffered {
 		writer_update_buffer_data(w, canvas_w)
 	}
@@ -263,7 +285,7 @@ writer_draw :: proc(w: ^Writer($N), canvas_w: i32, canvas_h: i32) {
 		// top left (0, 0)
 		projection_mat := glm.mat4Ortho3d(0, f32(canvas_w), f32(canvas_h), 0, -1, 1)
 		gl.UniformMatrix4fv(uniform_locations.projection, projection_mat)
-		gl.Uniform3fv(uniform_locations.text_color, {0, 1, 1})
+		gl.Uniform3fv(uniform_locations.text_color, color)
 		gl.ActiveTexture(gl.TEXTURE0)
 		gl.BindTexture(gl.TEXTURE_2D, w.texture)
 		gl.Uniform1i(uniform_locations.sampler, 0)
