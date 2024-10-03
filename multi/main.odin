@@ -1,5 +1,6 @@
 package multi
 
+import "../shared/utils"
 import "core:fmt"
 import "core:math"
 import glm "core:math/linalg/glsl"
@@ -34,8 +35,9 @@ State :: struct {
 	textures:        Textures,
 	resize:          ResizeState,
 }
-state: State = {
-	current_geo = .Icosphere0,
+@(private = "file")
+g_state: State = {
+	current_geo = .Cube,
 }
 
 temp_arena_buffer: [mem.Megabyte * 32]byte
@@ -44,7 +46,7 @@ temp_arena: mem.Arena = {
 }
 temp_arena_allocator := mem.arena_allocator(&temp_arena)
 
-start :: proc() -> (ok: bool) {
+start :: proc(state: ^State) -> (ok: bool) {
 	state.started = true
 
 	if ok = gl.SetCurrentContextById("canvas-1"); !ok {
@@ -71,16 +73,9 @@ start :: proc() -> (ok: bool) {
 	return check_gl_error()
 }
 
-check_gl_error :: proc() -> (ok: bool) {
-	err := gl.GetError()
-	if err != gl.NO_ERROR {
-		fmt.eprintln("WebGL error:", err)
-		return false
-	}
-	return true
-}
+check_gl_error :: utils.check_gl_error
 
-draw_scene :: proc() -> (ok: bool) {
+draw_scene :: proc(state: State) -> (ok: bool) {
 	gl.ClearColor(0, 0, 0, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.ClearDepth(1)
@@ -108,7 +103,7 @@ draw_scene :: proc() -> (ok: bool) {
 			projection_matrix = projection_matrix,
 		}
 		ok = shader_use(
-			&state.cube_shader,
+			state.cube_shader,
 			uniforms,
 			state.geo_buffers[state.current_geo].pos,
 			state.geo_buffers[state.current_geo].tex,
@@ -122,7 +117,7 @@ draw_scene :: proc() -> (ok: bool) {
 			view_projection_matrix = view_projection_matrix,
 		}
 		ok = lighting_shader_use(
-			&state.lighting_shader,
+			state.lighting_shader,
 			uniforms,
 			state.geo_buffers[state.current_geo].pos,
 			state.geo_buffers[state.current_geo].tex,
@@ -141,15 +136,21 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 	defer free_all(context.temp_allocator)
 
 	ok: bool
-	if !state.started {
-		if ok = start(); !ok {return false}
+	if !g_state.started {
+		if ok = start(&g_state); !ok {return false}
 	}
 
-	state.rotation += dt * 0.2
-	update_input(&g_input, dt)
-	resize(&state.resize)
+	g_state.rotation += dt * 0.2
+	g_state.current_texture, g_state.current_geo, g_state.current_shader = update_input(
+		&g_input,
+		dt,
+		g_state.current_texture,
+		g_state.current_geo,
+		g_state.current_shader,
+	)
+	resize(&g_state.resize)
 
-	ok = draw_scene()
+	ok = draw_scene(g_state)
 	if !ok {return false}
 
 	return check_gl_error()

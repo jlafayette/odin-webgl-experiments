@@ -50,7 +50,7 @@ lighting_shader_init :: proc(s: ^LightingShader) -> (ok: bool) {
 	return check_gl_error()
 }
 lighting_shader_use :: proc(
-	s: ^LightingShader,
+	s: LightingShader,
 	u: LightingUniforms,
 	buffer_pos: Buffer,
 	buffer_tex: Buffer,
@@ -77,3 +77,4 @@ lighting_shader_use :: proc(
 
 	return check_gl_error()
 }
+

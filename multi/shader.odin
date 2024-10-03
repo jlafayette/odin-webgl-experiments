@@ -42,7 +42,7 @@ shader_init :: proc(s: ^CubeShader) -> (ok: bool) {
 	return check_gl_error()
 }
 shader_use :: proc(
-	s: ^CubeShader,
+	s: CubeShader,
 	u: CubeUniforms,
 	buffer_pos: Buffer,
 	buffer_tex: Buffer,
@@ -71,3 +71,4 @@ shader_set_attribute :: proc(index: i32, b: Buffer) {
 	gl.VertexAttribPointer(index, b.size, b.type, false, 0, 0)
 	gl.EnableVertexAttribArray(index)
 }
+

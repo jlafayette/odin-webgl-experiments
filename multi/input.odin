@@ -18,7 +18,20 @@ init_input :: proc(input: ^Input) {
 	js.add_window_event_listener(.Key_Down, {}, on_key_down)
 	js.add_window_event_listener(.Mouse_Move, {}, on_mouse_move)
 }
-update_input :: proc(input: ^Input, dt: f32) {
+update_input :: proc(
+	input: ^Input,
+	dt: f32,
+	current_texture: TextureId,
+	current_geo: GeoId,
+	current_shader: ShaderId,
+) -> (
+	new_texture: TextureId,
+	new_geo: GeoId,
+	new_shader: ShaderId,
+) {
+	new_texture = current_texture
+	new_geo = current_geo
+	new_shader = current_shader
 
 	// mouse x -> pos dot product of camera_pos->origin and origin->up 
 	// fmt.println(input.mouse_diff)
@@ -34,18 +47,18 @@ update_input :: proc(input: ^Input, dt: f32) {
 	// view_matrix := glm.mat4LookAt(input.camera_pos, {0, 0, 0}, {0, 1, 0})
 
 	if input.cycle_texture {
-		current := state.current_texture
+		current := current_texture
 		new: TextureId
 		if current == .Odin {
 			new = .Uv
 		} else if current == .Uv {
 			new = .Odin
 		}
-		state.current_texture = new
+		new_texture = new
 		input.cycle_texture = false
 	}
 	if input.cycle_geo {
-		current := state.current_geo
+		current := current_geo
 		new: GeoId
 		switch current {
 		case .Cube:
@@ -63,20 +76,21 @@ update_input :: proc(input: ^Input, dt: f32) {
 		case .Icosphere4:
 			new = .Cube
 		}
-		state.current_geo = new
+		new_geo = new
 		input.cycle_geo = false
 	}
 	if input.cycle_shader {
-		current := state.current_shader
+		current := current_shader
 		new: ShaderId
 		if current == .Cube {
 			new = .Lighting
 		} else if current == .Lighting {
 			new = .Cube
 		}
-		state.current_shader = new
+		new_shader = new
 		input.cycle_shader = false
 	}
+	return
 }
 
 on_mouse_move :: proc(e: js.Event) {
