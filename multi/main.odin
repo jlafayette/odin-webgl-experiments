@@ -32,6 +32,7 @@ State :: struct {
 	geo_buffers:     Geos,
 	current_texture: TextureId,
 	textures:        Textures,
+	resize:          ResizeState,
 }
 state: State = {
 	current_geo = .Icosphere0,
@@ -87,9 +88,11 @@ draw_scene :: proc() -> (ok: bool) {
 	gl.DepthFunc(gl.LEQUAL)
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
+	gl.Viewport(0, 0, state.resize.canvas_res.x, state.resize.canvas_res.y)
+
 	// Compute the projection matrix
 	fov: f32 = (45.0 * math.PI) / 180.0
-	aspect: f32 = 640.0 / 480.0 // TODO: gl.canvas.clientWidth and gl.canvas.clientHeight
+	aspect: f32 = state.resize.aspect_ratio // TODO: gl.canvas.clientWidth and gl.canvas.clientHeight
 	z_near: f32 = 0.1
 	z_far: f32 = 2000.0
 	projection_matrix := glm.mat4Perspective(fov, aspect, z_near, z_far)
@@ -144,6 +147,7 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 
 	state.rotation += dt * 0.2
 	update_input(&g_input, dt)
+	resize(&state.resize)
 
 	ok = draw_scene()
 	if !ok {return false}

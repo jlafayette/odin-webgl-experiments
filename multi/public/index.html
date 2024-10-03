@@ -4,21 +4,27 @@
 <head>
 	<meta charset="UTF-8" />
 	<title>Switch between stuff</title>
+	<link rel="stylesheet" type="text/css" href="style.css">
 	<link rel="preload" href="_main.wasm" as="fetch" type="application/wasm" crossorigin="anonymous" />
 </head>
 
 <body>
 	<canvas id="canvas-1" width="640" height="480"></canvas>
 	<script type="module" src="./runtime.js"></script>
+	<script type="module" src="./odin-resize.js"></script>
 	<script type="text/javascript">
-		window.addEventListener('load', function () {
-			odin.runWasm("./_main.wasm", {});
-		});
 		let canvas = document.getElementById("canvas-1");
-		canvas.addEventListener("click", async () => {
-			await canvas.requestPointerLock({
-				unadjustedMovement: true,
-			});
+		canvas.width = window.innerWidth;
+		canvas.height = window.innerHeight;
+		document.body.style.overflow = 'hidden';
+
+		window.addEventListener('load', function () {
+			wasmMemoryInterface = new odin.WasmMemoryInterface();
+			wasmMemoryInterface.setIntSize(4);
+			let custom_imports = {
+				...window.odinResize.setupImports(wasmMemoryInterface),
+			};
+			odin.runWasm("./_main.wasm", undefined, custom_imports, wasmMemoryInterface);
 		});
 	</script>
 </body>

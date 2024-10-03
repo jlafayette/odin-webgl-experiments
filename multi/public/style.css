@@ -1,0 +1,17 @@
+* {
+	margin: 0 !important;
+	padding: 0 !important;
+}
+
+body {
+	background-color: rgb(84, 57, 107);
+}
+
+canvas {
+	position: absolute;
+	top: 0%;
+	left: 0%;
+	width: 100%;
+	height: 100%;
+	user-select: none;
+}
