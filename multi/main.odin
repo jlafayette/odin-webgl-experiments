@@ -1,5 +1,6 @@
 package multi
 
+import "../shared/text"
 import "../shared/utils"
 import "core:fmt"
 import "core:math"
@@ -34,6 +35,7 @@ State :: struct {
 	current_texture: TextureId,
 	textures:        Textures,
 	resize:          ResizeState,
+	ui_writers:      [3]text.Writer,
 }
 @(private = "file")
 g_state: State = {
@@ -69,6 +71,40 @@ start :: proc(state: ^State) -> (ok: bool) {
 
 	ok = textures_init(&state.textures)
 	if !ok {return}
+
+	{
+		text_0 := "Cycle Texture  [t]"
+		text_1 := "Cycle Geometry [g]"
+		text_2 := "Cycle Shader   [s]"
+		// positions will be overwritten in update
+		text.writer_init(
+			&state.ui_writers[0],
+			64,
+			12,
+			{5, 5},
+			text_0,
+			state.resize.canvas_res.x,
+			2,
+		) or_return
+		text.writer_init(
+			&state.ui_writers[1],
+			64,
+			12,
+			{5, 5},
+			text_1,
+			state.resize.canvas_res.x,
+			2,
+		) or_return
+		text.writer_init(
+			&state.ui_writers[2],
+			64,
+			12,
+			{5, 5},
+			text_2,
+			state.resize.canvas_res.x,
+			2,
+		) or_return
+	}
 
 	return check_gl_error()
 }
@@ -127,7 +163,49 @@ draw_scene :: proc(state: State) -> (ok: bool) {
 		if !ok {return}
 	}
 	ea_buffer_draw(state.geo_buffers[state.current_geo].indices)
+
+	gl.Enable(gl.BLEND)
+	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+	text_projection := glm.mat4Ortho3d(
+		0,
+		f32(state.resize.canvas_res.x),
+		0,
+		f32(state.resize.canvas_res.y),
+		-1,
+		1,
+	)
+	for &writer in state.ui_writers {
+		text.writer_draw(&writer, text_projection, {1, 1, 1}, state.resize.canvas_res.x) or_return
+	}
+
 	return ok
+}
+
+update :: proc(state: ^State, dt: f32) {
+	state.rotation += dt * 0.2
+	state.current_texture, state.current_geo, state.current_shader = update_input(
+		&g_input,
+		dt,
+		state.current_texture,
+		state.current_geo,
+		state.current_shader,
+	)
+	resize(&state.resize)
+
+	// update text positions in case of resize
+	{
+		line_gap: i32 = 5
+		x: i32 = 8
+		text_size := text.writer_get_size(&state.ui_writers[0], state.resize.canvas_res.x)
+		h: i32 = state.resize.canvas_res.y
+		th: i32 = text_size.y
+		y: i32 = h - 8 - th
+		text.writer_set_pos(&state.ui_writers[0], {x, y})
+		y -= th + line_gap
+		text.writer_set_pos(&state.ui_writers[1], {x, y})
+		y -= th + line_gap
+		text.writer_set_pos(&state.ui_writers[2], {x, y})
+	}
 }
 
 @(export)
@@ -140,15 +218,7 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 		if ok = start(&g_state); !ok {return false}
 	}
 
-	g_state.rotation += dt * 0.2
-	g_state.current_texture, g_state.current_geo, g_state.current_shader = update_input(
-		&g_input,
-		dt,
-		g_state.current_texture,
-		g_state.current_geo,
-		g_state.current_shader,
-	)
-	resize(&g_state.resize)
+	update(&g_state, dt)
 
 	ok = draw_scene(g_state)
 	if !ok {return false}

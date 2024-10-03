@@ -35,6 +35,7 @@ Writer :: struct {
 	size:           AtlasSize,
 	multiplier:     uint,
 	spacing:        i32,
+	shader:         TextShader,
 }
 
 writer_init :: proc(
@@ -66,6 +67,8 @@ writer_init :: proc(
 
 	writer_update_buffer_data(w, canvas_w)
 
+	shader_init(&w.shader) or_return
+
 	return true
 }
 writer_destroy :: proc(w: ^Writer) {
@@ -84,6 +87,10 @@ writer_set_size :: proc(w: ^Writer, target: i32, spacing: i32 = -1) {
 	w.multiplier = multiplier
 	w.buffered = false
 }
+_get_space :: #force_inline proc(w: ^Writer) -> i32 {
+	char_w := i32(w.atlas.chars[30].w) * i32(w.multiplier)
+	return char_w + w.spacing
+}
 writer_get_size :: proc(w: ^Writer, canvas_w: i32) -> [2]i32 {
 	x: i32 = 0
 	y: i32 = 0
@@ -95,7 +102,7 @@ writer_get_size :: proc(w: ^Writer, canvas_w: i32) -> [2]i32 {
 		char_i := i32(char) - 33
 		if char_i < 0 || int(char_i) > len(w.atlas.chars) {
 			if rune(char) == ' ' {
-				x += char_h / 2
+				x += _get_space(w)
 			} else if rune(char) == '\n' {
 				x = 0
 				y += char_h + line_gap
@@ -142,7 +149,7 @@ writer_update_buffer_data :: proc(w: ^Writer, canvas_w: i32) {
 		line_gap: i32 = w.atlas.h / 3
 		if char_i < 0 || int(char_i) > len(w.atlas.chars) {
 			if rune(char) == ' ' {
-				x += char_h / 2
+				x += _get_space(w)
 			} else if rune(char) == '\n' {
 				x = w.pos.x
 				y += char_h + line_gap
@@ -230,10 +237,20 @@ writer_update_buffer_data :: proc(w: ^Writer, canvas_w: i32) {
 	}
 	w.buffered = true
 }
-writer_draw :: proc(w: ^Writer, canvas_w: i32) -> (ok: bool) {
+writer_draw :: proc(
+	w: ^Writer,
+	projection: glm.mat4,
+	color: glm.vec3,
+	canvas_w: i32,
+) -> (
+	ok: bool,
+) {
 	if !w.buffered {
 		writer_update_buffer_data(w, canvas_w)
 	}
+	// fmt.println(w.buffers)
+	uniforms: Uniforms = {color, projection}
+	shader_use(w.shader, uniforms, w.buffers.pos, w.buffers.tex, w.atlas.texture_info)
 	ea_buffer_draw(w.buffers.indices)
 	return check_gl_error()
 }
