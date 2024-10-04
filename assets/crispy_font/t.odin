@@ -1,6 +1,6 @@
 package t
 
-import text "../shared/text"
+import text "../../shared/text"
 import "core:bytes"
 import "core:fmt"
 import "core:image"
@@ -16,7 +16,16 @@ SrcChar :: struct {
 	pixels:     []bool,
 }
 
-_main :: proc(png_file: string, grid_w: int, grid_h: int) -> (ok: bool) {
+_main :: proc(
+	png_file: string,
+	grid_w: int,
+	grid_h: int,
+	padding_top: int,
+	padding_bt: int,
+	name: string,
+) -> (
+	ok: bool,
+) {
 	// read png 2,824 bytes
 	img: ^image.Image
 	{
@@ -108,7 +117,7 @@ _main :: proc(png_file: string, grid_w: int, grid_h: int) -> (ok: bool) {
 
 	// resave to packed png for debugging
 	{
-		h := grid_h
+		h := grid_h - padding_top - padding_bt
 		w: int
 		spacing := 1
 		for ch in chars {
@@ -122,7 +131,7 @@ _main :: proc(png_file: string, grid_w: int, grid_h: int) -> (ok: bool) {
 			for src_y in 0 ..< char.h {
 				for src_x in 0 ..< char.w {
 					dst_x := dst_left_x + src_x
-					dst_y := src_y + char.y_from_top
+					dst_y := src_y + char.y_from_top - padding_top
 					dst_i := dst_y * w + dst_x
 					v: u8 = 0
 					if char.pixels[src_y * char.w + src_x] {
@@ -139,7 +148,7 @@ _main :: proc(png_file: string, grid_w: int, grid_h: int) -> (ok: bool) {
 			fmt.println("ERROR: converting to debug Image")
 			return false
 		}
-		err := bmp.save_to_file(fmt.tprintf("assets/debug/debug-%d.bmp", grid_h), &img2)
+		err := bmp.save_to_file(fmt.tprintf("assets/crispy_font/debug/debug-%s.bmp", name), &img2)
 		if err != nil {
 			fmt.println("ERROR: saving bmp:", err)
 			return false
@@ -149,7 +158,7 @@ _main :: proc(png_file: string, grid_w: int, grid_h: int) -> (ok: bool) {
 
 	// save char data and bitdepth 1 to data file
 	{
-		h := grid_h
+		h := grid_h - padding_top - padding_bt
 		w: int
 		spacing := 1
 		for ch in chars {
@@ -165,7 +174,7 @@ _main :: proc(png_file: string, grid_w: int, grid_h: int) -> (ok: bool) {
 			for src_y in 0 ..< char.h {
 				for src_x in 0 ..< char.w {
 					dst_x := dst_left_x + src_x
-					dst_y := src_y + char.y_from_top
+					dst_y := src_y + char.y_from_top - padding_top
 					dst_i := dst_y * w + dst_x
 					v: bool = char.pixels[src_y * char.w + src_x]
 					pixels[dst_i] = v
@@ -198,7 +207,10 @@ _main :: proc(png_file: string, grid_w: int, grid_h: int) -> (ok: bool) {
 			img, ok = image.pixels_to_image(pixels[:], int(header.w), int(header.h))
 			fmt.println("pixels_to_image:", ok)
 			if !ok {return false}
-			err := bmp.save_to_file(fmt.tprintf("assets/debug/debug-%d-decode.bmp", grid_h), &img)
+			err := bmp.save_to_file(
+				fmt.tprintf("assets/crispy_font/debug/debug-%s-decode.bmp", name),
+				&img,
+			)
 			if err != nil {
 				fmt.println("error saving decoded img to bmp:", err)
 				return false
@@ -207,7 +219,7 @@ _main :: proc(png_file: string, grid_w: int, grid_h: int) -> (ok: bool) {
 
 		// write encoded data to file
 		err := os.write_entire_file_or_err(
-			fmt.tprintf("assets/data/data-%d.jatlas", grid_h),
+			fmt.tprintf("assets/crispy_font/data/data-%s.jatlas", name),
 			buffer.buf[:written],
 		)
 		if err != nil {
@@ -220,13 +232,18 @@ _main :: proc(png_file: string, grid_w: int, grid_h: int) -> (ok: bool) {
 }
 
 main :: proc() {
-	ok := _main("assets/exports/Sprite-12.png", 9, 12)
+	ok: bool
+	ok = _main("assets/crispy_font/exports/Sprite-12.png", 9, 12, 0, 0, "12")
 	fmt.println("ok:", ok)
-	ok = _main("assets/exports/Sprite-20_2.png", 12, 20)
+	ok = _main("assets/crispy_font/exports/Sprite-16-8-2.png", 10, 18, 1, 1, "16-8-2")
 	fmt.println("ok:", ok)
-	ok = _main("assets/exports/Sprite-30.png", 18, 30)
+	ok = _main("assets/crispy_font/exports/Sprite-16-7-1.png", 10, 18, 1, 1, "16-7-1")
 	fmt.println("ok:", ok)
-	ok = _main("assets/exports/Sprite-40.png", 24, 40)
+	ok = _main("assets/crispy_font/exports/Sprite-20_2.png", 12, 20, 0, 0, "20")
+	fmt.println("ok:", ok)
+	ok = _main("assets/crispy_font/exports/Sprite-30.png", 18, 30, 0, 0, "30")
+	fmt.println("ok:", ok)
+	ok = _main("assets/crispy_font/exports/Sprite-40.png", 24, 40, 0, 0, "40")
 	fmt.println("ok:", ok)
 }
 

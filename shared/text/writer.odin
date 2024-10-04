@@ -63,14 +63,13 @@ Writer :: struct {
 	buffers:        Buffers,
 	overall_height: i32,
 	size:           AtlasSize,
-	multiplier:     uint,
 	spacing:        i32,
 	shader:         TextShader,
 }
 writer_init :: proc(
 	w: ^Writer,
 	buf_size: uint,
-	target_size: i32,
+	atlas_size: AtlasSize,
 	pos: [2]i32,
 	str: string,
 	canvas_w: i32,
@@ -81,9 +80,8 @@ writer_init :: proc(
 	ok: bool,
 ) {
 	// w.str = "Hello WOdinlingssss!"
-	init(&g_atlases)
 	w.buf = make([]u8, buf_size)
-	writer_set_size(w, target_size)
+	writer_set_size(w, atlas_size)
 	w.dyn = dyn
 	w.wrap = wrap
 	w.pos = pos
@@ -103,26 +101,25 @@ writer_init :: proc(
 writer_destroy :: proc(w: ^Writer) {
 	delete(w.buf)
 }
-writer_set_size :: proc(w: ^Writer, target: i32, spacing: i32 = -1) {
-	atlas_size, multiplier, px := get_closest_size(target)
+writer_set_size :: proc(w: ^Writer, atlas_size: AtlasSize, spacing: i32 = -1) {
 	w.atlas = &g_atlases[atlas_size]
+	init(w.atlas, atlas_size)
 	if spacing == -1 {
 		w.spacing = w.atlas.h / 10
 	} else {
 		w.spacing = spacing
 	}
 	w.size = atlas_size
-	w.multiplier = multiplier
 	w.buffered = false
 }
 _get_space :: #force_inline proc(w: ^Writer) -> i32 {
-	char_w := i32(w.atlas.chars[30].w) * i32(w.multiplier)
+	char_w := i32(w.atlas.chars[30].w)
 	return char_w + w.spacing
 }
 writer_get_size :: proc(w: ^Writer, canvas_w: i32) -> [2]i32 {
 	x: i32 = 0
 	y: i32 = 0
-	char_h := w.atlas.h * i32(w.multiplier)
+	char_h := w.atlas.h
 	line_gap := char_h / 3
 	for ch_index := 0; ch_index < w.next_buf_i; ch_index += 1 {
 		i := ch_index * 4
@@ -141,7 +138,7 @@ writer_get_size :: proc(w: ^Writer, canvas_w: i32) -> [2]i32 {
 		}
 		ch: Char = w.atlas.chars[char_i]
 		// wrap to new line if needed
-		char_w := i32(ch.w) * i32(w.multiplier)
+		char_w := i32(ch.w)
 		if w.wrap {
 			next_w := char_w + w.spacing
 			if x + next_w >= canvas_w {
@@ -166,7 +163,7 @@ writer_update_buffer_data :: proc(w: ^Writer, canvas_w: i32) {
 	indices_data := make([][6]u16, data_len, allocator = context.temp_allocator)
 	x: i32 = w.pos.x
 	y: i32 = w.pos.y
-	char_h: i32 = w.atlas.h * i32(w.multiplier)
+	char_h: i32 = w.atlas.h
 	line_gap: i32 = char_h / 3
 	for ch_index := 0; ch_index < w.next_buf_i; ch_index += 1 {
 		i := ch_index * 4
@@ -187,7 +184,7 @@ writer_update_buffer_data :: proc(w: ^Writer, canvas_w: i32) {
 		}
 		ch: Char = w.atlas.chars[char_i]
 		// wrap to new line if needed
-		char_w := i32(ch.w) * i32(w.multiplier)
+		char_w := i32(ch.w)
 		if w.wrap {
 			next_w: i32 = char_w + w.spacing
 			if x + next_w >= canvas_w {

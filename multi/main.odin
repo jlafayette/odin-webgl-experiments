@@ -79,7 +79,7 @@ start :: proc(state: ^State) -> (ok: bool) {
 		text.writer_init(
 			&state.ui_writers[0],
 			64,
-			12,
+			.A12,
 			{5, 5},
 			text_0,
 			state.resize.canvas_res.x,
@@ -88,7 +88,7 @@ start :: proc(state: ^State) -> (ok: bool) {
 		text.writer_init(
 			&state.ui_writers[1],
 			64,
-			12,
+			.A12,
 			{5, 5},
 			text_1,
 			state.resize.canvas_res.x,
@@ -97,7 +97,7 @@ start :: proc(state: ^State) -> (ok: bool) {
 		text.writer_init(
 			&state.ui_writers[2],
 			64,
-			12,
+			.A12,
 			{5, 5},
 			text_2,
 			state.resize.canvas_res.x,
