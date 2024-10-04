@@ -1,6 +1,5 @@
 package text
 
-import "../utils"
 import "core:bytes"
 import "core:fmt"
 import "core:image"
@@ -28,7 +27,10 @@ AtlasSize :: enum {
 	A30,
 	A40,
 }
-TextureInfo :: utils.TextureInfo
+TextureInfo :: struct {
+	id:   gl.Texture,
+	unit: gl.Enum,
+}
 
 g_atlases: Atlases
 g_initialized: bool = false

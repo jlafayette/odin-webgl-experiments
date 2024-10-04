@@ -1,6 +1,5 @@
 package text
 
-import "../utils"
 import "core:fmt"
 import "core:math"
 import glm "core:math/linalg/glsl"
@@ -14,12 +13,43 @@ Buffers :: struct {
 	indices:      EaBuffer,
 	_initialized: bool,
 }
-Buffer :: utils.Buffer
-EaBuffer :: utils.EaBuffer
-buffer_init :: utils.buffer_init
-ea_buffer_init :: utils.ea_buffer_init
-ea_buffer_draw :: utils.ea_buffer_draw
-check_gl_error :: utils.check_gl_error
+Buffer :: struct {
+	id:     gl.Buffer,
+	size:   int, // 3
+	type:   gl.Enum, // gl.FLOAT
+	target: gl.Enum, // gl.ARRAY_BUFFER
+	usage:  gl.Enum, // gl.STATIC_DRAW
+}
+EaBuffer :: struct {
+	id:     gl.Buffer,
+	// size:   int, // 1 (assumed)
+	count:  int, // (len(data) * size_of(data[0])) / 2
+	// type:   gl.Enum, // gl.UNSIGNED_SHORT (assumed)
+	// target: gl.Enum, // gl.ELEMENT_ARRAY_BUFFER (assumed)
+	usage:  gl.Enum, // gl.STATIC_DRAW
+	offset: rawptr,
+}
+buffer_init :: proc(b: ^Buffer, data: []$T) {
+	b.id = gl.CreateBuffer()
+	gl.BindBuffer(b.target, b.id)
+	gl.BufferDataSlice(b.target, data[:], b.usage)
+}
+ea_buffer_init :: proc(b: ^EaBuffer, data: []$T) {
+	b.count = (len(data) * size_of(T)) / 2 // 2 is size of unsigned_short (u16)
+	b.offset = nil
+	b.id = gl.CreateBuffer()
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.id)
+	gl.BufferDataSlice(gl.ELEMENT_ARRAY_BUFFER, data[:], b.usage)
+}
+ea_buffer_draw :: proc(b: EaBuffer, instance_count: int = 0) {
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.id)
+	if instance_count > 0 {
+		gl.DrawElementsInstanced(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, 0, instance_count)
+	} else {
+		gl.DrawElements(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, b.offset)
+	}
+}
+
 
 Writer :: struct {
 	buf:            []u8,
@@ -37,7 +67,6 @@ Writer :: struct {
 	spacing:        i32,
 	shader:         TextShader,
 }
-
 writer_init :: proc(
 	w: ^Writer,
 	buf_size: uint,
@@ -74,7 +103,6 @@ writer_init :: proc(
 writer_destroy :: proc(w: ^Writer) {
 	delete(w.buf)
 }
-
 writer_set_size :: proc(w: ^Writer, target: i32, spacing: i32 = -1) {
 	atlas_size, multiplier, px := get_closest_size(target)
 	w.atlas = &g_atlases[atlas_size]
@@ -125,7 +153,6 @@ writer_get_size :: proc(w: ^Writer, canvas_w: i32) -> [2]i32 {
 	}
 	return {x, y + char_h}
 }
-
 writer_update_buffer_data :: proc(w: ^Writer, canvas_w: i32) {
 
 	w.overall_height = 0
@@ -198,7 +225,7 @@ writer_update_buffer_data :: proc(w: ^Writer, canvas_w: i32) {
 	w.overall_height = i32(y + char_h - w.pos.y)
 	if w.buffers._initialized {
 		{
-			buffer: utils.Buffer = w.buffers.pos
+			buffer: Buffer = w.buffers.pos
 			gl.BindBuffer(buffer.target, buffer.id)
 			gl.BufferSubDataSlice(buffer.target, 0, pos_data)
 		}
@@ -279,5 +306,14 @@ writer_backspace :: proc(w: ^Writer) {
 	}
 	w.next_buf_i -= 1
 	w.buffered = false
+}
+
+check_gl_error :: proc() -> (ok: bool) {
+	err := gl.GetError()
+	if err != gl.NO_ERROR {
+		fmt.eprintln("WebGL error:", err)
+		return false
+	}
+	return true
 }
 

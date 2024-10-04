@@ -1,7 +1,6 @@
 package multi
 
 import "../shared/text"
-import "../shared/utils"
 import "core:fmt"
 import "core:math"
 import glm "core:math/linalg/glsl"
@@ -109,7 +108,6 @@ start :: proc(state: ^State) -> (ok: bool) {
 	return check_gl_error()
 }
 
-check_gl_error :: utils.check_gl_error
 
 draw_scene :: proc(state: State) -> (ok: bool) {
 	gl.ClearColor(0, 0, 0, 1)
@@ -224,5 +222,14 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 	if !ok {return false}
 
 	return check_gl_error()
+}
+
+check_gl_error :: proc() -> (ok: bool) {
+	err := gl.GetError()
+	if err != gl.NO_ERROR {
+		fmt.eprintln("WebGL error:", err)
+		return false
+	}
+	return true
 }
 
