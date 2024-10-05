@@ -1,5 +1,6 @@
 package trails
 
+import "../shared/resize"
 import "core:fmt"
 import "core:math"
 import glm "core:math/linalg/glsl"
@@ -18,6 +19,7 @@ GameState :: struct {
 	emitter:           ParticleEmitter,
 	w:                 i32,
 	h:                 i32,
+	resize:            resize.ResizeState,
 }
 @(private = "file")
 g_: GameState = {}
@@ -68,6 +70,8 @@ draw_scene :: proc(g: GameState, dt: f32) -> (ok: bool) {
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
+	gl.Viewport(0, 0, g.w, g.h)
+
 	// 0,0 is bottom left
 	view_projection_matrix := glm.mat4Ortho3d(0, f32(g.w), 0, f32(g.h), -100, 100)
 
@@ -102,8 +106,10 @@ draw_scene :: proc(g: GameState, dt: f32) -> (ok: bool) {
 }
 
 update :: proc(g: ^GameState, dt: f32) {
-	g.w = gl.DrawingBufferWidth()
-	g.h = gl.DrawingBufferHeight()
+	resize.resize(&g.resize)
+	g.w = g.resize.canvas_res.x
+	g.h = g.resize.canvas_res.y
+	update_input(&g_.input, dt)
 	pos := glm.vec2(g.input.mouse_pos)
 	vel := glm.vec2(g.input.mouse_vel)
 	particle_emitter_update(&g.emitter, dt, pos, vel)
@@ -119,7 +125,6 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 		if ok = start(&g_); !ok {return false}
 	}
 
-	update_input(&g_.input, dt)
 	update(&g_, dt)
 
 	ok = draw_scene(g_, dt)

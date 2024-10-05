@@ -26,12 +26,13 @@ ParticleEmitter :: struct {
 	vel:              glm.vec2,
 }
 LIFE :: 2
-PARTICLES_PER_SECOND :: 400
+PARTICLES_PER_SECOND :: 800
 N_PARTICLES :: LIFE * PARTICLES_PER_SECOND + 200
 SCALE :: 1
-SCALE_R :: 8
-RANDOM_MAGNITUDE :: 50
+SCALE_R :: 16
+RANDOM_MAGNITUDE :: 120
 DAMPING_AMOUNT :: 0.99
+GRAVITY :: -30_000
 
 particle_emitter_init :: proc(e: ^ParticleEmitter) {
 	e.particles = make([]Particle, N_PARTICLES)
@@ -50,13 +51,12 @@ particle_emitter_destroy :: proc(e: ^ParticleEmitter) {
 	delete(e.particles)
 }
 particle_emitter_update :: proc(e: ^ParticleEmitter, dt: f32, pos: glm.vec2, raw_vel: glm.vec2) {
-	gravity: f32 = -20_000
 	decay := dt / LIFE
 	for &p, i in e.particles {
 		if p.life > 0 {
 			p.life -= decay
 			// position += velocity * delta + acceleration * delta * delta * 0.5			
-			acc: glm.vec2 = {0, 0}
+			acc: glm.vec2 = {0, GRAVITY}
 			p.pos += p.vel * dt + acc * dt * dt * 0.5
 
 			p.vel *= DAMPING_AMOUNT
@@ -144,7 +144,7 @@ particle_respawn :: proc(pos: glm.vec2, vel: glm.vec2, col: glm.vec4) -> Particl
 		angle := rand.float32() * math.TAU
 		mag: f32 = rand.float32() * RANDOM_MAGNITUDE
 		random_vel: glm.vec2 = {math.sin(angle), math.cos(angle)} * mag
-		p.vel = vel + random_vel
+		p.vel = vel + random_vel + {0, 250}
 	}
 	p.pos = pos
 	p.color = col
