@@ -32,13 +32,14 @@ def main(args: Args) -> Path:
 	if args.odin or not wasm_dst.exists():
 		print("building wasm...")
 		clean(wasm_dst)
-		subprocess.run([
-			"odin", "build",
-			project_dst,
-			f"-out:{wasm_dst}",
-			"-target:js_wasm32",
-			"-o:minimal",
-		])
+		build_args = [
+			"odin", "build", project_dst, f"-out:{wasm_dst}", "-target:js_wasm32"
+		]
+		if args.optimized:
+			build_args.extend(["-o:aggressive", "-disable-assert", "-no-bounds-check"])
+		else:
+			build_args.extend(["-o:minimal"])
+		subprocess.run(build_args)
 	
 	runtime2 = "runtime-2.js" in (public_dst / "index.html").read_text()
 	if runtime2:
