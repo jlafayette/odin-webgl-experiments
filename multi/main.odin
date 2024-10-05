@@ -34,7 +34,6 @@ State :: struct {
 	current_texture: TextureId,
 	textures:        Textures,
 	resize:          ResizeState,
-	ui_writers:      [3]text.Writer,
 	debug_text:      text.Batch,
 }
 @(private = "file")
@@ -71,40 +70,6 @@ start :: proc(state: ^State) -> (ok: bool) {
 
 	ok = textures_init(&state.textures)
 	if !ok {return}
-
-	{
-		text_0 := "Cycle Texture  [t]"
-		text_1 := "Cycle Geometry [g]"
-		text_2 := "Cycle Shader   [s]"
-		// positions will be overwritten in update
-		text.writer_init(
-			&state.ui_writers[0],
-			64,
-			.A12,
-			{5, 5},
-			text_0,
-			state.resize.canvas_res.x,
-			2,
-		) or_return
-		text.writer_init(
-			&state.ui_writers[1],
-			64,
-			.A12,
-			{5, 5},
-			text_1,
-			state.resize.canvas_res.x,
-			2,
-		) or_return
-		text.writer_init(
-			&state.ui_writers[2],
-			64,
-			.A12,
-			{5, 5},
-			text_2,
-			state.resize.canvas_res.x,
-			2,
-		) or_return
-	}
 
 	return check_gl_error()
 }
@@ -173,23 +138,21 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 		-1,
 		1,
 	)
-	for &writer in state.ui_writers {
-		text.writer_draw(&writer, text_projection, {1, 1, 1}, state.resize.canvas_res.x) or_return
-	}
-
 	{
-		text.batch_start(&state.debug_text, .A12, {0, 1, 1}, text_projection, 128, spacing = 2)
+		text.batch_start(&state.debug_text, .A12, {1, 1, 1}, text_projection, 128, spacing = 2)
 		text_0 := "Cycle Texture  [t]"
 		text_1 := "Cycle Geometry [g]"
 		text_2 := "Cycle Shader   [s]"
+		canvas_h := state.resize.canvas_res.y
 		h: i32 = state.debug_text.atlas.h
-		line_gap := h / 2
-		y: i32 = 50
-		_ = text.debug({8, y}, text_0) or_return
-		y -= (h + line_gap)
-		_ = text.debug({8, y}, text_1) or_return
-		y -= (h + line_gap)
-		_ = text.debug({8, y}, text_2) or_return
+		line_gap: i32 = 5
+		x: i32 = 8
+		y: i32 = canvas_h - h - 8
+		_ = text.debug({x, y}, text_0) or_return
+		y -= h + line_gap
+		_ = text.debug({x, y}, text_1) or_return
+		y -= h + line_gap
+		_ = text.debug({x, y}, text_2) or_return
 	}
 
 	return ok
@@ -205,21 +168,6 @@ update :: proc(state: ^State, dt: f32) {
 		state.current_shader,
 	)
 	resize(&state.resize)
-
-	// update text positions in case of resize
-	{
-		line_gap: i32 = 5
-		x: i32 = 8
-		text_size := text.writer_get_size(&state.ui_writers[0], state.resize.canvas_res.x)
-		h: i32 = state.resize.canvas_res.y
-		th: i32 = text_size.y
-		y: i32 = h - 8 - th
-		text.writer_set_pos(&state.ui_writers[0], {x, y})
-		y -= th + line_gap
-		text.writer_set_pos(&state.ui_writers[1], {x, y})
-		y -= th + line_gap
-		text.writer_set_pos(&state.ui_writers[2], {x, y})
-	}
 }
 
 @(export)
