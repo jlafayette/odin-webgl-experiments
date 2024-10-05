@@ -10,9 +10,11 @@ class Args(NamedTuple):
 	project: str
 	go: bool
 	odin: bool
+	optimized: bool
+	run: bool
 
 
-def main(args: Args):
+def main(args: Args) -> Path:
 	print(args)
 	project_dst = Path(args.project)
 	public_dst = project_dst / "public"
@@ -51,13 +53,15 @@ def main(args: Args):
 		if not runtime_js_dst.is_file():
 			copy_runtime_js(runtime_js_dst)
 
-	os.chdir(public_dst)
+	if args.run:
+		os.chdir(public_dst)
+		try:
+			subprocess.run([server_dst.name], shell=True)
+		except KeyboardInterrupt:
+			print("Shutting down server")
+			sys.exit(0)
 
-	try:
-		subprocess.run([server_dst.name], shell=True)
-	except KeyboardInterrupt:
-		print("Shutting down server")
-		sys.exit(0)
+	return public_dst
 
 
 def clean(p: Path):
@@ -105,7 +109,8 @@ def args():
 		sys.exit(1)
 	build_go = "-g" in args
 	build_odin = "-o" in args
-	return Args(args[0], build_go, build_odin)
+	return Args(args[0], build_go, build_odin, False, True)
 
 
-main(args())
+if __name__ == "__main__":
+	main(args())

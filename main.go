@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,9 +14,16 @@ import (
 )
 
 func main() {
-	build()
-	go watch("../")
-	go watch("../../shared/")
+	noWatchPtr := flag.Bool("no-watch", false, "turn off file watcher")
+	noBuildPtr := flag.Bool("no-build", false, "turn off initial odin build")
+	flag.Parse()
+	if !*noBuildPtr {
+		build()
+	}
+	if !*noWatchPtr {
+		go watch("../")
+		go watch("../../shared/")
+	}
 
 	fs := http.FileServer(http.Dir("./"))
 	http.Handle("/", fs)
