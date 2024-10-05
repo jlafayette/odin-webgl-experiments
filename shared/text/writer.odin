@@ -11,6 +11,7 @@ Buffers :: struct {
 	pos:          Buffer,
 	tex:          Buffer,
 	indices:      EaBuffer,
+	offset:       uint,
 	_initialized: bool,
 }
 Buffer :: struct {

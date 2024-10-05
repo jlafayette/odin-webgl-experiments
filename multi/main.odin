@@ -35,6 +35,7 @@ State :: struct {
 	textures:        Textures,
 	resize:          ResizeState,
 	ui_writers:      [3]text.Writer,
+	debug_text:      text.Batch,
 }
 @(private = "file")
 g_state: State = {
@@ -109,7 +110,7 @@ start :: proc(state: ^State) -> (ok: bool) {
 }
 
 
-draw_scene :: proc(state: State) -> (ok: bool) {
+draw_scene :: proc(state: ^State) -> (ok: bool) {
 	gl.ClearColor(0, 0, 0, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.ClearDepth(1)
@@ -176,6 +177,21 @@ draw_scene :: proc(state: State) -> (ok: bool) {
 		text.writer_draw(&writer, text_projection, {1, 1, 1}, state.resize.canvas_res.x) or_return
 	}
 
+	{
+		text.batch_start(&state.debug_text, .A12, {0, 1, 1}, text_projection, 128, spacing = 2)
+		text_0 := "Cycle Texture  [t]"
+		text_1 := "Cycle Geometry [g]"
+		text_2 := "Cycle Shader   [s]"
+		h: i32 = state.debug_text.atlas.h
+		line_gap := h / 2
+		y: i32 = 50
+		_ = text.debug({8, y}, text_0) or_return
+		y -= (h + line_gap)
+		_ = text.debug({8, y}, text_1) or_return
+		y -= (h + line_gap)
+		_ = text.debug({8, y}, text_2) or_return
+	}
+
 	return ok
 }
 
@@ -218,7 +234,7 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 
 	update(&g_state, dt)
 
-	ok = draw_scene(g_state)
+	ok = draw_scene(&g_state)
 	if !ok {return false}
 
 	return check_gl_error()

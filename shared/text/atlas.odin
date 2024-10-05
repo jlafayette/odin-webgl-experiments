@@ -64,7 +64,11 @@ init :: proc(a: ^Atlas, size: AtlasSize) -> (ok: bool) {
 	header: Header
 	chars: [dynamic]Char
 	pixels: [dynamic][1]u8
-	header, chars, pixels = decode(atlas_data, 1) or_return
+	header, chars, pixels, ok = decode(atlas_data, 1)
+	if !ok {
+		fmt.println("ok:", ok)
+		return ok
+	}
 	fmt.println(header)
 	defer delete(pixels)
 	a.w = header.w

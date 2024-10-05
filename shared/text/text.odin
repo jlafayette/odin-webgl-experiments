@@ -1,7 +1,7 @@
 package text
 
 import "core:bytes"
-// import "core:fmt"
+import "core:fmt"
 import "core:math"
 
 Char :: struct {
@@ -106,6 +106,9 @@ decode :: proc(data: []byte, $T: uint) -> (Header, [dynamic]Char, [dynamic][T]u8
 		}
 	}
 	ok := i32(len(pixels)) == header.w * header.h
+	if !ok {
+		fmt.eprintln("Error decoding atlas: pixel len does not match w*h")
+	}
 	return header, chars, pixels, ok
 }
 
