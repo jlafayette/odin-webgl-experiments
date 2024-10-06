@@ -27,9 +27,9 @@ def main(args: Args):
 	os.chdir(root_dir)
 
 	dist = root_dir / "dist"
-	build.clean(dist)
-	dist.mkdir(exist_ok=False)
-	shutil.copy(root_dir / "public/index.html", dist / "index.html")
+	dist.mkdir(exist_ok=True)
+	# shutil.copy(root_dir / "public/index.html", dist / "index.html")
+	# shutil.copy(root_dir / "public/style.css", dist / "style.css")
 
 	for src_public in paths:
 		filenames = ["index.html", "_main.wasm", "style.css"]
@@ -37,6 +37,7 @@ def main(args: Args):
 		files.extend(src_public.glob("*.js"))
 		print(src_public)
 		dst_path = dist / src_public.parent.name
+		build.clean(dst_path)
 		dst_path.mkdir(exist_ok=False)
 		for src in files:
 			if src.is_file():
