@@ -69,7 +69,7 @@ def clean(p: Path):
 	if p.is_file():
 		p.unlink()
 	elif p.is_dir():
-		p.rmdir()
+		shutil.rmtree(p)
 
 
 def copy_gamepad_js(dst: Path):

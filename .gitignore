@@ -7,3 +7,4 @@
 *.exe
 assets/crispy_font/art/reference
 assets/crispy_font/debug
+dist/

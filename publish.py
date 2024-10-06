@@ -20,14 +20,17 @@ def main():
 		paths.append(build.main(args))
 	os.chdir(root_dir)
 
-	dst_public = root_dir / "public"
+	dist = root_dir / "dist"
+	build.clean(dist)
+	dist.mkdir(exist_ok=False)
+	shutil.copy(root_dir / "public/index.html", dist / "index.html")
+
 	for src_public in paths:
 		filenames = ["index.html", "_main.wasm", "style.css"]
 		files = [src_public / f for f in filenames]
 		files.extend(src_public.glob("*.js"))
 		print(src_public)
-		dst_path = dst_public / src_public.parent.name
-		shutil.rmtree(dst_path)
+		dst_path = dist / src_public.parent.name
 		dst_path.mkdir(exist_ok=False)
 		for src in files:
 			if src.is_file():
@@ -37,13 +40,13 @@ def main():
 				shutil.copy(src, dst)
 
 	print("building dev server...", end="")
-	server_dst = dst_public / "main.exe"
+	server_dst = dist / "main.exe"
 	build.clean(server_dst)
 	subprocess.run(["go", "build", "-o", server_dst, "main.go"])
 	print(" done")
 	print(
 		"To run dev server:\n"
-		"\tcd public\n"
+		"\tcd dist\n"
 		"\t.\main.exe -no-watch -no-build\n"
 	)
 
