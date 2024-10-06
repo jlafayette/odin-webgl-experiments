@@ -4,8 +4,8 @@ foreign import odin_mouse "odin_mouse"
 
 import "core:fmt"
 import glm "core:math/linalg/glsl"
+import "core:sys/wasm/js"
 import gl "vendor:wasm/WebGL"
-import "vendor:wasm/js"
 
 Input :: struct {
 	mouse_pos: [2]f32,

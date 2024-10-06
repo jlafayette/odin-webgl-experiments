@@ -5,7 +5,7 @@ foreign import odin_resize "odin_resize"
 import "core:fmt"
 import "core:math"
 import glm "core:math/linalg/glsl"
-import "vendor:wasm/js"
+import "core:sys/wasm/js"
 
 SizeInfo :: struct {
 	window_inner_width:  f32,

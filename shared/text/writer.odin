@@ -4,8 +4,8 @@ import "core:fmt"
 import "core:math"
 import glm "core:math/linalg/glsl"
 import "core:strings"
+import "core:sys/wasm/js"
 import gl "vendor:wasm/WebGL"
-import "vendor:wasm/js"
 
 Buffers :: struct {
 	pos:          Buffer,

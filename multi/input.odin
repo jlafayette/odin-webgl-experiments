@@ -1,7 +1,7 @@
 package multi
 
 import glm "core:math/linalg/glsl"
-import "vendor:wasm/js"
+import "core:sys/wasm/js"
 
 Input :: struct {
 	cycle_texture: bool,
