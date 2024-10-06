@@ -26,7 +26,7 @@ def main(args: Args) -> Path:
 	if args.go or not server_dst.exists():
 		print("building server...")
 		clean(server_dst)
-		subprocess.run(["go", "build", "-o", server_dst, "main.go"])
+		subprocess.run(["go", "build", "-o", server_dst, "main.go"], check=True)
 	
 	wasm_dst = public_dst / "_main.wasm"
 	if args.odin or not wasm_dst.exists():
@@ -39,7 +39,7 @@ def main(args: Args) -> Path:
 			build_args.extend(["-o:aggressive", "-disable-assert", "-no-bounds-check"])
 		else:
 			build_args.extend(["-o:minimal"])
-		subprocess.run(build_args)
+		subprocess.run(build_args, check=True)
 	
 	runtime2 = "runtime-2.js" in (public_dst / "index.html").read_text()
 	if runtime2:
@@ -57,7 +57,7 @@ def main(args: Args) -> Path:
 	if args.run:
 		os.chdir(public_dst)
 		try:
-			subprocess.run([server_dst.name], shell=True)
+			subprocess.run([server_dst.name], shell=True, check=True)
 		except KeyboardInterrupt:
 			print("Shutting down server")
 			sys.exit(0)

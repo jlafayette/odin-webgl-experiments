@@ -1,7 +1,9 @@
 import os
 import shutil
+import sys
 import subprocess
 from pathlib import Path
+from typing import NamedTuple
 
 import build
 
@@ -9,15 +11,19 @@ import build
 root_dir = Path(__file__).absolute().parent
 
 
-def main():
+class Args(NamedTuple):
+	build_go: bool
+
+
+def main(args: Args):
 	paths = []
 	projects = [
 		"multi",
 		"trails",
 	]
 	for project in projects:
-		args = build.Args(project=project, go=False, odin=True, optimized=True, run=False)
-		paths.append(build.main(args))
+		build_args = build.Args(project=project, go=False, odin=True, optimized=True, run=False)
+		paths.append(build.main(build_args))
 	os.chdir(root_dir)
 
 	dist = root_dir / "dist"
@@ -39,17 +45,27 @@ def main():
 				build.clean(dst)
 				shutil.copy(src, dst)
 
-	print("building dev server...", end="")
-	server_dst = dist / "main.exe"
-	build.clean(server_dst)
-	subprocess.run(["go", "build", "-o", server_dst, "main.go"])
-	print(" done")
-	print(
-		"To run dev server:\n"
-		"\tcd dist\n"
-		"\t.\\main.exe -no-watch -no-build\n"
-	)
+	if args.build_go:
+		print("building dev server...", end="")
+		server_dst = dist / "main.exe"
+		build.clean(server_dst)
+		subprocess.run(["go", "build", "-o", server_dst, "main.go"])
+		print(" done")
+		print(
+			"To run dev server:\n"
+			"\tcd dist\n"
+			"\t.\\main.exe -no-watch -no-build\n"
+		)
+
+
+def args():
+	args = sys.argv[1:]
+	if "-g" in args or "--dev" in args:
+		build_go = True
+	else:
+		build_go = False
+	return Args(build_go)
 
 
 if __name__ == "__main__":
-	main()
+	main(args())
