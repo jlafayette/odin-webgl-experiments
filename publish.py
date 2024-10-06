@@ -47,7 +47,7 @@ def main():
 	print(
 		"To run dev server:\n"
 		"\tcd dist\n"
-		"\t.\main.exe -no-watch -no-build\n"
+		"\t.\\main.exe -no-watch -no-build\n"
 	)
 
 
