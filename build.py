@@ -45,11 +45,14 @@ def main(args: Args) -> Path:
 		subprocess.run(build_args, check=True)
 	
 	odin_js_dst = public_dst / "odin.js"
-	if not odin_js_dst.is_file():
-		copy_odin_js(odin_js_dst)
+	clean(odin_js_dst)
+	copy_odin_js(odin_js_dst)
 	resize_js_dst = public_dst / "odin-resize.js"
 	clean(resize_js_dst)
 	shutil.copy(root_dir / "shared/resize/odin-resize.js", resize_js_dst)
+	gamepad_js_dst = public_dst / "odin-gamepad.js"
+	clean(gamepad_js_dst)
+	shutil.copy(root_dir / "shared/gamepad/odin-gamepad.js", gamepad_js_dst)
 
 	if args.run:
 		os.chdir(public_dst)

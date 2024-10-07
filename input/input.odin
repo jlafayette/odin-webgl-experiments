@@ -1,36 +1,38 @@
 package input
 
+import gamepad "../shared/gamepad"
 import "core:fmt"
 import "core:math"
-import "vendor:wasm/js"
-import gamepad "../shared/gamepad"
+import "core:sys/wasm/js"
 
 KeysDown :: struct {
-	w: bool,
-	a: bool,
-	s: bool,
-	d: bool,
-	lf: bool,
-	rt: bool,
-	up: bool,
-	dn: bool,
+	w:     bool,
+	a:     bool,
+	s:     bool,
+	d:     bool,
+	lf:    bool,
+	rt:    bool,
+	up:    bool,
+	dn:    bool,
 	turbo: bool,
 }
 Input :: struct {
 	mouse_left_down: bool,
-	has_focus: bool,
+	has_focus:       bool,
 	just_lost_focus: bool,
-	zoom: f32,
-	pos: [2]f32,
-	keys_down: KeysDown,
+	zoom:            f32,
+	pos:             [2]f32,
+	keys_down:       KeysDown,
 }
 
 on_mouse_down :: proc(e: js.Event) {
 	switch e.mouse.button {
-		case 0: state.input.mouse_left_down = true
-		// right click opens menu, so left mouse
-		// click up can be lost
-		case 2: state.input.mouse_left_down = false
+	case 0:
+		state.input.mouse_left_down = true
+	// right click opens menu, so left mouse
+	// click up can be lost
+	case 2:
+		state.input.mouse_left_down = false
 	}
 }
 on_mouse_up :: proc(e: js.Event) {
@@ -52,26 +54,26 @@ on_wheel :: proc(e: js.Event) {
 }
 
 on_key_down :: proc(e: js.Event) {
-	if e.key.code == "KeyA" { state.input.keys_down.a = true }
-	if e.key.code == "KeyD" { state.input.keys_down.d = true }
-	if e.key.code == "KeyS" { state.input.keys_down.s = true }
-	if e.key.code == "KeyW" { state.input.keys_down.w = true }
-	if e.key.code == "ArrowLeft" {  state.input.keys_down.lf = true }
-	if e.key.code == "ArrowRight" { state.input.keys_down.rt = true }
-	if e.key.code == "ArrowDown" {  state.input.keys_down.dn = true }
-	if e.key.code == "ArrowUp" {    state.input.keys_down.up = true }
-	if e.key.code == "ShiftLeft" {    state.input.keys_down.turbo = true }
+	if e.key.code == "KeyA" {state.input.keys_down.a = true}
+	if e.key.code == "KeyD" {state.input.keys_down.d = true}
+	if e.key.code == "KeyS" {state.input.keys_down.s = true}
+	if e.key.code == "KeyW" {state.input.keys_down.w = true}
+	if e.key.code == "ArrowLeft" {state.input.keys_down.lf = true}
+	if e.key.code == "ArrowRight" {state.input.keys_down.rt = true}
+	if e.key.code == "ArrowDown" {state.input.keys_down.dn = true}
+	if e.key.code == "ArrowUp" {state.input.keys_down.up = true}
+	if e.key.code == "ShiftLeft" {state.input.keys_down.turbo = true}
 }
 on_key_up :: proc(e: js.Event) {
-	if e.key.code == "KeyA" { state.input.keys_down.a = false }
-	if e.key.code == "KeyD" { state.input.keys_down.d = false }
-	if e.key.code == "KeyS" { state.input.keys_down.s = false }
-	if e.key.code == "KeyW" { state.input.keys_down.w = false }
-	if e.key.code == "ArrowLeft" {  state.input.keys_down.lf = false }
-	if e.key.code == "ArrowRight" { state.input.keys_down.rt = false }
-	if e.key.code == "ArrowDown" {  state.input.keys_down.dn = false }
-	if e.key.code == "ArrowUp" {    state.input.keys_down.up = false }
-	if e.key.code == "ShiftLeft" {    state.input.keys_down.turbo = false }
+	if e.key.code == "KeyA" {state.input.keys_down.a = false}
+	if e.key.code == "KeyD" {state.input.keys_down.d = false}
+	if e.key.code == "KeyS" {state.input.keys_down.s = false}
+	if e.key.code == "KeyW" {state.input.keys_down.w = false}
+	if e.key.code == "ArrowLeft" {state.input.keys_down.lf = false}
+	if e.key.code == "ArrowRight" {state.input.keys_down.rt = false}
+	if e.key.code == "ArrowDown" {state.input.keys_down.dn = false}
+	if e.key.code == "ArrowUp" {state.input.keys_down.up = false}
+	if e.key.code == "ShiftLeft" {state.input.keys_down.turbo = false}
 }
 
 on_window_focus :: proc(e: js.Event) {
@@ -92,25 +94,27 @@ update :: proc(dt: f32) {
 		state.rotation += dt
 	}
 	pos := input.pos
-	if gamepad.SIZE > 0 && gamepad.POINTER.connected {
-		gp := gamepad.POINTER
+
+	gp := gamepad.get_input()
+	if gp.connected {
 		// move with left stick (left trigger is turbo)
 		{
 			delta := dt * 2
 			turbo := (gp.buttons[6].value * 4) + 1
 			delta *= turbo
-			stick : [2]f32 = {gp.axes[0], -1 * gp.axes[1]}
+			stick: [2]f32 = {gp.axes[0], -1 * gp.axes[1]}
 			pos += delta * stick
 		}
 		// zoom with right stick
 		{
-			stick : [2]f32 = {gp.axes[2], gp.axes[3]}
+			stick: [2]f32 = {gp.axes[2], gp.axes[3]}
 			y := dt * stick.y * 2
 			zoom := state.input.zoom
 			zoom = math.clamp(zoom + y, zoom_min, zoom_max)
 			state.input.zoom = zoom
 		}
 	}
+
 	// could turn off key input if also recieving gamepad
 	// input or limit the total input from both sources
 	// (if we actually cared that we weren't doubling input)
@@ -142,7 +146,7 @@ register_event_listeners :: proc() {
 
 	js.add_window_event_listener(.Key_Down, {}, on_key_down)
 	js.add_window_event_listener(.Key_Up, {}, on_key_up)
-	
+
 	js.add_window_event_listener(.Focus, {}, on_window_focus)
 	js.add_window_event_listener(.Blur, {}, on_window_blur)
 }
