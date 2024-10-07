@@ -37,6 +37,7 @@ State :: struct {
 	rotation:     f32,
 	w:            i32,
 	h:            i32,
+	dpr:          f32,
 	debug_text:   text.Batch,
 }
 state: State = {
@@ -192,8 +193,18 @@ draw_scene :: proc(paused: bool) {
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	text_projection := glm.mat4Ortho3d(0, f32(state.w), f32(state.h), 0, -1, 1)
+	spacing: i32 = 2
+	scale: i32 = math.max(1, i32(math.round(state.dpr)))
 	{
-		text.batch_start(&state.debug_text, .A16, {1, 1, 1}, text_projection, 128, spacing = 2)
+		text.batch_start(
+			&state.debug_text,
+			.A16,
+			{1, 1, 1},
+			text_projection,
+			128,
+			spacing = spacing * scale,
+			scale = scale,
+		)
 		text_0: string
 		text_1: string
 		text_2: string
@@ -211,8 +222,8 @@ draw_scene :: proc(paused: bool) {
 				text_2 = "Slow [button 0]"
 			}
 		}
-		h: i32 = state.debug_text.atlas.h
-		line_gap: i32 = 8
+		h: i32 = text.debug_get_height()
+		line_gap: i32 = 8 * scale
 		x: i32 = 16
 		y: i32 = 16
 		_, _ = text.debug({x, y}, text_0)

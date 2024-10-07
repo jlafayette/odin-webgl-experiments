@@ -11,6 +11,7 @@ Batch :: struct {
 	buffers:    Buffers,
 	size:       AtlasSize,
 	spacing:    i32,
+	scale:      i32,
 	shader:     TextShader,
 	capacity:   uint,
 	projection: glm.mat4,
@@ -27,6 +28,7 @@ batch_start :: proc(
 	projection: glm.mat4,
 	capacity: uint,
 	spacing: i32 = -1,
+	scale: i32 = 1,
 ) -> (
 	^Batch,
 	bool,
@@ -36,11 +38,12 @@ batch_start :: proc(
 	b.color = color
 	b.projection = projection
 	b.capacity = capacity
+	b.scale = scale
 	b.atlas = &g_atlases[size]
 	ok = init(b.atlas, size)
 
 	if spacing == -1 {
-		b.spacing = b.atlas.h / 10
+		b.spacing = scale * (b.atlas.h / 10)
 	} else {
 		b.spacing = spacing
 	}
@@ -98,14 +101,21 @@ batch_end :: proc(b: ^Batch, ok: bool) {
 		buf := b.buffers.indices
 		gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, buf.id)
 		gl.DrawElements(gl.TRIANGLES, buf.count, gl.UNSIGNED_SHORT, buf.offset)
-
 	}
 	_current_batch = nil
 }
 
-_get_batch_space :: #force_inline proc(atlas: ^Atlas, spacing: i32) -> i32 {
+debug_get_height :: proc() -> i32 {
+	if _current_batch == nil {
+		return -1
+	}
+	b := _current_batch
+	return b.atlas.h * b.scale
+}
+
+_get_batch_space :: #force_inline proc(atlas: ^Atlas, spacing: i32, scale: i32) -> i32 {
 	char_w := i32(atlas.chars[30].w)
-	return char_w + spacing
+	return (char_w * scale) + spacing
 }
 debug :: proc(pos: [2]i32, str: string) -> (width: i32, ok: bool) {
 	if _current_batch == nil {
@@ -128,12 +138,12 @@ debug :: proc(pos: [2]i32, str: string) -> (width: i32, ok: bool) {
 
 	x: i32 = pos.x
 	y: i32 = pos.y
-	char_h: i32 = b.atlas.h
+	char_h: i32 = b.atlas.h * b.scale
 
 	data_i: int = 0
 	for rune_ in str {
 		if rune_ == ' ' {
-			x += _get_batch_space(b.atlas, b.spacing)
+			x += _get_batch_space(b.atlas, b.spacing, b.scale)
 			continue
 		}
 		if rune_ < '!' || rune_ > '~' {
@@ -141,7 +151,7 @@ debug :: proc(pos: [2]i32, str: string) -> (width: i32, ok: bool) {
 		}
 		char_i: i32 = i32(rune_) - 33
 		ch: Char = b.atlas.chars[char_i]
-		char_w := i32(ch.w)
+		char_w := i32(ch.w) * b.scale
 
 		px := f32(x)
 		py := f32(y)

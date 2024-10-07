@@ -1,5 +1,6 @@
 package multi
 
+import "../shared/resize"
 import "../shared/text"
 import "core:fmt"
 import "core:math"
@@ -33,8 +34,10 @@ State :: struct {
 	geo_buffers:     Geos,
 	current_texture: TextureId,
 	textures:        Textures,
-	resize:          ResizeState,
 	debug_text:      text.Batch,
+	w:               i32,
+	h:               i32,
+	dpr:             f32,
 }
 @(private = "file")
 g_state: State = {
@@ -83,11 +86,11 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 	gl.DepthFunc(gl.LEQUAL)
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-	gl.Viewport(0, 0, state.resize.canvas_res.x, state.resize.canvas_res.y)
+	gl.Viewport(0, 0, state.w, state.h)
 
 	// Compute the projection matrix
 	fov: f32 = (45.0 * math.PI) / 180.0
-	aspect: f32 = state.resize.aspect_ratio
+	aspect: f32 = f32(state.w) / f32(state.h)
 	z_near: f32 = 0.1
 	z_far: f32 = 2000.0
 	projection_matrix := glm.mat4Perspective(fov, aspect, z_near, z_far)
@@ -130,24 +133,26 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-	text_projection := glm.mat4Ortho3d(
-		0,
-		f32(state.resize.canvas_res.x),
-		0,
-		f32(state.resize.canvas_res.y),
-		-1,
-		1,
-	)
+	text_projection := glm.mat4Ortho3d(0, f32(state.w), 0, f32(state.h), -1, 1)
 	{
-		text.batch_start(&state.debug_text, .A12, {1, 1, 1}, text_projection, 128, spacing = 2)
+		scale: i32 = math.max(1, i32(math.round(state.dpr)))
+		spacing: i32 = 2 * scale
+		text.batch_start(
+			&state.debug_text,
+			.A16,
+			{1, 1, 1},
+			text_projection,
+			128,
+			spacing = spacing,
+			scale = scale,
+		)
 		text_0 := "Cycle Texture  [t]"
 		text_1 := "Cycle Geometry [g]"
 		text_2 := "Cycle Shader   [s]"
-		canvas_h := state.resize.canvas_res.y
-		h: i32 = state.debug_text.atlas.h
-		line_gap: i32 = 5
-		x: i32 = 8
-		y: i32 = canvas_h - h - 8
+		h: i32 = text.debug_get_height()
+		line_gap: i32 = 5 * scale
+		x: i32 = 16 * scale
+		y: i32 = state.h - h - 16
 		_ = text.debug({x, y}, text_0) or_return
 		y -= h + line_gap
 		_ = text.debug({x, y}, text_1) or_return
@@ -167,7 +172,13 @@ update :: proc(state: ^State, dt: f32) {
 		state.current_geo,
 		state.current_shader,
 	)
-	resize(&state.resize)
+	{
+		r: resize.ResizeState
+		resize.resize(&r)
+		state.w = r.canvas_res.x
+		state.h = r.canvas_res.y
+		state.dpr = r.dpr
+	}
 }
 
 @(export)

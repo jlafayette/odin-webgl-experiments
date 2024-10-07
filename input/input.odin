@@ -103,6 +103,7 @@ update :: proc(dt: f32) {
 		resize.resize(&r)
 		state.w = r.canvas_res.x
 		state.h = r.canvas_res.y
+		state.dpr = r.dpr
 	}
 
 	input := state.input
