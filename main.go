@@ -17,12 +17,13 @@ func main() {
 	noWatchPtr := flag.Bool("no-watch", false, "turn off file watcher")
 	noBuildPtr := flag.Bool("no-build", false, "turn off initial odin build")
 	flag.Parse()
+	odin_exe := flag.Arg(0)
 	if !*noBuildPtr {
-		build()
+		build(odin_exe)
 	}
 	if !*noWatchPtr {
-		go watch("../")
-		go watch("../../shared/")
+		go watch("../", odin_exe)
+		go watch("../../shared/", odin_exe)
 	}
 
 	fs := http.FileServer(http.Dir("./"))
@@ -35,9 +36,9 @@ func main() {
 	}
 }
 
-func build() {
+func build(odin_exe string) {
 	cmd := exec.Command(
-		"odin", "build", "../", "-out:_main.wasm", "-target:js_wasm32",
+		odin_exe, "build", "../", "-out:_main.wasm", "-target:js_wasm32",
 		"-o:minimal",
 		// "-o:aggressive", "-disable-assert", "-no-bounds-check",
 	)
@@ -54,7 +55,7 @@ func build() {
 	}
 }
 
-func watch(src string) error {
+func watch(src string, odin_exe string) error {
 	log.Printf("Starting watch %v\n", src)
 
 	watcher, err := fsnotify.NewWatcher()
@@ -83,7 +84,7 @@ func watch(src string) error {
 			default:
 				fmt.Print(".")
 				if rebuild && time.Since(build_time)*time.Millisecond > 200 {
-					build()
+					build(odin_exe)
 					rebuild = false
 					build_time = time.Now()
 				}

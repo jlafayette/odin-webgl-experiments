@@ -20,6 +20,7 @@ def main(args: Args):
 	projects = [
 		"multi",
 		"trails",
+		"rectangle",
 	]
 	for project in projects:
 		build_args = build.Args(project=project, go=False, odin=True, optimized=True, run=False)
@@ -28,8 +29,6 @@ def main(args: Args):
 
 	dist = root_dir / "dist"
 	dist.mkdir(exist_ok=True)
-	# shutil.copy(root_dir / "public/index.html", dist / "index.html")
-	# shutil.copy(root_dir / "public/style.css", dist / "style.css")
 
 	for src_public in paths:
 		filenames = ["index.html", "_main.wasm", "style.css"]

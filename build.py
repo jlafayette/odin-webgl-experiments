@@ -14,6 +14,9 @@ class Args(NamedTuple):
 	run: bool
 
 
+root_dir = Path(__file__).absolute().parent
+
+
 def main(args: Args) -> Path:
 	print(args)
 	project_dst = Path(args.project)
@@ -44,11 +47,16 @@ def main(args: Args) -> Path:
 	odin_js_dst = public_dst / "odin.js"
 	if not odin_js_dst.is_file():
 		copy_odin_js(odin_js_dst)
+	resize_js_dst = public_dst / "odin-resize.js"
+	clean(resize_js_dst)
+	shutil.copy(root_dir / "shared/resize/odin-resize.js", resize_js_dst)
 
 	if args.run:
 		os.chdir(public_dst)
+		r = subprocess.check_output(["odin", "root"])
+		odin_exe = Path(r.decode()) / "odin"
 		try:
-			subprocess.run([server_dst.name], shell=True, check=True)
+			subprocess.run([server_dst.name, odin_exe], shell=True, check=True)
 		except KeyboardInterrupt:
 			print("Shutting down server")
 			sys.exit(0)
