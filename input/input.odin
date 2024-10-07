@@ -1,6 +1,7 @@
 package input
 
-import gamepad "../shared/gamepad"
+import "../shared/gamepad"
+import "../shared/resize"
 import "core:fmt"
 import "core:math"
 import "core:sys/wasm/js"
@@ -16,6 +17,10 @@ KeysDown :: struct {
 	dn:    bool,
 	turbo: bool,
 }
+InputMode :: enum {
+	MouseKeyboard,
+	Gamepad,
+}
 Input :: struct {
 	mouse_left_down: bool,
 	has_focus:       bool,
@@ -23,6 +28,7 @@ Input :: struct {
 	zoom:            f32,
 	pos:             [2]f32,
 	keys_down:       KeysDown,
+	mode:            InputMode,
 }
 
 on_mouse_down :: proc(e: js.Event) {
@@ -34,11 +40,13 @@ on_mouse_down :: proc(e: js.Event) {
 	case 2:
 		state.input.mouse_left_down = false
 	}
+	state.input.mode = .MouseKeyboard
 }
 on_mouse_up :: proc(e: js.Event) {
 	if e.mouse.button == 0 {
 		state.input.mouse_left_down = false
 	}
+	state.input.mode = .MouseKeyboard
 }
 zoom_min :: -15
 zoom_max :: -0.1
@@ -51,6 +59,7 @@ on_wheel :: proc(e: js.Event) {
 	zoom = math.clamp(zoom + y, zoom_min, zoom_max)
 	state.input.zoom = zoom
 	// fmt.println(state.input.zoom)
+	state.input.mode = .MouseKeyboard
 }
 
 on_key_down :: proc(e: js.Event) {
@@ -63,6 +72,7 @@ on_key_down :: proc(e: js.Event) {
 	if e.key.code == "ArrowDown" {state.input.keys_down.dn = true}
 	if e.key.code == "ArrowUp" {state.input.keys_down.up = true}
 	if e.key.code == "ShiftLeft" {state.input.keys_down.turbo = true}
+	state.input.mode = .MouseKeyboard
 }
 on_key_up :: proc(e: js.Event) {
 	if e.key.code == "KeyA" {state.input.keys_down.a = false}
@@ -74,6 +84,7 @@ on_key_up :: proc(e: js.Event) {
 	if e.key.code == "ArrowDown" {state.input.keys_down.dn = false}
 	if e.key.code == "ArrowUp" {state.input.keys_down.up = false}
 	if e.key.code == "ShiftLeft" {state.input.keys_down.turbo = false}
+	state.input.mode = .MouseKeyboard
 }
 
 on_window_focus :: proc(e: js.Event) {
@@ -87,16 +98,35 @@ on_window_blur :: proc(e: js.Event) {
 	state.input.keys_down = KeysDown{}
 }
 update :: proc(dt: f32) {
-	input := state.input
-	if input.mouse_left_down {
-		state.rotation += dt * 0.1
-	} else {
-		state.rotation += dt
+	{
+		r: resize.ResizeState
+		resize.resize(&r)
+		state.w = r.canvas_res.x
+		state.h = r.canvas_res.y
 	}
+
+	input := state.input
+	slow: bool = false
 	pos := input.pos
 
 	gp := gamepad.get_input()
 	if gp.connected {
+		switch_mode: bool
+		for btn in gp.buttons {
+			if btn.pressed || btn.pressed {
+				switch_mode = true
+				break
+			}
+		}
+		for axis in gp.axes {
+			if math.abs(axis) > 0.1 {
+				switch_mode = true
+				break
+			}
+		}
+		if switch_mode {
+			state.input.mode = .Gamepad
+		}
 		// move with left stick (left trigger is turbo)
 		{
 			delta := dt * 2
@@ -113,6 +143,19 @@ update :: proc(dt: f32) {
 			zoom = math.clamp(zoom + y, zoom_min, zoom_max)
 			state.input.zoom = zoom
 		}
+		// slow with button[0]
+		if gp.buttons[0].pressed || gp.buttons[0].touched {
+			slow = true
+		}
+	}
+
+	if input.mouse_left_down {
+		slow = true
+	}
+	if slow {
+		state.rotation += dt * 0.1
+	} else {
+		state.rotation += dt
 	}
 
 	// could turn off key input if also recieving gamepad

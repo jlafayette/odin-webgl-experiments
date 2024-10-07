@@ -87,7 +87,7 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 
 	// Compute the projection matrix
 	fov: f32 = (45.0 * math.PI) / 180.0
-	aspect: f32 = state.resize.aspect_ratio // TODO: gl.canvas.clientWidth and gl.canvas.clientHeight
+	aspect: f32 = state.resize.aspect_ratio
 	z_near: f32 = 0.1
 	z_far: f32 = 2000.0
 	projection_matrix := glm.mat4Perspective(fov, aspect, z_near, z_far)
