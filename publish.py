@@ -22,6 +22,7 @@ def main(args: Args):
 		"trails",
 		"rectangle",
 		"input",
+		"camera",
 	]
 	for project in projects:
 		build_args = build.Args(project=project, go=False, odin=True, optimized=True, run=False)

@@ -399,15 +399,11 @@ draw_scene :: proc() {
 	text_projection := glm.mat4Ortho3d(0, f32(state.w), f32(state.h), 0, -1, 1)
 	spacing: i32 = 2
 	scale: i32 = math.max(1, i32(math.round(state.dpr)))
-	// drawing same debug text with two colors to give a drop
-	// shadow effect -- should add an option to draw a square behind the
-	// text instead
-	colors: [2]glm.vec3 = {{0.2, 0.2, 0.2}, {1, 1, 1}}
-	for color, i in colors {
+	{
 		text.batch_start(
 			&state.debug_text,
 			.A16,
-			color,
+			{1, 1, 1},
 			text_projection,
 			128,
 			spacing = spacing * scale,
@@ -432,8 +428,8 @@ draw_scene :: proc() {
 		}
 		h: i32 = text.debug_get_height()
 		line_gap: i32 = 8 * scale
-		x: i32 = 16 * scale + i32(i)
-		y: i32 = 16 * scale + i32(i)
+		x: i32 = 16 * scale
+		y: i32 = 16 * scale
 		_, _ = text.debug({x, y}, text_0)
 		y += h + line_gap
 		_, _ = text.debug({x, y}, text_1)
@@ -442,17 +438,16 @@ draw_scene :: proc() {
 
 		fps_text: string = fmt.tprintf("FPS (avg, low): %d, %d", get_fps_average(), get_fps_low())
 		fps_w: i32 = text.debug_get_width(fps_text)
-		x = state.w - fps_w - 16 * scale + i32(i)
-		y = 16 * scale + i32(i)
+		x = state.w - fps_w - 16 * scale
+		y = 16 * scale
 		_, _ = text.debug({x, y}, fps_text)
 
 		fov_text: string = fmt.tprintf("FOV: %.2f", glm.degrees_f32(g_fov))
 		fov_w: i32 = text.debug_get_width(fov_text)
-		x = state.w - fov_w - 16 * scale + i32(i)
+		x = state.w - fov_w - 16 * scale
 		y += h + line_gap
 		_, _ = text.debug({x, y}, fov_text)
 	}
-
 	check_gl_error()
 }
 
