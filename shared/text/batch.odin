@@ -112,6 +112,32 @@ debug_get_height :: proc() -> i32 {
 	b := _current_batch
 	return b.atlas.h * b.scale
 }
+debug_get_width :: proc(str: string) -> i32 {
+	if _current_batch == nil {
+		fmt.eprintf("current batch not set, run text.batch_start first")
+		return 0
+	}
+	b := _current_batch
+	width: i32 = 0
+	x: i32 = 0
+	char_h: i32 = b.atlas.h * b.scale
+	for rune_ in str {
+		if rune_ == ' ' {
+			x += _get_batch_space(b.atlas, b.spacing, b.scale)
+			continue
+		}
+		if rune_ < '!' || rune_ > '~' {
+			continue
+		}
+		char_i: i32 = i32(rune_) - 33
+		ch: Char = b.atlas.chars[char_i]
+		char_w := i32(ch.w) * b.scale
+		x += char_w + b.spacing
+	}
+	width = x - b.spacing
+
+	return width
+}
 
 _get_batch_space :: #force_inline proc(atlas: ^Atlas, spacing: i32, scale: i32) -> i32 {
 	char_w := i32(atlas.chars[30].w)
@@ -132,6 +158,9 @@ debug :: proc(pos: [2]i32, str: string) -> (width: i32, ok: bool) {
 		}
 		data_len += 1
 	}
+	if data_len == 0 {
+		return 0, false
+	}
 	pos_data := make([][2]f32, data_len * 4, allocator = context.temp_allocator)
 	tex_data := make([][2]f32, data_len * 4, allocator = context.temp_allocator)
 	indices_data := make([][6]u16, data_len, allocator = context.temp_allocator)
@@ -148,6 +177,7 @@ debug :: proc(pos: [2]i32, str: string) -> (width: i32, ok: bool) {
 		}
 		if rune_ < '!' || rune_ > '~' {
 			fmt.printf("out of range '%v'\n", rune_)
+			continue
 		}
 		char_i: i32 = i32(rune_) - 33
 		ch: Char = b.atlas.chars[char_i]

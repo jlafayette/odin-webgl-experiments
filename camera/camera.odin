@@ -1,12 +1,14 @@
 package camera
 
+import "../shared/resize"
+import "../shared/text"
 import "core:bytes"
 import "core:fmt"
 import "core:image/png"
 import "core:math"
+import glm "core:math/linalg/glsl"
 import "core:mem"
 import gl "vendor:wasm/WebGL"
-import glm "core:math/linalg/glsl"
 
 main :: proc() {}
 
@@ -14,38 +16,44 @@ vert_source := #load("cube.vert", string)
 frag_source := #load("cube.frag", string)
 
 ProgramInfo :: struct {
-	program: gl.Program,
-	attrib_locations: AttribLocations,
+	program:           gl.Program,
+	attrib_locations:  AttribLocations,
 	uniform_locations: UniformLocations,
 }
 AttribLocations :: struct {
 	vertex_position: i32,
-	vertex_color: i32,
-	vertex_normal: i32,
+	vertex_color:    i32,
+	vertex_normal:   i32,
 }
 UniformLocations :: struct {
 	projection_matrix: i32,
-	model_matrix: i32,
-	view_matrix: i32,
-	normal_matrix: i32,
+	model_matrix:      i32,
+	view_matrix:       i32,
+	normal_matrix:     i32,
 }
 Buffers :: struct {
 	position: gl.Buffer,
-	color: gl.Buffer,
-	normal: gl.Buffer,
-	indices: gl.Buffer,
+	color:    gl.Buffer,
+	normal:   gl.Buffer,
+	indices:  gl.Buffer,
 }
 State :: struct {
-	started: bool,
+	started:      bool,
 	program_info: ProgramInfo,
-	buffers: Buffers,
-	rotation: f32,
+	buffers:      Buffers,
+	rotation:     f32,
+	w:            i32,
+	h:            i32,
+	dpr:          f32,
+	debug_text:   text.Batch,
 }
-state : State = {}
+state: State = {}
 
 
-temp_arena_buffer: [mem.Megabyte*4]byte
-temp_arena: mem.Arena = {data = temp_arena_buffer[:]}
+temp_arena_buffer: [mem.Megabyte * 4]byte
+temp_arena: mem.Arena = {
+	data = temp_arena_buffer[:],
+}
 temp_arena_allocator := mem.arena_allocator(&temp_arena)
 
 init_buffers :: proc() -> Buffers {
@@ -59,13 +67,31 @@ init_buffers :: proc() -> Buffers {
 init_position_buffer :: proc() -> gl.Buffer {
 	buffer := gl.CreateBuffer()
 	gl.BindBuffer(gl.ARRAY_BUFFER, buffer)
-	data : [6*4][3]f32 = {
-		{-1,-1, 1}, { 1,-1, 1}, { 1, 1, 1}, {-1, 1, 1}, // front
-		{-1,-1,-1}, {-1, 1,-1}, { 1, 1,-1}, { 1,-1,-1}, // back
-		{-1, 1,-1}, {-1, 1, 1}, { 1, 1, 1}, { 1, 1,-1}, // top
-		{-1,-1,-1}, { 1,-1,-1}, { 1,-1, 1}, {-1,-1, 1}, // bottom
-		{ 1,-1,-1}, { 1, 1,-1}, { 1, 1, 1}, { 1,-1, 1}, // right
-		{-1,-1,-1}, {-1,-1, 1}, {-1, 1, 1}, {-1, 1,-1}, // left
+	data: [6 * 4][3]f32 = {
+		{-1, -1, 1},
+		{1, -1, 1},
+		{1, 1, 1},
+		{-1, 1, 1}, // front
+		{-1, -1, -1},
+		{-1, 1, -1},
+		{1, 1, -1},
+		{1, -1, -1}, // back
+		{-1, 1, -1},
+		{-1, 1, 1},
+		{1, 1, 1},
+		{1, 1, -1}, // top
+		{-1, -1, -1},
+		{1, -1, -1},
+		{1, -1, 1},
+		{-1, -1, 1}, // bottom
+		{1, -1, -1},
+		{1, 1, -1},
+		{1, 1, 1},
+		{1, -1, 1}, // right
+		{-1, -1, -1},
+		{-1, -1, 1},
+		{-1, 1, 1},
+		{-1, 1, -1}, // left
 	}
 	gl.BufferDataSlice(gl.ARRAY_BUFFER, data[:], gl.STATIC_DRAW)
 	return buffer
@@ -73,14 +99,32 @@ init_position_buffer :: proc() -> gl.Buffer {
 init_color_buffer :: proc() -> gl.Buffer {
 	buffer := gl.CreateBuffer()
 	gl.BindBuffer(gl.ARRAY_BUFFER, buffer)
-	c : [4]f32 = {0.5, 0.5, 0.5, 1}
-	data : [6*4][4]f32 = {
-		c, c, c, c, // front
-		c, c, c, c, // back
-		c, c, c, c, // top
-		c, c, c, c, // bottom
-		c, c, c, c, // right
-		c, c, c, c, // left
+	c: [4]f32 = {0.5, 0.5, 0.5, 1}
+	data: [6 * 4][4]f32 = {
+		c,
+		c,
+		c,
+		c, // front
+		c,
+		c,
+		c,
+		c, // back
+		c,
+		c,
+		c,
+		c, // top
+		c,
+		c,
+		c,
+		c, // bottom
+		c,
+		c,
+		c,
+		c, // right
+		c,
+		c,
+		c,
+		c, // left
 	}
 	gl.BufferDataSlice(gl.ARRAY_BUFFER, data[:], gl.STATIC_DRAW)
 	return buffer
@@ -88,13 +132,43 @@ init_color_buffer :: proc() -> gl.Buffer {
 init_index_buffer :: proc() -> gl.Buffer {
 	buffer := gl.CreateBuffer()
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer)
-	data : [36]u16 = {
-		 0, 1, 2,  0, 2, 3, // front
-		 4, 5, 6,  4, 6, 7, // back
-		 8, 9,10,  8,10,11, // top
-		12,13,14, 12,14,15, // bottom
-		16,17,18, 16,18,19, // right
-		20,21,22, 20,22,23, // left
+	data: [36]u16 = {
+		0,
+		1,
+		2,
+		0,
+		2,
+		3, // front
+		4,
+		5,
+		6,
+		4,
+		6,
+		7, // back
+		8,
+		9,
+		10,
+		8,
+		10,
+		11, // top
+		12,
+		13,
+		14,
+		12,
+		14,
+		15, // bottom
+		16,
+		17,
+		18,
+		16,
+		18,
+		19, // right
+		20,
+		21,
+		22,
+		20,
+		22,
+		23, // left
 	}
 	gl.BufferDataSlice(gl.ELEMENT_ARRAY_BUFFER, data[:], gl.STATIC_DRAW)
 	return buffer
@@ -102,13 +176,31 @@ init_index_buffer :: proc() -> gl.Buffer {
 init_normal_buffer :: proc() -> gl.Buffer {
 	buffer := gl.CreateBuffer()
 	gl.BindBuffer(gl.ARRAY_BUFFER, buffer)
-	data : [6*4][3]f32 = {
-		{ 0, 0, 1}, { 0, 0, 1}, { 0, 0, 1}, { 0, 0, 1}, // front
-		{ 0, 0,-1}, { 0, 0,-1}, { 0, 0,-1}, { 0, 0,-1}, // back
-		{ 0, 1, 0}, { 0, 1, 0}, { 0, 1, 0}, { 0, 1, 0}, // top
-		{ 0,-1, 0}, { 0,-1, 0}, { 0,-1, 0}, { 0,-1, 0}, // bottom
-		{ 1, 0, 0}, { 1, 0, 0}, { 1, 0, 0}, { 1, 0, 0}, // right
-		{-1, 0, 0}, {-1, 0, 0}, {-1, 0, 0}, {-1, 0, 0}, // left
+	data: [6 * 4][3]f32 = {
+		{0, 0, 1},
+		{0, 0, 1},
+		{0, 0, 1},
+		{0, 0, 1}, // front
+		{0, 0, -1},
+		{0, 0, -1},
+		{0, 0, -1},
+		{0, 0, -1}, // back
+		{0, 1, 0},
+		{0, 1, 0},
+		{0, 1, 0},
+		{0, 1, 0}, // top
+		{0, -1, 0},
+		{0, -1, 0},
+		{0, -1, 0},
+		{0, -1, 0}, // bottom
+		{1, 0, 0},
+		{1, 0, 0},
+		{1, 0, 0},
+		{1, 0, 0}, // right
+		{-1, 0, 0},
+		{-1, 0, 0},
+		{-1, 0, 0},
+		{-1, 0, 0}, // left
 	}
 	gl.BufferDataSlice(gl.ARRAY_BUFFER, data[:], gl.STATIC_DRAW)
 	return buffer
@@ -137,7 +229,7 @@ start :: proc() -> (ok: bool) {
 			vertex_position = gl.GetAttribLocation(program, "aVertexPosition"),
 			vertex_color = gl.GetAttribLocation(program, "aVertexColor"),
 			vertex_normal = gl.GetAttribLocation(program, "aVertexNormal"),
-		}, 
+		},
 		uniform_locations = {
 			projection_matrix = gl.GetUniformLocation(program, "uProjectionMatrix"),
 			model_matrix = gl.GetUniformLocation(program, "uModelMatrix"),
@@ -196,11 +288,11 @@ set_color_attribute :: proc() {
 	gl.EnableVertexAttribArray(state.program_info.attrib_locations.vertex_color)
 }
 set_normal_attribute :: proc() {
-	num_components : int = 3
+	num_components: int = 3
 	type := gl.FLOAT
 	normalize := false
-	stride : int = 0
-	offset : uintptr = 0
+	stride: int = 0
+	offset: uintptr = 0
 	gl.BindBuffer(gl.ARRAY_BUFFER, state.buffers.normal)
 	gl.VertexAttribPointer(
 		state.program_info.attrib_locations.vertex_normal,
@@ -221,14 +313,16 @@ draw_scene :: proc() {
 	gl.DepthFunc(gl.LEQUAL)
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
+	gl.Viewport(0, 0, state.w, state.h)
+
 	// camera pos
 	camera_pos := g_camera_pos
-	camera_tgt : glm.vec3 = {0, 0, 0}
+	camera_tgt: glm.vec3 = {0, 0, 0}
 	// camera_dir := glm.normalize(camera_pos - camera_tgt)
-	up : glm.vec3 = {0, 1, 0}
+	up: glm.vec3 = {0, 1, 0}
 	// camera_right := glm.normalize(glm.cross(up, camera_dir))
 	// camera_up := glm.cross(camera_dir, camera_right)
-	
+
 	view_mat := glm.mat4LookAt(camera_pos, camera_tgt, up)
 	// view_mat = glm.mat4Translate(g_camera_mov)
 	{
@@ -241,29 +335,22 @@ draw_scene :: proc() {
 		view_mat = glm.mat4LookAt(g_camera_pos, g_camera_pos + g_camera_front, g_camera_up)
 	}
 
-	// fov : f32 = glm.radians_f32(45)
-	aspect : f32 = 640.0 / 480.0 // TODO: gl.canvas.clientWidth and gl.canvas.clientHeight
-	z_near : f32 = 0.1
-	z_far : f32 = 100.0
+	aspect: f32 = f32(state.w) / f32(state.h)
+	z_near: f32 = 0.1
+	z_far: f32 = 100.0
 	projection_mat := glm.mat4Perspective(g_fov, aspect, z_near, z_far)
-	
+
 	set_position_attribute()
 	set_color_attribute()
 	set_normal_attribute()
 
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, state.buffers.indices)
-	
-	gl.UseProgram(state.program_info.program)
-	gl.UniformMatrix4fv(
-		state.program_info.uniform_locations.projection_matrix,
-		projection_mat,
-	)
-	gl.UniformMatrix4fv(
-		state.program_info.uniform_locations.view_matrix,
-		view_mat,
-	)
 
-	cube_positions : [10]glm.vec3 = {
+	gl.UseProgram(state.program_info.program)
+	gl.UniformMatrix4fv(state.program_info.uniform_locations.projection_matrix, projection_mat)
+	gl.UniformMatrix4fv(state.program_info.uniform_locations.view_matrix, view_mat)
+
+	cube_positions: [10]glm.vec3 = {
 		{0, 0, 0}, // 0
 		{2, 5, -15},
 		{-1.5, -2.2, -2.5},
@@ -283,50 +370,104 @@ draw_scene :: proc() {
 			pos += {0.0003, 0.0007, 0.0002}
 		}
 		model := glm.mat4(1)
-		
+
 		// scale
 		model *= glm.mat4Scale({0.5, 0.5, 0.5})
 		// rotate
-		angle : f32 = glm.radians_f32(20.0 * f32(i))
-		// if i % 3 == 0 {
+		angle: f32 = glm.radians_f32(20.0 * f32(i))
+		// if i % 2 == 0 && i != 0 {
 		// 	angle = state.rotation
 		// }
 		model *= glm.mat4Rotate(pos, angle)
 		// translate
 		model *= glm.mat4Translate(pos)
-		
-		gl.UniformMatrix4fv(
-			state.program_info.uniform_locations.model_matrix,
-			model,
-		)
+
+		gl.UniformMatrix4fv(state.program_info.uniform_locations.model_matrix, model)
 		gl.UniformMatrix4fv(
 			state.program_info.uniform_locations.normal_matrix,
 			glm.inverse_transpose_matrix4x4(model),
 		)
 		vertex_count := 36
 		type := gl.UNSIGNED_SHORT
-		offset : rawptr
+		offset: rawptr
 		gl.DrawElements(gl.TRIANGLES, vertex_count, type, offset)
 	}
-	
+
+	gl.Enable(gl.BLEND)
+	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+	text_projection := glm.mat4Ortho3d(0, f32(state.w), f32(state.h), 0, -1, 1)
+	spacing: i32 = 2
+	scale: i32 = math.max(1, i32(math.round(state.dpr)))
+	{
+		text.batch_start(
+			&state.debug_text,
+			.A16,
+			{1, 1, 1},
+			text_projection,
+			128,
+			spacing = spacing * scale,
+			scale = scale,
+		)
+		text_0: string
+		text_1: string
+		text_2: string
+		switch g_input_mode {
+		case .MouseKeyboard:
+			{
+				text_0 = "Move [wasd]"
+				text_1 = "Look [mouse]"
+				text_2 = "Change FOV [mouse wheel]"
+			}
+		case .Gamepad:
+			{
+				text_0 = "Move [left stick]"
+				text_1 = "Look [right stick]"
+				text_2 = "Change FOV [triggers]"
+			}
+		}
+		h: i32 = text.debug_get_height()
+		line_gap: i32 = 8 * scale
+		x: i32 = 16 * scale
+		y: i32 = 16 * scale
+		_, _ = text.debug({x, y}, text_0)
+		y += h + line_gap
+		_, _ = text.debug({x, y}, text_1)
+		y += h + line_gap
+		_, _ = text.debug({x, y}, text_2)
+
+		fov_text: string = fmt.tprintf("FOV: %.2f", glm.degrees_f32(g_fov))
+		fov_w: i32 = text.debug_get_width(fov_text)
+		x = state.w - fov_w - 16 * scale
+		y = 16 * scale
+		_, _ = text.debug({x, y}, fov_text)
+	}
+
 	check_gl_error()
 }
 
-@export
+@(export)
 step :: proc(dt: f32) -> (keep_going: bool) {
 	context.temp_allocator = temp_arena_allocator
 	defer free_all(context.temp_allocator)
 
 	ok: bool
 	if !state.started {
-		if ok = start(); !ok { return false }
+		if ok = start(); !ok {return false}
 	}
 
-	if (!g_has_focus) { return true }
+	if (!g_has_focus) {return true}
 
+	{
+		r: resize.ResizeState
+		resize.resize(&r)
+		state.w = r.canvas_res.x
+		state.h = r.canvas_res.y
+		state.dpr = r.dpr
+	}
 	update(dt)
 
 	draw_scene()
-	
+
 	return check_gl_error()
 }
+
