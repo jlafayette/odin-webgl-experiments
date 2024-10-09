@@ -1,6 +1,7 @@
 package rectangle
 
 import "../shared/resize"
+import "../shared/text"
 import "core:fmt"
 import "core:math"
 import glm "core:math/linalg/glsl"
@@ -35,6 +36,8 @@ State :: struct {
 	rotation:     f32,
 	w:            i32,
 	h:            i32,
+	dpr:          f32,
+	debug_text:   text.Batch,
 }
 g_state: State = {}
 
@@ -162,7 +165,7 @@ set_color_attribute :: proc(buffers: Buffers, program_info: ProgramInfo) {
 	gl.EnableVertexAttribArray(program_info.attrib_locations.vertex_color)
 }
 
-draw_scene :: proc(state: State) {
+draw_scene :: proc(state: ^State) {
 	gl.ClearColor(0, 0, 0, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.ClearDepth(1)
@@ -190,6 +193,55 @@ draw_scene :: proc(state: State) {
 		vertex_count := 4
 		gl.DrawArrays(gl.TRIANGLE_STRIP, offset, vertex_count)
 	}
+
+	gl.Enable(gl.BLEND)
+	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+	{
+		text_projection := glm.mat4Ortho3d(0, f32(state.w), f32(state.h), 0, -1, 1)
+		spacing: i32 = 2
+		scale: i32 = math.max(1, cast(i32)math.round(state.dpr))
+		text.batch_start(
+			&state.debug_text,
+			.A16,
+			{1, 1, 1},
+			text_projection,
+			64,
+			spacing = spacing,
+			scale = scale,
+		)
+		h: i32 = text.debug_get_height()
+		text.debug({0, 0}, "[/")
+		w: i32 = text.debug_get_width("\\]")
+		text.debug({state.w - w, 0}, "\\]")
+		text.debug({0, state.h - h}, "[\\")
+		w = text.debug_get_width("/]")
+		text.debug({state.w - w, state.h - h}, "/]")
+	}
+	{
+		text_projection := glm.mat4Ortho3d(0, f32(state.w), f32(state.h), 0, -1, 1)
+		spacing: i32 = 4
+		scale: i32 = math.max(1, cast(i32)math.round(state.dpr))
+		text.batch_start(
+			&state.debug_text,
+			.A40,
+			{1, 1, 1},
+			text_projection,
+			64,
+			spacing = spacing,
+			scale = scale,
+		)
+		h: i32 = text.debug_get_height()
+		str: string = fmt.tprintf("canvas: %d x %d", state.w, state.h)
+		w: i32 = text.debug_get_width(str)
+		x: i32 = state.w / 2 - w / 2
+		y: i32 = state.h / 2 - h
+		text.debug({x, y}, str)
+		str = fmt.tprintf("dpr: %.2f", state.dpr)
+		w = text.debug_get_width(str)
+		x = state.w / 2 - w / 2
+		y = state.h / 2 + h
+		text.debug({x, y}, str)
+	}
 }
 
 update :: proc(state: ^State, dt: f32) {
@@ -197,6 +249,7 @@ update :: proc(state: ^State, dt: f32) {
 	resize.resize(&resize_state)
 	state.w = resize_state.canvas_res.x
 	state.h = resize_state.canvas_res.y
+	state.dpr = resize_state.dpr
 	state.rotation += dt
 }
 
@@ -213,7 +266,7 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 	update(&g_state, dt)
 
 
-	draw_scene(g_state)
+	draw_scene(&g_state)
 
 	return check_gl_error()
 }
