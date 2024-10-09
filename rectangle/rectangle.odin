@@ -202,27 +202,6 @@ draw_scene :: proc(state: ^State) {
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	{
 		text_projection := glm.mat4Ortho3d(0, f32(state.w), f32(state.h), 0, -1, 1)
-		spacing: i32 = 2
-		scale: i32 = math.max(1, cast(i32)math.round(state.dpr))
-		text.batch_start(
-			&state.debug_text,
-			.A16,
-			{1, 1, 1},
-			text_projection,
-			64,
-			spacing = spacing,
-			scale = scale,
-		)
-		h: i32 = text.debug_get_height()
-		text.debug({0, 0}, "[/")
-		w: i32 = text.debug_get_width("\\]")
-		text.debug({state.w - w, 0}, "\\]")
-		text.debug({0, state.h - h}, "[\\")
-		w = text.debug_get_width("/]")
-		text.debug({state.w - w, state.h - h}, "/]")
-	}
-	{
-		text_projection := glm.mat4Ortho3d(0, f32(state.w), f32(state.h), 0, -1, 1)
 		spacing: i32 = 4
 		scale: i32 = math.max(1, cast(i32)math.round(state.dpr))
 		text.batch_start(
