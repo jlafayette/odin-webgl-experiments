@@ -6,13 +6,13 @@ function setupImports(wasmMemoryInterface, consoleElement, memory) {
 	return {
 		env,
 		"odin_resize": {
-			updateSizeInfo: (ptr_array6_f64) => {
+			updateSizeInfo: (ptr_array7_f64) => {
 				const canvas = document.getElementById("canvas-1");
 				const dpr = window.devicePixelRatio || 1;
 				const rect = canvas.getBoundingClientRect()
 				canvas.width = rect.width * dpr
 				canvas.height = rect.height * dpr
-				let values = wasmMemoryInterface.loadF64Array(ptr_array6_f64, 7);
+				let values = wasmMemoryInterface.loadF64Array(ptr_array7_f64, 7);
 				values[0] = window.innerWidth;
 				values[1] = window.innerHeight;
 				values[2] = rect.width;
