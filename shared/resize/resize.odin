@@ -74,3 +74,22 @@ resize :: proc(state: ^ResizeState) {
 	_prev_sizes = sizes
 }
 
+Size :: struct {
+	w:            i32,
+	h:            i32,
+	dpr:          f32,
+	zoom_changed: bool,
+	size_changed: bool,
+}
+get :: proc() -> Size {
+	r: ResizeState
+	resize(&r)
+	return {
+		math.min(r.window_size.x, r.canvas_res.x),
+		math.min(r.window_size.y, r.canvas_res.y),
+		r.dpr,
+		r.zoom_changed,
+		r.size_changed,
+	}
+}
+

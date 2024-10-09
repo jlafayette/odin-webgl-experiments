@@ -36,6 +36,8 @@ State :: struct {
 	rotation:     f32,
 	w:            i32,
 	h:            i32,
+	canvas_w:     i32,
+	canvas_h:     i32,
 	dpr:          f32,
 	window_w:     i32,
 	window_h:     i32,
@@ -235,7 +237,7 @@ draw_scene :: proc(state: ^State) {
 		h: i32 = text.debug_get_height()
 		line_gap: i32 = h / 2
 		total_h: i32 = h * 3 + line_gap * 2
-		str: string = fmt.tprintf("canvas: %d x %d", state.w, state.h)
+		str: string = fmt.tprintf("canvas: %d x %d", state.canvas_w, state.canvas_h)
 		w: i32 = text.debug_get_width(str)
 		x: i32 = state.w / 2 - w / 2
 		y: i32 = state.h / 2 - total_h / 2
@@ -257,11 +259,14 @@ draw_scene :: proc(state: ^State) {
 update :: proc(state: ^State, dt: f32) {
 	resize_state: resize.ResizeState
 	resize.resize(&resize_state)
-	state.w = resize_state.canvas_res.x
-	state.h = resize_state.canvas_res.y
-	state.dpr = resize_state.dpr
+	state.canvas_w = resize_state.canvas_res.x
+	state.canvas_h = resize_state.canvas_res.y
 	state.window_w = resize_state.window_size.x
 	state.window_h = resize_state.window_size.y
+	size := resize.get()
+	state.w = size.w
+	state.h = size.h
+	state.dpr = size.dpr
 	state.rotation += dt
 }
 
