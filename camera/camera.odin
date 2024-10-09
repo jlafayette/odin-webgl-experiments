@@ -207,6 +207,7 @@ init_normal_buffer :: proc() -> gl.Buffer {
 }
 
 start :: proc() -> (ok: bool) {
+	fmt.println("running start")
 	state.started = true
 	context.temp_allocator = temp_arena_allocator
 	defer free_all(context.temp_allocator)
@@ -448,7 +449,6 @@ draw_scene :: proc() {
 		y += h + line_gap
 		_, _ = text.debug({x, y}, fov_text)
 	}
-	check_gl_error()
 }
 
 @(export)
@@ -458,6 +458,7 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 
 	ok: bool
 	if !state.started {
+		state.started = true
 		if ok = start(); !ok {return false}
 	}
 

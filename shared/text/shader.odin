@@ -66,7 +66,8 @@ shader_use :: proc(
 	gl.BindTexture(gl.TEXTURE_2D, texture.id)
 	gl.Uniform1i(s.u_sampler, 0)
 
-	return check_gl_error()
+	// return check_gl_error()
+	return true
 }
 @(private)
 shader_set_attribute :: proc(index: i32, b: Buffer) {

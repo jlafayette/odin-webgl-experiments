@@ -92,8 +92,9 @@ def args():
 		print("select project to run")
 		sys.exit(1)
 	build_go = "-g" in args
-	build_odin = "-o" in args
-	return Args(args[0], build_go, build_odin, False, True)
+	build_odin = "--odin" in args
+	optimize = "-o" in args or "--optimize" in args
+	return Args(args[0], build_go, build_odin, optimize, True)
 
 
 if __name__ == "__main__":

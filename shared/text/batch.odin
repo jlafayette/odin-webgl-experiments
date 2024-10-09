@@ -78,6 +78,7 @@ batch_start :: proc(
 		}
 		ea_buffer_init(&b.buffers.indices, indices_data)
 		b.buffers._initialized = true
+		b._loaded = true
 	}
 	b.buffers.offset = 0
 	_current_batch = b
@@ -243,6 +244,6 @@ debug :: proc(pos: [2]i32, str: string) -> (width: i32, ok: bool) {
 	}
 	b.buffers.offset += uint(data_len)
 
-	return width, check_gl_error()
+	return width, true
 }
 
