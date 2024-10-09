@@ -21,6 +21,11 @@ function setupImports(wasmMemoryInterface, consoleElement, memory) {
 				values[5] = rect.top;
 				values[6] = dpr;
 			},
+			getScroll: (ptr_array2_f64) => {
+				let values = wasmMemoryInterface.loadF64Array(ptr_array2_f64, 2);
+				values[0] = window.scrollX;
+				values[1] = window.scrollY;
+			},
 		},
 	};
 }

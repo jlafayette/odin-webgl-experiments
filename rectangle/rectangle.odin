@@ -41,6 +41,7 @@ State :: struct {
 	dpr:          f32,
 	window_w:     i32,
 	window_h:     i32,
+	scroll:       [2]f32,
 	debug_text:   text.Batch,
 }
 g_state: State = {}
@@ -236,12 +237,14 @@ draw_scene :: proc(state: ^State) {
 		)
 		h: i32 = text.debug_get_height()
 		line_gap: i32 = h / 2
-		total_h: i32 = h * 3 + line_gap * 2
+		total_h: i32 = h * 4 + line_gap * 3
+
 		str: string = fmt.tprintf("canvas: %d x %d", state.canvas_w, state.canvas_h)
 		w: i32 = text.debug_get_width(str)
 		x: i32 = state.w / 2 - w / 2
 		y: i32 = state.h / 2 - total_h / 2
 		text.debug({x, y}, str)
+
 		str = fmt.tprintf("dpr: %.2f", state.dpr)
 		w = text.debug_get_width(str)
 		x = state.w / 2 - w / 2
@@ -249,6 +252,12 @@ draw_scene :: proc(state: ^State) {
 		text.debug({x, y}, str)
 
 		str = fmt.tprintf("window: %d x %d", state.window_w, state.window_h)
+		w = text.debug_get_width(str)
+		x = state.w / 2 - w / 2
+		y += h + line_gap
+		text.debug({x, y}, str)
+
+		str = fmt.tprintf("scroll: %.2f, %.2f", state.scroll.x, state.scroll.y)
 		w = text.debug_get_width(str)
 		x = state.w / 2 - w / 2
 		y += h + line_gap
@@ -268,6 +277,7 @@ update :: proc(state: ^State, dt: f32) {
 	state.h = size.h
 	state.dpr = size.dpr
 	state.rotation += dt
+	state.scroll = resize.get_scroll()
 }
 
 @(export)

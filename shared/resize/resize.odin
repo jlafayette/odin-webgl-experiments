@@ -35,6 +35,16 @@ update_size_info :: proc() -> SizeInfo {
 		dpr = f32(out[6]),
 	}
 }
+get_scroll :: proc() -> [2]f32 {
+	@(default_calling_convention = "contextless")
+	foreign odin_resize {
+		@(link_name = "getScroll")
+		_getScroll :: proc(out: ^[2]f64) ---
+	}
+	out: [2]f64
+	_getScroll(&out)
+	return {f32(out[0]), f32(out[1])}
+}
 
 _prev_sizes: SizeInfo
 
