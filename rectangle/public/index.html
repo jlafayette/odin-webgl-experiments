@@ -37,6 +37,13 @@
 		canvas.height = window.innerHeight;
 		document.body.style.overflow = 'hidden';
 
+		// wondering if this will work on the phone vertical problem
+		setTimeout(function () {
+			let canvas = document.getElementById("canvas-1");
+			canvas.width = window.innerWidth;
+			canvas.height = window.innerHeight;
+		}, 5000);
+
 		window.addEventListener('load', function () {
 			wasmMemoryInterface = new odin.WasmMemoryInterface();
 			wasmMemoryInterface.setIntSize(4);

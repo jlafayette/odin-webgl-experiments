@@ -84,12 +84,6 @@ Size :: struct {
 get :: proc() -> Size {
 	r: ResizeState
 	resize(&r)
-	return {
-		math.min(r.window_size.x, r.canvas_res.x),
-		math.min(r.window_size.y, r.canvas_res.y),
-		r.dpr,
-		r.zoom_changed,
-		r.size_changed,
-	}
+	return {r.canvas_res.x, r.canvas_res.y, r.dpr, r.zoom_changed, r.size_changed}
 }
 
