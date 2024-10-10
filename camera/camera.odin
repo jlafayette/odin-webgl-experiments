@@ -24,9 +24,9 @@ State :: struct {
 }
 state: State = {}
 
-N_CUBES :: 700_000
-Z_FAR :: 2_000
-SPHERE_RADIUS :: 1200
+N_CUBES :: 100_000
+SPHERE_RADIUS :: 1000
+Z_FAR :: SPHERE_RADIUS * 2
 
 temp_arena_buffer: [mem.Megabyte * 4]byte
 temp_arena: mem.Arena = {
