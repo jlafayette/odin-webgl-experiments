@@ -24,6 +24,7 @@ State :: struct {
 }
 state: State = {}
 
+N_CUBES :: 10
 
 temp_arena_buffer: [mem.Megabyte * 4]byte
 temp_arena: mem.Arena = {
@@ -48,7 +49,7 @@ start :: proc() -> (ok: bool) {
 		fmt.eprintln("Failed to initialize shader")
 		return false
 	}
-	init_buffers(&state.buffers)
+	init_buffers(&state.buffers, N_CUBES)
 
 	return check_gl_error()
 }
@@ -62,7 +63,7 @@ check_gl_error :: proc() -> (ok: bool) {
 	return true
 }
 
-draw_scene :: proc() {
+draw_scene :: proc() -> (ok: bool) {
 	gl.ClearColor(0, 0, 0, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.ClearDepth(1)
@@ -109,6 +110,8 @@ draw_scene :: proc() {
 		{1.5, 0.2, -1.5},
 		{-1.3, 1, -1.5}, // 9
 	}
+	model_matrices: [10]glm.mat4
+	normal_matrices: [10]glm.mat4
 	for &pos, i in cube_positions {
 		pos *= 2
 		// rotating around zero length vectors results in a matrix
@@ -129,18 +132,30 @@ draw_scene :: proc() {
 		// translate
 		model *= glm.mat4Translate(pos)
 
-		uniforms: Uniforms
-		uniforms.model_matrix = model
-		uniforms.view_matrix = view_mat
-		uniforms.projection_matrix = projection_mat
-		uniforms.normal_matrix = glm.inverse_transpose_matrix4x4(model)
-		ok := shader_use(state.shader, uniforms, state.buffers)
-		if !ok {
-			fmt.eprintln("Error using shader")
-			return
-		}
-		ea_buffer_draw(state.buffers.indices)
+		model_matrices[i] = model
+		normal_matrices[i] = glm.inverse_transpose_matrix4x4(model)
 	}
+	{
+		b := state.buffers.model_matrices
+		gl.BindBuffer(b.target, b.id)
+		gl.BufferSubDataSlice(b.target, 0, model_matrices[:])
+	}
+	{
+		b := state.buffers.normal_matrices
+		gl.BindBuffer(b.target, b.id)
+		gl.BufferSubDataSlice(b.target, 0, normal_matrices[:])
+	}
+
+	uniforms: Uniforms
+	uniforms.view_matrix = view_mat
+	uniforms.projection_matrix = projection_mat
+	// uniforms.normal_matrix = glm.inverse_transpose_matrix4x4(matrices[0])
+	ok = shader_use(state.shader, uniforms, state.buffers)
+	if !ok {
+		fmt.eprintln("Error using shader")
+		return false
+	}
+	ea_buffer_draw(state.buffers.indices, len(model_matrices))
 
 	// Draw text
 	gl.Enable(gl.BLEND)
@@ -197,6 +212,7 @@ draw_scene :: proc() {
 		y += h + line_gap
 		_, _ = text.debug({x, y}, fov_text)
 	}
+	return true
 }
 
 @(export)
@@ -222,7 +238,8 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 	update_fps(dt)
 	update(dt)
 
-	draw_scene()
+	ok = draw_scene()
+	if !ok {return false}
 
 	return check_gl_error()
 }

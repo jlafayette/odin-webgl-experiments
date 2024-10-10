@@ -5,11 +5,11 @@ precision highp float;
 in vec4 aVertexPosition;
 in vec4 aVertexColor;
 in vec3 aVertexNormal;
+in mat4 aModelMatrix;
+in mat4 aNormalMatrix;
 
-uniform mat4 uModelMatrix;
 uniform mat4 uViewMatrix;
 uniform mat4 uProjectionMatrix;
-uniform mat4 uNormalMatrix;
 
 out vec3 vLighting;
 out vec4 vColor;
@@ -21,11 +21,14 @@ vec3 light(in vec3 color, in vec3 dir, in vec4 normal) {
 }
 
 void main() {
-	gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aVertexPosition.xyz, 1.0);
+	gl_Position = uProjectionMatrix * uViewMatrix * aModelMatrix * vec4(aVertexPosition.xyz, 1.0);
 	vColor = aVertexColor;
 
-	vec4 transformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
-	
+	// could move this to instance in mat4 instead of doing it here
+	// mat4 normalMatrix = inverse(transpose(aModelMatrix));
+
+	vec4 transformedNormal = aNormalMatrix * vec4(aVertexNormal, 1.0);
+
 	vLighting = vec3(0.0, 0.3, 0.3) * 0.3
 		+ light(
 			vec3(0.9, 0.8, 0.8),

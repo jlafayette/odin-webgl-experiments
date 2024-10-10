@@ -5,10 +5,12 @@ import glm "core:math/linalg/glsl"
 import gl "vendor:wasm/WebGL"
 
 Buffers :: struct {
-	position: Buffer,
-	color:    Buffer,
-	normal:   Buffer,
-	indices:  EaBuffer,
+	position:        Buffer,
+	color:           Buffer,
+	normal:          Buffer,
+	indices:         EaBuffer,
+	model_matrices:  Buffer,
+	normal_matrices: Buffer,
 }
 Buffer :: struct {
 	id:     gl.Buffer,
@@ -49,7 +51,7 @@ ea_buffer_draw :: proc(b: EaBuffer, instance_count: int = 0) {
 	}
 }
 
-init_buffers :: proc(b: ^Buffers) {
+init_buffers :: proc(b: ^Buffers, n_cubes: int) {
 	position_data: [6 * 4][3]f32 = {
 		{-1, -1, 1},
 		{1, -1, 1},
@@ -140,5 +142,22 @@ init_buffers :: proc(b: ^Buffers) {
 		usage = gl.STATIC_DRAW,
 	}
 	ea_buffer_init(&b.indices, indices_data[:])
+
+	matrix_data := make([]glm.mat4, n_cubes)
+	defer delete(matrix_data)
+	b.model_matrices = {
+		size   = 4,
+		type   = gl.FLOAT,
+		target = gl.ARRAY_BUFFER,
+		usage  = gl.DYNAMIC_DRAW,
+	}
+	buffer_init(&b.model_matrices, matrix_data[:])
+	b.normal_matrices = {
+		size   = 4,
+		type   = gl.FLOAT,
+		target = gl.ARRAY_BUFFER,
+		usage  = gl.DYNAMIC_DRAW,
+	}
+	buffer_init(&b.normal_matrices, matrix_data[:])
 }
 
