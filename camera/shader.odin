@@ -37,7 +37,8 @@ shader_init :: proc(s: ^Shader) -> (ok: bool) {
 	s.u_view_matrix = gl.GetUniformLocation(s.program, "uViewMatrix")
 	s.u_projection_matrix = gl.GetUniformLocation(s.program, "uProjectionMatrix")
 
-	return check_gl_error()
+	// return check_gl_error()
+	return true
 }
 
 shader_use :: proc(s: Shader, u: Uniforms, buffers: Buffers) -> (ok: bool) {

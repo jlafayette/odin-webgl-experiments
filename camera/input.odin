@@ -25,7 +25,7 @@ deadzone :: proc(v: f32) -> f32 {
 }
 update :: proc(dt: f32) {
 	g_time += dt
-	camera_speed := 5 * dt
+	camera_speed := 50 * dt
 
 	gp := gamepad.get_input()
 	if gp.connected {
