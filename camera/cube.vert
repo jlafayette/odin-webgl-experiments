@@ -14,18 +14,29 @@ uniform mat4 uNormalMatrix;
 out vec3 vLighting;
 out vec4 vColor;
 
+vec3 light(in vec3 color, in vec3 dir, in vec4 normal) {
+	vec3 ndir = normalize(dir);
+	float directional = max(dot(normal.xyz, ndir), 0.0);
+	return color * directional;
+}
+
 void main() {
 	gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aVertexPosition.xyz, 1.0);
 	vColor = aVertexColor;
 
-	// apply lighting effect
-	vec3 ambientLight = vec3(0.3, 0.3, 0.3);
-	vec3 directionalLightColor = vec3(1.0, 1.0, 1.0);
-	vec3 directionalVector = normalize(vec3(0.85, 0.8, 0.75));
-	
 	vec4 transformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
 	
-	float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
-	vLighting = ambientLight + (directionalLightColor * directional);
+	vLighting = vec3(0.0, 0.3, 0.3) * 0.3
+		+ light(
+			vec3(0.9, 0.8, 0.8),
+			vec3(0.85, 0.8, 0.75),
+			transformedNormal
+		  ) * 0.9
+		+ light(
+			vec3(0.1, 0.25, 0.5),
+			vec3(-0.2, -0.1, -0.3),
+			transformedNormal
+		  ) * 0.3
+	;
 }
 
