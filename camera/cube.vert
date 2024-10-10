@@ -25,7 +25,7 @@ void main() {
 	gl_Position = uProjectionMatrix * uViewMatrix * aModelMatrix * vec4(aVertexPosition.xyz, 1.0);
 	vColor = aVertexColor;
 	float fogDistance = length(gl_Position.xyz);
-	fogDistance = clamp(fogDistance, 0.0, 1000.0) / 1000.0;
+	fogDistance = clamp(fogDistance, 0.0, 600.0) / 600.0;
 	vec3 fogColor = vec3(0.0, 0.1, 0.4);
 	vColor.xyz = mix(aVertexColor.xyz, fogColor, fogDistance);
 
