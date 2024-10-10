@@ -1,7 +1,9 @@
 package camera
 
 import "core:fmt"
+import "core:math"
 import glm "core:math/linalg/glsl"
+import "core:math/rand"
 import gl "vendor:wasm/WebGL"
 
 Buffers :: struct {
@@ -143,21 +145,108 @@ init_buffers :: proc(b: ^Buffers, n_cubes: int) {
 	}
 	ea_buffer_init(&b.indices, indices_data[:])
 
-	matrix_data := make([]glm.mat4, n_cubes)
-	defer delete(matrix_data)
+	cube_positions: [10]glm.vec3 = {
+		{0, 0, 0}, // 0
+		{2, 5, -15},
+		{-1.5, -2.2, -2.5},
+		{-3.8, -2, -12.3}, // 3
+		{2.4, -0.4, -3.5},
+		{-1.7, 3, -7.5},
+		{1.3, -2, -2.5}, // 6
+		{1.5, 2, -2.5},
+		{1.5, 0.2, -1.5},
+		{-1.3, 1, -1.5}, // 9
+	}
+
+	bbox_max: glm.vec3
+	bbox_min: glm.vec3
+	model_matrices := make([]glm.mat4, n_cubes)
+	defer delete(model_matrices)
+	normal_matrices := make([]glm.mat4, n_cubes)
+	defer delete(normal_matrices)
+	for &pos, i in cube_positions {
+		pos *= 2
+		bbox_min.x = math.min(bbox_min.x, pos.x)
+		bbox_min.y = math.min(bbox_min.y, pos.y)
+		bbox_min.z = math.min(bbox_min.z, pos.z)
+		bbox_max.x = math.max(bbox_max.x, pos.x)
+		bbox_max.y = math.max(bbox_max.y, pos.y)
+		bbox_max.z = math.max(bbox_max.z, pos.z)
+		// rotating around zero length vectors results in a matrix
+		// with Nan values and the cube disapears
+		if glm.length(pos) == 0.0 {
+			pos += {0.0003, 0.0007, 0.0002}
+		}
+		model := glm.mat4(1)
+
+		// scale
+		model *= glm.mat4Scale({0.5, 0.5, 0.5})
+		// rotate
+		angle: f32 = glm.radians_f32(20.0 * f32(i))
+		// if i % 2 == 0 && i != 0 {
+		// 	angle = state.rotation
+		// }
+		model *= glm.mat4Rotate(pos, angle)
+		// translate
+		model *= glm.mat4Translate(pos)
+
+		model_matrices[i] = model
+		normal_matrices[i] = glm.inverse_transpose_matrix4x4(model)
+	}
+	bbox_max += {1, 1, 1}
+	bbox_min -= {-1, -1, -1}
+	for i in len(cube_positions) ..< n_cubes {
+		collides: bool = true
+		pos: [3]f32 = {1, 2, 3}
+		for {
+			pos = random_pos()
+			d: f32 = math.pow(rand.float32(), 0.3) * SPHERE_RADIUS
+			pos = pos * d
+			if ((pos.x > bbox_max.x || pos.x < bbox_min.x) ||
+				   (pos.y > bbox_max.y || pos.y < bbox_min.y) ||
+				   (pos.z > bbox_max.z || pos.z < bbox_min.z)) {
+				break
+			}
+		}
+		model := glm.mat4(1)
+		// model *= glm.mat4Scale({0.5, 0.5, 0.5})
+		model += random_scale()
+		model *= random_rotation()
+		// angle: f32 = glm.radians_f32(20.0 * f32(i + len(cube_positions)))
+		// model *= glm.mat4Rotate(pos, angle)
+		model *= glm.mat4Translate(pos)
+		model_matrices[i] = model
+		normal_matrices[i] = glm.inverse_transpose_matrix4x4(model)
+	}
 	b.model_matrices = {
 		size   = 4,
 		type   = gl.FLOAT,
 		target = gl.ARRAY_BUFFER,
-		usage  = gl.DYNAMIC_DRAW,
+		usage  = gl.STATIC_DRAW,
 	}
-	buffer_init(&b.model_matrices, matrix_data[:])
+	buffer_init(&b.model_matrices, model_matrices[:])
 	b.normal_matrices = {
 		size   = 4,
 		type   = gl.FLOAT,
 		target = gl.ARRAY_BUFFER,
-		usage  = gl.DYNAMIC_DRAW,
+		usage  = gl.STATIC_DRAW,
 	}
-	buffer_init(&b.normal_matrices, matrix_data[:])
+	buffer_init(&b.normal_matrices, normal_matrices[:])
+}
+
+random_pos :: proc() -> glm.vec3 {
+	pos: glm.vec3 = {rand.float32() * 2 - 1, rand.float32() * 2 - 1, rand.float32() * 2 - 1}
+	return glm.normalize(pos)
+}
+random_rotation :: proc() -> glm.mat4 {
+	p := random_pos()
+	angle := rand.float32() * math.TAU
+	return glm.mat4Rotate(p, angle)
+}
+random_scale :: proc() -> glm.mat4 {
+	min_scale: f32 = 0.1
+	max_scale: f32 = 0.9
+	r_scale: f32 = rand.float32() * (max_scale - min_scale) + min_scale
+	return glm.mat4Scale({r_scale, r_scale, r_scale})
 }
 

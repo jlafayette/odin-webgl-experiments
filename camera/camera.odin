@@ -24,7 +24,9 @@ State :: struct {
 }
 state: State = {}
 
-N_CUBES :: 10
+N_CUBES :: 200_000
+Z_FAR :: 2_000
+SPHERE_RADIUS :: 600
 
 temp_arena_buffer: [mem.Megabyte * 4]byte
 temp_arena: mem.Arena = {
@@ -95,67 +97,18 @@ draw_scene :: proc() -> (ok: bool) {
 
 	aspect: f32 = f32(state.w) / f32(state.h)
 	z_near: f32 = 0.1
-	z_far: f32 = 100.0
+	z_far: f32 = Z_FAR
 	projection_mat := glm.mat4Perspective(g_fov, aspect, z_near, z_far)
-
-	cube_positions: [10]glm.vec3 = {
-		{0, 0, 0}, // 0
-		{2, 5, -15},
-		{-1.5, -2.2, -2.5},
-		{-3.8, -2, -12.3}, // 3
-		{2.4, -0.4, -3.5},
-		{-1.7, 3, -7.5},
-		{1.3, -2, -2.5}, // 6
-		{1.5, 2, -2.5},
-		{1.5, 0.2, -1.5},
-		{-1.3, 1, -1.5}, // 9
-	}
-	model_matrices: [10]glm.mat4
-	normal_matrices: [10]glm.mat4
-	for &pos, i in cube_positions {
-		pos *= 2
-		// rotating around zero length vectors results in a matrix
-		// with Nan values and the cube disapears
-		if glm.length(pos) == 0.0 {
-			pos += {0.0003, 0.0007, 0.0002}
-		}
-		model := glm.mat4(1)
-
-		// scale
-		model *= glm.mat4Scale({0.5, 0.5, 0.5})
-		// rotate
-		angle: f32 = glm.radians_f32(20.0 * f32(i))
-		// if i % 2 == 0 && i != 0 {
-		// 	angle = state.rotation
-		// }
-		model *= glm.mat4Rotate(pos, angle)
-		// translate
-		model *= glm.mat4Translate(pos)
-
-		model_matrices[i] = model
-		normal_matrices[i] = glm.inverse_transpose_matrix4x4(model)
-	}
-	{
-		b := state.buffers.model_matrices
-		gl.BindBuffer(b.target, b.id)
-		gl.BufferSubDataSlice(b.target, 0, model_matrices[:])
-	}
-	{
-		b := state.buffers.normal_matrices
-		gl.BindBuffer(b.target, b.id)
-		gl.BufferSubDataSlice(b.target, 0, normal_matrices[:])
-	}
 
 	uniforms: Uniforms
 	uniforms.view_matrix = view_mat
 	uniforms.projection_matrix = projection_mat
-	// uniforms.normal_matrix = glm.inverse_transpose_matrix4x4(matrices[0])
 	ok = shader_use(state.shader, uniforms, state.buffers)
 	if !ok {
 		fmt.eprintln("Error using shader")
 		return false
 	}
-	ea_buffer_draw(state.buffers.indices, len(model_matrices))
+	ea_buffer_draw(state.buffers.indices, N_CUBES)
 
 	// Draw text
 	gl.Enable(gl.BLEND)

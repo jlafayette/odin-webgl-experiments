@@ -16,7 +16,8 @@ out vec4 vColor;
 
 vec3 light(in vec3 color, in vec3 dir, in vec4 normal) {
 	vec3 ndir = normalize(dir);
-	float directional = max(dot(normal.xyz, ndir), 0.0);
+	vec3 nnormal = normalize(normal.xyz);
+	float directional = max(dot(nnormal, ndir), 0.0);
 	return color * directional;
 }
 
@@ -34,12 +35,12 @@ void main() {
 			vec3(0.9, 0.8, 0.8),
 			vec3(0.85, 0.8, 0.75),
 			transformedNormal
-		  ) * 0.9
+		  ) * 1.0
 		+ light(
 			vec3(0.1, 0.25, 0.5),
 			vec3(-0.2, -0.1, -0.3),
 			transformedNormal
-		  ) * 0.3
+		  ) * 0.4
 	;
 }
 
