@@ -39,7 +39,7 @@ def main(args: Args) -> Path:
 			"odin", "build", project_dst, f"-out:{wasm_dst}", "-target:js_wasm32"
 		]
 		if args.optimized:
-			build_args.extend(["-o:aggressive", "-disable-assert", "-no-bounds-check"])
+			build_args.extend(["-o:speed", "-disable-assert", "-no-bounds-check"])
 		else:
 			build_args.extend(["-o:minimal"])
 		subprocess.run(build_args, check=True)
