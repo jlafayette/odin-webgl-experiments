@@ -25,7 +25,7 @@ def main(args: Args):
 		"camera",
 	]
 	for project in projects:
-		build_args = build.Args(project=project, go=False, odin=True, optimized=True, run=False)
+		build_args = build.Args(project=project, go=False, odin=True, optimized=False, run=False)
 		paths.append(build.main(build_args))
 	os.chdir(root_dir)
 
