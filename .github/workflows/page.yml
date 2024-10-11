@@ -19,6 +19,9 @@ jobs:
           branch: js-pointer-events
           release: false
 
+      - name: Check wasm-ld
+        run: dpkg -L lld-10 | grep wasm-ld
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
