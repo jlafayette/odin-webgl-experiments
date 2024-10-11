@@ -14,17 +14,17 @@ jobs:
       - uses: laytan/setup-odin@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          llvm-version: 17
+          llvm-version: 14
           repository: https://github.com/jlafayette/Odin
           branch: js-pointer-events
           release: false
 
-      - name: Debug14
-        run: ls -l /usr/lib/llvm-14/bin
-      - name: Debug15
-        run: ls -l /usr/lib/llvm-15/bin
-      - name: Check wasm-ld
-        run: dpkg -L lld-17 | grep wasm-ld
+      # - name: Debug14
+      #   run: ls -l /usr/lib/llvm-14/bin
+      # - name: Debug15
+      #   run: ls -l /usr/lib/llvm-15/bin
+      # - name: Check wasm-ld
+      #   run: dpkg -L lld-17 | grep wasm-ld
 
       - uses: actions/setup-python@v5
         with:
