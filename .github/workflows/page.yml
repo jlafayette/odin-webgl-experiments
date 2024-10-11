@@ -19,9 +19,10 @@ jobs:
           branch: js-pointer-events
           release: false
 
-      - name: Debug
-        run: ls -l /usr/lib/llvm-17/bin
-
+      - name: Debug14
+        run: ls -l /usr/lib/llvm-14/bin
+      - name: Debug15
+        run: ls -l /usr/lib/llvm-15/bin
       - name: Check wasm-ld
         run: dpkg -L lld-17 | grep wasm-ld
 
