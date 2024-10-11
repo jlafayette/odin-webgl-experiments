@@ -23,7 +23,7 @@ jobs:
         run: ls -l /usr/lib/llvm-17/bin
 
       - name: Check wasm-ld
-        run: dpkg -L lld-10 | grep wasm-ld
+        run: dpkg -L lld-17 | grep wasm-ld
 
       - uses: actions/setup-python@v5
         with:
