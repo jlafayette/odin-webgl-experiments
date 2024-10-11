@@ -21,13 +21,15 @@ aspect ratio was off and top of content cut off.  Took a while to find the answe
 
 ## TODO
 
-[ ] multi: Touch input for phones - rotate cube in
+[ ] multi: Have js send if running on mobile
+[ ] multi: Touch input for mobile - rotate cube
 [ ] multi: Touch input - multi pinch to change zoom
+[ ] multi: Buttons for mobile inputs to cycle things
 [ ] camera: Smooth acceleration (mostly for keyboard to feel nice)
 [ ] camera: Switch to spaceship controls (continue moving with maybe a small amount of friction)
-[ ] multi: Buttons for phone inputs to cycle things
 [ ] new: Buttons (do main menu example)
 [ ] new: Sound queues and pools (can have buttons)
-[ ] multi: Have js send if running on mobile
+[ ] sounds: Add volume slider
+[ ] synth_keyboard: Use [DynamicsCompressorNode](https://developer.mozilla.org/en-US/docs/Web/API/DynamicsCompressorNode)
 [ ] camera: determine N_CUBES from query parameters if provided
 [ ] camera: set fog distance and color with uniforms
