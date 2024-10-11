@@ -20,7 +20,7 @@ jobs:
           release: false
 
       - name: Debug
-        run: ls -l /usr/lib | grep llvm
+        run: ls -l /usr/lib/llvm-17/bin
 
       - name: Check wasm-ld
         run: dpkg -L lld-10 | grep wasm-ld
