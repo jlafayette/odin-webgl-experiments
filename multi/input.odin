@@ -1,5 +1,6 @@
 package multi
 
+import "core:fmt"
 import glm "core:math/linalg/glsl"
 import "core:sys/wasm/js"
 
@@ -16,7 +17,14 @@ camera_distance :: 5
 init_input :: proc(input: ^Input) {
 	input.camera_pos = {0, 0, camera_distance}
 	js.add_window_event_listener(.Key_Down, {}, on_key_down)
-	js.add_window_event_listener(.Mouse_Move, {}, on_mouse_move)
+	// js.add_window_event_listener(.Touch_Start, {}, on_touch_start)
+	// js.add_window_event_listener(.Touch_End, {}, on_touch_end)
+	// js.add_window_event_listener(.Touch_Move, {}, on_touch_move)
+	// js.add_window_event_listener(.Touch_Cancel, {}, on_touch_cancel)
+
+	js.add_window_event_listener(.Pointer_Move, {}, on_pointer_move)
+	js.add_window_event_listener(.Pointer_Down, {}, on_pointer_down)
+	js.add_window_event_listener(.Pointer_Up, {}, on_pointer_up)
 }
 update_input :: proc(
 	input: ^Input,
@@ -93,10 +101,32 @@ update_input :: proc(
 	return
 }
 
-on_mouse_move :: proc(e: js.Event) {
-	movement := e.mouse.movement
-	g_input.mouse_diff = {f32(movement.x), f32(movement.y)}
+_pointer_down: bool = false
+on_pointer_move :: proc(e: js.Event) {
+	if e.pointer.is_primary && _pointer_down {
+		movement := e.pointer.movement
+		g_input.mouse_diff += {f32(movement.x), f32(movement.y)}
+	}
 }
+on_pointer_up :: proc(e: js.Event) {
+	if e.pointer.is_primary {
+		_pointer_down = false
+	}
+}
+on_pointer_down :: proc(e: js.Event) {
+	if e.pointer.is_primary {
+		_pointer_down = true
+	}
+}
+
+// on_touch_start :: proc(e: js.Event) {
+// }
+// on_touch_end :: proc(e: js.Event) {
+// }
+// on_touch_move :: proc(e: js.Event) {
+// }
+// on_touch_cancel :: proc(e: js.Event) {
+// }
 
 on_key_down :: proc(e: js.Event) {
 	if e.key.repeat {

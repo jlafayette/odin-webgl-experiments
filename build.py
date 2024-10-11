@@ -74,11 +74,6 @@ def clean(p: Path):
 		shutil.rmtree(p)
 
 
-def copy_gamepad_js(dst: Path):
-	src = Path("input/public/gamepad.js")
-	shutil.copy(src, dst)
-
-
 def copy_odin_js(dst: Path):
 	# <!-- Copy `vendor:wasm/js/runtime.js` into your web server -->
 	r = subprocess.check_output(["odin", "root"])

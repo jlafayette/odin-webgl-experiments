@@ -4,6 +4,18 @@ Demo projects using [Odin]("https://odin-lang.org/") compiled to WebAssembly and
 
 [jlafayette.github.io/odin-webgl-experiments](https://jlafayette.github.io/odin-webgl-experiments/)
 
+## Prerequisites
+
+Odin (uses fork at [jlafayette/Odin](https://github.com/jlafayette/Odin))
+Go (for dev server)
+Python (for build/publish scripts)
+
+To build an example with the dev server:
+
+```shell
+python build.py <example-name>
+```
+
 ## Useful Resources
 
 ### Resizing and Zooming
