@@ -17,6 +17,7 @@ jobs:
           llvm-version: 17
           repository: https://github.com/jlafayette/Odin
           branch: js-pointer-events
+          release: false
 
       - uses: actions/setup-python@v5
         with:
