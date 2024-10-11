@@ -19,13 +19,16 @@ jobs:
           branch: js-pointer-events
           release: false
 
+      - name: Debug
+        run: ls -l /usr/lib | grep llvm
+
       - name: Check wasm-ld
         run: dpkg -L lld-10 | grep wasm-ld
 
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      
+
       - name: Build
         run: python publish.py
 
