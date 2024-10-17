@@ -5,6 +5,7 @@ import glm "core:math/linalg/glsl"
 import "core:sys/wasm/js"
 
 Touch :: struct {
+	id:         i32,
 	client_pos: glm.vec2,
 }
 Mode :: enum {
@@ -39,6 +40,12 @@ init_input :: proc(input: ^Input) {
 	js.add_window_event_listener(.Mouse_Move, {}, on_mouse_move)
 	js.add_window_event_listener(.Mouse_Down, {}, on_mouse_down)
 	js.add_window_event_listener(.Mouse_Up, {}, on_mouse_up)
+	for &touch in input.touches {
+		touch.id = -1
+	}
+	for &touch in input.prev_touches {
+		touch.id = -1
+	}
 }
 update_input :: proc(
 	input: ^Input,
@@ -209,8 +216,10 @@ copy_touches :: proc(touch_count: int, touches: [16]js.Touch) {
 	for touch, i in touches {
 		if i < touch_count {
 			g_input.touches[i].client_pos = {f32(touch.client.x), f32(touch.client.y)}
+			g_input.touches[i].id = i32(touch.identifier)
 		} else {
 			g_input.touches[i].client_pos = 0
+			g_input.touches[i].id = -1
 		}
 	}
 	g_input.touch_count = touch_count

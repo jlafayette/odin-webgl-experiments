@@ -161,6 +161,42 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 		y -= h + line_gap
 		_ = text.debug({x, y}, text_2) or_return
 	}
+	{
+		scale: i32 = math.max(1, i32(math.round(state.dpr)))
+		spacing: i32 = 2 * scale
+		text.batch_start(
+			&state.debug_text,
+			.A40,
+			{1, 1, 1},
+			text_projection,
+			128,
+			spacing = spacing,
+			scale = scale,
+		)
+		h: i32 = text.debug_get_height()
+		line_gap: i32 = 15 * scale
+		total: i32 = 0
+		for touch in g_input.touches {
+			if touch.id > -1 {total += 1}
+		}
+		total_h: i32 = (total * h) + ((total - 1) * line_gap)
+		x: i32
+		y: i32 = state.h / 2 + total_h / 2
+		for touch in g_input.touches {
+			if touch.id > -1 {
+				text_0 := fmt.tprintf(
+					"%d %.0f x %.0f",
+					touch.id,
+					touch.client_pos.x,
+					touch.client_pos.y,
+				)
+				w := text.debug_get_width(text_0)
+				x = state.w / 2 - w / 2
+				_ = text.debug({x, y}, text_0) or_return
+				y -= h + line_gap
+			}
+		}
+	}
 
 	return ok
 }
