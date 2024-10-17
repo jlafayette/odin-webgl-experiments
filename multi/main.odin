@@ -24,16 +24,19 @@ ShaderId :: enum {
 	Cube,
 	Lighting,
 }
+Selection :: struct {
+	current_shader:  ShaderId,
+	current_geo:     GeoId,
+	current_texture: TextureId,
+}
 State :: struct {
 	started:         bool,
 	rotation:        f32,
-	current_shader:  ShaderId,
 	cube_shader:     CubeShader,
 	lighting_shader: LightingShader,
-	current_geo:     GeoId,
 	geo_buffers:     Geos,
-	current_texture: TextureId,
 	textures:        Textures,
+	selection:       Selection,
 	debug_text:      text.Batch,
 	w:               i32,
 	h:               i32,
@@ -41,9 +44,7 @@ State :: struct {
 }
 @(private = "file")
 g_state: State = {
-	current_geo     = .Cube,
-	current_shader  = .Lighting,
-	current_texture = .Odin,
+	selection = {current_geo = .Cube, current_shader = .Lighting, current_texture = .Odin},
 }
 
 temp_arena_buffer: [mem.Megabyte * 32]byte
@@ -107,7 +108,7 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 	world_matrix := glm.mat4(1) * glm.mat4Rotate({0, 1, 0}, state.rotation * 5.0)
 	world_inverse_transpose_matrix := glm.inverse_transpose_matrix4x4(world_matrix)
 
-	if state.current_shader == .Cube {
+	if state.selection.current_shader == .Cube {
 		uniforms: CubeUniforms = {
 			model_view_matrix = camera_matrix * world_matrix,
 			projection_matrix = projection_matrix,
@@ -115,12 +116,12 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 		ok = shader_use(
 			state.cube_shader,
 			uniforms,
-			state.geo_buffers[state.current_geo].pos,
-			state.geo_buffers[state.current_geo].tex,
-			state.textures[state.current_texture],
+			state.geo_buffers[state.selection.current_geo].pos,
+			state.geo_buffers[state.selection.current_geo].tex,
+			state.textures[state.selection.current_texture],
 		)
 		if !ok {return}
-	} else if state.current_shader == .Lighting {
+	} else if state.selection.current_shader == .Lighting {
 		uniforms: LightingUniforms = {
 			normal_matrix          = world_inverse_transpose_matrix,
 			model_matrix           = world_matrix,
@@ -129,14 +130,14 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 		ok = lighting_shader_use(
 			state.lighting_shader,
 			uniforms,
-			state.geo_buffers[state.current_geo].pos,
-			state.geo_buffers[state.current_geo].tex,
-			state.geo_buffers[state.current_geo].normal,
-			state.textures[state.current_texture],
+			state.geo_buffers[state.selection.current_geo].pos,
+			state.geo_buffers[state.selection.current_geo].tex,
+			state.geo_buffers[state.selection.current_geo].normal,
+			state.textures[state.selection.current_texture],
 		)
 		if !ok {return}
 	}
-	ea_buffer_draw(state.geo_buffers[state.current_geo].indices)
+	ea_buffer_draw(state.geo_buffers[state.selection.current_geo].indices)
 
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
@@ -215,15 +216,7 @@ update :: proc(state: ^State, dt: f32) {
 		state.h = r.canvas_res.y
 		state.dpr = r.dpr
 	}
-	state.current_texture, state.current_geo, state.current_shader = update_input(
-		&g_input,
-		state.w,
-		state.h,
-		dt,
-		state.current_texture,
-		state.current_geo,
-		state.current_shader,
-	)
+	update_input(&g_input, &g_state.selection, state.w, state.h, dt)
 }
 
 @(export)

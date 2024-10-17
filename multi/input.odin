@@ -48,27 +48,11 @@ init_input :: proc(input: ^Input) {
 		touch.id = -1
 	}
 }
-update_input :: proc(
-	input: ^Input,
-	w: i32,
-	h: i32,
-	dt: f32,
-	current_texture: TextureId,
-	current_geo: GeoId,
-	current_shader: ShaderId,
-) -> (
-	new_texture: TextureId,
-	new_geo: GeoId,
-	new_shader: ShaderId,
-) {
-	new_texture = current_texture
-	new_geo = current_geo
-	new_shader = current_shader
-
+update_input :: proc(input: ^Input, selection: ^Selection, w: i32, h: i32, dt: f32) {
 	g_input.mode = detect_mode()
 	rotate_diff: glm.vec2
 	sensitivity: f32
-	switch g_input.mode {
+	switch input.mode {
 	case .KEYBOARD_MOUSE:
 		{
 			rotate_diff = mouse_movement()
@@ -95,18 +79,18 @@ update_input :: proc(
 	input.prev_touches = input.touches
 
 	if input.cycle_texture {
-		current := current_texture
+		current := selection.current_texture
 		new: TextureId
 		if current == .Odin {
 			new = .Uv
 		} else if current == .Uv {
 			new = .Odin
 		}
-		new_texture = new
+		selection.current_texture = new
 		input.cycle_texture = false
 	}
 	if input.cycle_geo {
-		current := current_geo
+		current := selection.current_geo
 		new: GeoId
 		switch current {
 		case .Cube:
@@ -124,18 +108,18 @@ update_input :: proc(
 		case .Icosphere4:
 			new = .Cube
 		}
-		new_geo = new
+		selection.current_geo = new
 		input.cycle_geo = false
 	}
 	if input.cycle_shader {
-		current := current_shader
+		current := selection.current_shader
 		new: ShaderId
 		if current == .Cube {
 			new = .Lighting
 		} else if current == .Lighting {
 			new = .Cube
 		}
-		new_shader = new
+		selection.current_shader = new
 		input.cycle_shader = false
 	}
 	return
