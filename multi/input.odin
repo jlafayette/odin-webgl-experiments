@@ -219,18 +219,22 @@ copy_touches :: proc(touch_count: int, touches: [16]js.Touch) {
 on_touch_start :: proc(e: js.Event) {
 	// fmt.println("o touch start")
 	copy_touches(e.touch.touch_count, e.touch.touches)
+	js.event_prevent_default()
 }
 on_touch_end :: proc(e: js.Event) {
 	// fmt.println("o touch end")
 	copy_touches(e.touch.touch_count, e.touch.touches)
+	js.event_prevent_default()
 }
 on_touch_move :: proc(e: js.Event) {
 	// fmt.println("o touch move")
 	copy_touches(e.touch.touch_count, e.touch.touches)
+	js.event_prevent_default()
 }
 on_touch_cancel :: proc(e: js.Event) {
 	// fmt.println("o touch cancel")
 	copy_touches(e.touch.touch_count, e.touch.touches)
+	js.event_prevent_default()
 }
 
 on_key_down :: proc(e: js.Event) {
