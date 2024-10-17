@@ -34,11 +34,10 @@ aspect ratio was off and top of content cut off.  Took a while to find the answe
 ## TODO
 
 [ ] multi: Have js send if running on mobile
-[ ] multi: Touch input for mobile - rotate cube
-[ ] multi: Touch input - multi pinch to change zoom
 [ ] multi: Buttons for mobile inputs to cycle things
 [ ] camera: Smooth acceleration (mostly for keyboard to feel nice)
 [ ] camera: Switch to spaceship controls (continue moving with maybe a small amount of friction)
+[ ] camera: support mobile controls
 [ ] new: Buttons (do main menu example)
 [ ] new: Sound queues and pools (can have buttons)
 [ ] sounds: Add volume slider
