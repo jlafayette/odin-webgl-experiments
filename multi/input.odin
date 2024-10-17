@@ -17,7 +17,8 @@ Input :: struct {
 	cycle_texture:   bool,
 	cycle_geo:       bool,
 	cycle_shader:    bool,
-	mouse_diff:      glm.vec2,
+	prev_mouse_pos:  glm.vec2,
+	mouse_pos:       glm.vec2,
 	camera_pos:      glm.vec3,
 	camera_distance: f32,
 	touch_count:     int,
@@ -49,6 +50,8 @@ init_input :: proc(input: ^Input) {
 }
 update_input :: proc(
 	input: ^Input,
+	w: i32,
+	h: i32,
 	dt: f32,
 	current_texture: TextureId,
 	current_geo: GeoId,
@@ -64,29 +67,31 @@ update_input :: proc(
 
 	g_input.mode = detect_mode()
 	rotate_diff: glm.vec2
+	sensitivity: f32
 	switch g_input.mode {
 	case .KEYBOARD_MOUSE:
 		{
-			rotate_diff = input.mouse_diff
+			rotate_diff = mouse_movement()
+			sensitivity = 0.03
 		}
 	case .TOUCH:
 		{
 			rotate_diff = touch_movement()
+			sensitivity = 0.05
 		}
 	}
 	// mouse x -> pos dot product of camera_pos->origin and origin->up 
 	// fmt.println(input.mouse_diff)
-	sensitivity: f32 = 1.0
 	xvec := glm.normalize(glm.cross_vec3(input.camera_pos, {0, 1, 0}))
 	yvec := glm.normalize(glm.cross_vec3(input.camera_pos, xvec))
-	xvec = xvec * rotate_diff.x * dt * sensitivity
-	yvec = yvec * -rotate_diff.y * dt * sensitivity
+	xvec = xvec * rotate_diff.x * sensitivity
+	yvec = yvec * -rotate_diff.y * sensitivity
 	input.camera_pos = input.camera_pos + xvec + yvec
 	input.camera_pos = glm.normalize(input.camera_pos) * input.camera_distance
 	// view_matrix := glm.mat4LookAt(input.camera_pos, {0, 0, 0}, {0, 1, 0})
 
 	// book-keeping
-	input.mouse_diff = {0, 0}
+	input.prev_mouse_pos = input.mouse_pos
 	input.prev_touches = input.touches
 
 	if input.cycle_texture {
@@ -161,21 +166,30 @@ _mouse_down: bool = false
 on_mouse_move :: proc(e: js.Event) {
 	// fmt.println("o mouse move")
 	if e.mouse.button == 0 && _mouse_down {
-		movement := e.mouse.movement
-		g_input.mouse_diff += {f32(movement.x), f32(movement.y)}
+		g_input.mouse_pos = {f32(e.mouse.client.x), f32(e.mouse.client.y)}
 	}
 }
 on_mouse_up :: proc(e: js.Event) {
 	// fmt.println("o mouse up")
 	if e.mouse.button == 0 {
+		g_input.prev_mouse_pos = {f32(e.mouse.client.x), f32(e.mouse.client.y)}
+		g_input.mouse_pos = {f32(e.mouse.client.x), f32(e.mouse.client.y)}
 		_mouse_down = false
 	}
 }
 on_mouse_down :: proc(e: js.Event) {
 	// fmt.println("o mouse down")
 	if e.mouse.button == 0 {
+		g_input.prev_mouse_pos = {f32(e.mouse.client.x), f32(e.mouse.client.y)}
+		g_input.mouse_pos = {f32(e.mouse.client.x), f32(e.mouse.client.y)}
 		_mouse_down = true
 	}
+}
+
+mouse_movement :: proc() -> glm.vec2 {
+	m1 := g_input.mouse_pos
+	m2 := g_input.prev_mouse_pos
+	return m1 - m2
 }
 
 detect_mode :: proc() -> Mode {

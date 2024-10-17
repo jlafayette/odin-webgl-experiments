@@ -207,14 +207,7 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 }
 
 update :: proc(state: ^State, dt: f32) {
-	state.rotation += dt * 0.2
-	state.current_texture, state.current_geo, state.current_shader = update_input(
-		&g_input,
-		dt,
-		state.current_texture,
-		state.current_geo,
-		state.current_shader,
-	)
+	state.rotation += dt * 0.15
 	{
 		r: resize.ResizeState
 		resize.resize(&r)
@@ -222,6 +215,15 @@ update :: proc(state: ^State, dt: f32) {
 		state.h = r.canvas_res.y
 		state.dpr = r.dpr
 	}
+	state.current_texture, state.current_geo, state.current_shader = update_input(
+		&g_input,
+		state.w,
+		state.h,
+		dt,
+		state.current_texture,
+		state.current_geo,
+		state.current_shader,
+	)
 }
 
 @(export)
