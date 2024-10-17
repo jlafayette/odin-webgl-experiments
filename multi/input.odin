@@ -4,27 +4,41 @@ import "core:fmt"
 import glm "core:math/linalg/glsl"
 import "core:sys/wasm/js"
 
-Input :: struct {
-	cycle_texture: bool,
-	cycle_geo:     bool,
-	cycle_shader:  bool,
-	mouse_diff:    glm.vec2,
-	camera_pos:    glm.vec3,
+Touch :: struct {
+	client_pos: glm.vec2,
 }
-g_input := Input{}
-camera_distance :: 5
+Mode :: enum {
+	KEYBOARD_MOUSE,
+	TOUCH,
+}
+
+Input :: struct {
+	cycle_texture:   bool,
+	cycle_geo:       bool,
+	cycle_shader:    bool,
+	mouse_diff:      glm.vec2,
+	camera_pos:      glm.vec3,
+	camera_distance: f32,
+	touch_count:     int,
+	prev_touches:    [16]Touch,
+	touches:         [16]Touch,
+	mode:            Mode,
+}
+g_input := Input {
+	camera_distance = 5,
+}
 
 init_input :: proc(input: ^Input) {
-	input.camera_pos = {0, 0, camera_distance}
+	input.camera_pos = {0, 0, input.camera_distance}
 	js.add_window_event_listener(.Key_Down, {}, on_key_down)
-	// js.add_window_event_listener(.Touch_Start, {}, on_touch_start)
-	// js.add_window_event_listener(.Touch_End, {}, on_touch_end)
-	// js.add_window_event_listener(.Touch_Move, {}, on_touch_move)
-	// js.add_window_event_listener(.Touch_Cancel, {}, on_touch_cancel)
+	js.add_window_event_listener(.Touch_Start, {}, on_touch_start)
+	js.add_window_event_listener(.Touch_End, {}, on_touch_end)
+	js.add_window_event_listener(.Touch_Move, {}, on_touch_move)
+	js.add_window_event_listener(.Touch_Cancel, {}, on_touch_cancel)
 
-	js.add_window_event_listener(.Pointer_Move, {}, on_pointer_move)
-	js.add_window_event_listener(.Pointer_Down, {}, on_pointer_down)
-	js.add_window_event_listener(.Pointer_Up, {}, on_pointer_up)
+	js.add_window_event_listener(.Mouse_Move, {}, on_mouse_move)
+	js.add_window_event_listener(.Mouse_Down, {}, on_mouse_down)
+	js.add_window_event_listener(.Mouse_Up, {}, on_mouse_up)
 }
 update_input :: proc(
 	input: ^Input,
@@ -41,18 +55,32 @@ update_input :: proc(
 	new_geo = current_geo
 	new_shader = current_shader
 
+	g_input.mode = detect_mode()
+	rotate_diff: glm.vec2
+	switch g_input.mode {
+	case .KEYBOARD_MOUSE:
+		{
+			rotate_diff = input.mouse_diff
+		}
+	case .TOUCH:
+		{
+			rotate_diff = touch_movement()
+		}
+	}
 	// mouse x -> pos dot product of camera_pos->origin and origin->up 
 	// fmt.println(input.mouse_diff)
 	sensitivity: f32 = 1.0
 	xvec := glm.normalize(glm.cross_vec3(input.camera_pos, {0, 1, 0}))
 	yvec := glm.normalize(glm.cross_vec3(input.camera_pos, xvec))
-	xvec = xvec * input.mouse_diff.x * dt * sensitivity
-	yvec = yvec * -input.mouse_diff.y * dt * sensitivity
+	xvec = xvec * rotate_diff.x * dt * sensitivity
+	yvec = yvec * -rotate_diff.y * dt * sensitivity
 	input.camera_pos = input.camera_pos + xvec + yvec
-	input.mouse_diff = {0, 0}
-
-	input.camera_pos = glm.normalize(input.camera_pos) * camera_distance
+	input.camera_pos = glm.normalize(input.camera_pos) * input.camera_distance
 	// view_matrix := glm.mat4LookAt(input.camera_pos, {0, 0, 0}, {0, 1, 0})
+
+	// book-keeping
+	input.mouse_diff = {0, 0}
+	input.prev_touches = input.touches
 
 	if input.cycle_texture {
 		current := current_texture
@@ -101,32 +129,109 @@ update_input :: proc(
 	return
 }
 
-_pointer_down: bool = false
-on_pointer_move :: proc(e: js.Event) {
-	if e.pointer.is_primary && _pointer_down {
-		movement := e.pointer.movement
+// _pointer_down: bool = false
+// on_pointer_move :: proc(e: js.Event) {
+// 	fmt.println("o pointer move")
+// 	if e.pointer.is_primary && _pointer_down {
+// 		movement := e.pointer.movement
+// 		g_input.mouse_diff += {f32(movement.x), f32(movement.y)}
+// 	}
+// }
+// on_pointer_up :: proc(e: js.Event) {
+// 	fmt.println("o pointer up")
+// 	if e.pointer.is_primary {
+// 		_pointer_down = false
+// 	}
+// }
+// on_pointer_down :: proc(e: js.Event) {
+// 	fmt.println("o pointer down")
+// 	if e.pointer.is_primary {
+// 		_pointer_down = true
+// 	}
+// }
+
+_mouse_down: bool = false
+on_mouse_move :: proc(e: js.Event) {
+	// fmt.println("o mouse move")
+	if e.mouse.button == 0 && _mouse_down {
+		movement := e.mouse.movement
 		g_input.mouse_diff += {f32(movement.x), f32(movement.y)}
 	}
 }
-on_pointer_up :: proc(e: js.Event) {
-	if e.pointer.is_primary {
-		_pointer_down = false
+on_mouse_up :: proc(e: js.Event) {
+	// fmt.println("o mouse up")
+	if e.mouse.button == 0 {
+		_mouse_down = false
 	}
 }
-on_pointer_down :: proc(e: js.Event) {
-	if e.pointer.is_primary {
-		_pointer_down = true
+on_mouse_down :: proc(e: js.Event) {
+	// fmt.println("o mouse down")
+	if e.mouse.button == 0 {
+		_mouse_down = true
 	}
 }
 
-// on_touch_start :: proc(e: js.Event) {
-// }
-// on_touch_end :: proc(e: js.Event) {
-// }
-// on_touch_move :: proc(e: js.Event) {
-// }
-// on_touch_cancel :: proc(e: js.Event) {
-// }
+detect_mode :: proc() -> Mode {
+	for t in g_input.touches {
+		if glm.length(t.client_pos) > 0.0001 {
+			return .TOUCH
+		}
+	}
+	return .KEYBOARD_MOUSE
+}
+
+touch_movement :: proc() -> glm.vec2 {
+	movement: glm.vec2
+	have_prev: bool = false
+	for t in g_input.prev_touches {
+		if glm.length(t.client_pos) > 0.0001 {
+			have_prev = true
+			break
+		}
+	}
+	if !have_prev {
+		return movement
+	}
+	for t, i in g_input.touches {
+		if i < g_input.touch_count {
+			diff := t.client_pos - g_input.prev_touches[i].client_pos
+			if glm.length(diff) > glm.length(movement) {
+				movement = diff
+			}
+		} else {
+			break
+		}
+	}
+	return movement
+}
+
+copy_touches :: proc(touch_count: int, touches: [16]js.Touch) {
+	for touch, i in touches {
+		if i < touch_count {
+			g_input.touches[i].client_pos = {f32(touch.client.x), f32(touch.client.y)}
+		} else {
+			g_input.touches[i].client_pos = 0
+		}
+	}
+	g_input.touch_count = touch_count
+}
+
+on_touch_start :: proc(e: js.Event) {
+	// fmt.println("o touch start")
+	copy_touches(e.touch.touch_count, e.touch.touches)
+}
+on_touch_end :: proc(e: js.Event) {
+	// fmt.println("o touch end")
+	copy_touches(e.touch.touch_count, e.touch.touches)
+}
+on_touch_move :: proc(e: js.Event) {
+	// fmt.println("o touch move")
+	copy_touches(e.touch.touch_count, e.touch.touches)
+}
+on_touch_cancel :: proc(e: js.Event) {
+	// fmt.println("o touch cancel")
+	copy_touches(e.touch.touch_count, e.touch.touches)
+}
 
 on_key_down :: proc(e: js.Event) {
 	if e.key.repeat {

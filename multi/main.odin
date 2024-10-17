@@ -41,7 +41,9 @@ State :: struct {
 }
 @(private = "file")
 g_state: State = {
-	current_geo = .Cube,
+	current_geo     = .Cube,
+	current_shader  = .Lighting,
+	current_texture = .Odin,
 }
 
 temp_arena_buffer: [mem.Megabyte * 32]byte
