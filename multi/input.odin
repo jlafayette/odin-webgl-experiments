@@ -49,30 +49,28 @@ init_input :: proc(input: ^Input) {
 	}
 }
 update_input :: proc(input: ^Input, selection: ^Selection, w: i32, h: i32, dt: f32) {
-	g_input.mode = detect_mode()
+	input.mode = detect_mode(input.touches)
 	rotate_diff: glm.vec2
 	sensitivity: f32
 	switch input.mode {
 	case .KEYBOARD_MOUSE:
 		{
-			rotate_diff = mouse_movement()
+			rotate_diff = mouse_movement(input.mouse_pos, input.prev_mouse_pos)
 			sensitivity = 0.03
 		}
 	case .TOUCH:
 		{
-			rotate_diff = touch_movement()
+			rotate_diff = touch_movement(input.touch_count, input.touches, input.prev_touches)
 			sensitivity = 0.05
 		}
 	}
 	// mouse x -> pos dot product of camera_pos->origin and origin->up 
-	// fmt.println(input.mouse_diff)
 	xvec := glm.normalize(glm.cross_vec3(input.camera_pos, {0, 1, 0}))
 	yvec := glm.normalize(glm.cross_vec3(input.camera_pos, xvec))
 	xvec = xvec * rotate_diff.x * sensitivity
 	yvec = yvec * -rotate_diff.y * sensitivity
 	input.camera_pos = input.camera_pos + xvec + yvec
 	input.camera_pos = glm.normalize(input.camera_pos) * input.camera_distance
-	// view_matrix := glm.mat4LookAt(input.camera_pos, {0, 0, 0}, {0, 1, 0})
 
 	// book-keeping
 	input.prev_mouse_pos = input.mouse_pos
@@ -170,13 +168,13 @@ on_mouse_down :: proc(e: js.Event) {
 	}
 }
 
-mouse_movement :: proc() -> glm.vec2 {
-	m1 := g_input.mouse_pos
-	m2 := g_input.prev_mouse_pos
+mouse_movement :: proc(mouse_pos, prev_mouse_pos: glm.vec2) -> glm.vec2 {
+	m1 := mouse_pos
+	m2 := prev_mouse_pos
 	return m1 - m2
 }
 
-detect_mode :: proc() -> Mode {
+detect_mode :: proc(touches: [16]Touch) -> Mode {
 	for t in g_input.touches {
 		if glm.length(t.client_pos) > 0.0001 {
 			return .TOUCH
@@ -185,11 +183,11 @@ detect_mode :: proc() -> Mode {
 	return .KEYBOARD_MOUSE
 }
 
-touch_movement :: proc() -> glm.vec2 {
+touch_movement :: proc(touch_count: int, touches, prev_touches: [16]Touch) -> glm.vec2 {
 	movement: glm.vec2
-	for t1, i in g_input.touches {
-		t2 := g_input.prev_touches[i]
-		if i < g_input.touch_count && t1.id >= 0 && t2.id >= 0 {
+	for t1, i in touches {
+		t2 := prev_touches[i]
+		if i < touch_count && t1.id >= 0 && t2.id >= 0 {
 			diff := t1.client_pos - t2.client_pos
 			if glm.length(diff) > glm.length(movement) {
 				movement = diff
