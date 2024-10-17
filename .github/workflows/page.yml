@@ -16,7 +16,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           llvm-version: 14
           repository: https://github.com/jlafayette/Odin
-          branch: js-pointer-events
+          branch: js-events
           release: false
 
       # - name: Debug14
