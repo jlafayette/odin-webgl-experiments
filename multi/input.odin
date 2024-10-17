@@ -189,19 +189,20 @@ detect_mode :: proc() -> Mode {
 
 touch_movement :: proc() -> glm.vec2 {
 	movement: glm.vec2
-	have_prev: bool = false
-	for t in g_input.prev_touches {
-		if glm.length(t.client_pos) > 0.0001 {
-			have_prev = true
-			break
-		}
-	}
-	if !have_prev {
-		return movement
-	}
-	for t, i in g_input.touches {
-		if i < g_input.touch_count {
-			diff := t.client_pos - g_input.prev_touches[i].client_pos
+	// have_prev: bool = false
+	// for t in g_input.prev_touches {
+	// 	if glm.length(t.client_pos) > 0.0001 {
+	// 		have_prev = true
+	// 		break
+	// 	}
+	// }
+	// if !have_prev {
+	// 	return movement
+	// }
+	for t1, i in g_input.touches {
+		t2 := g_input.prev_touches[i]
+		if i < g_input.touch_count && t1.id >= 0 && t2.id >= 0 {
+			diff := t1.client_pos - t2.client_pos
 			if glm.length(diff) > glm.length(movement) {
 				movement = diff
 			}
