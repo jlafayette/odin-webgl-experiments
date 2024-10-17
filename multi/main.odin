@@ -91,11 +91,16 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 	gl.Viewport(0, 0, state.w, state.h)
 
 	// Compute the projection matrix
-	fov: f32 = (45.0 * math.PI) / 180.0
+	fovy: f32 = (45.0 * math.PI) / 180.0
+
 	aspect: f32 = f32(state.w) / f32(state.h)
+	if aspect < 1.0 {
+		max_fovy: f32 = (120.0 * math.PI) / 180.0
+		fovy = glm.lerp_f32(fovy, max_fovy, 1.0 - aspect)
+	}
 	z_near: f32 = 0.1
 	z_far: f32 = 2000.0
-	projection_matrix := glm.mat4Perspective(fov, aspect, z_near, z_far)
+	projection_matrix := glm.mat4Perspective(fovy, aspect, z_near, z_far)
 
 	camera_matrix := glm.mat4LookAt(g_input.camera_pos, {0, 0, 0}, {0, 1, 0})
 	view_projection_matrix := projection_matrix * camera_matrix
