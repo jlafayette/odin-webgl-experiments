@@ -49,7 +49,10 @@ init_input :: proc(input: ^Input) {
 	}
 }
 update_input :: proc(input: ^Input, selection: ^Selection, w: i32, h: i32, dt: f32) {
-	input.mode = detect_mode(input.touches)
+	mode := detect_mode(input.touches)
+	if mode == .TOUCH {
+		input.mode = mode
+	}
 	rotate_diff: glm.vec2
 	sensitivity: f32
 	switch input.mode {
@@ -154,6 +157,7 @@ on_mouse_move :: proc(e: js.Event) {
 on_mouse_up :: proc(e: js.Event) {
 	// fmt.println("o mouse up")
 	if e.mouse.button == 0 {
+		// g_input.mode = .KEYBOARD_MOUSE
 		g_input.prev_mouse_pos = {f32(e.mouse.client.x), f32(e.mouse.client.y)}
 		g_input.mouse_pos = {f32(e.mouse.client.x), f32(e.mouse.client.y)}
 		_mouse_down = false
@@ -162,6 +166,7 @@ on_mouse_up :: proc(e: js.Event) {
 on_mouse_down :: proc(e: js.Event) {
 	// fmt.println("o mouse down")
 	if e.mouse.button == 0 {
+		// g_input.mode = .KEYBOARD_MOUSE
 		g_input.prev_mouse_pos = {f32(e.mouse.client.x), f32(e.mouse.client.y)}
 		g_input.mouse_pos = {f32(e.mouse.client.x), f32(e.mouse.client.y)}
 		_mouse_down = true
@@ -230,6 +235,7 @@ on_touch_cancel :: proc(e: js.Event) {
 }
 
 on_key_down :: proc(e: js.Event) {
+	g_input.mode = .KEYBOARD_MOUSE
 	if e.key.repeat {
 		return
 	}

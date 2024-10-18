@@ -141,7 +141,8 @@ ui_update :: proc(ui: ^Ui, w, h: i32) {
 	ui.buttons[2].pos = {w - ui.buttons[2].size.x - 8, 8}
 
 	ui.show = _mouse_down
-	ui.show = true
+
+	ui.show = g_input.mode == .TOUCH
 
 	// TODO: update clicked and hovered for each button
 	// for &btn in ui.buttons {

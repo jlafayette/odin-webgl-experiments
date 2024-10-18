@@ -217,7 +217,7 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 			}
 		}
 	}
-	ui_draw(&state.ui, text_projection)
+	// ui_draw(&state.ui, text_projection)
 
 	return check_gl_error()
 }
