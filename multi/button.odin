@@ -170,7 +170,7 @@ ui_draw :: proc(ui: ^Ui, projection_matrix: glm.mat4) {
 	uniforms: FlatUniforms = {{c.r, c.g, c.b, 1.0}, projection_matrix}
 	flat_shader_use(ui.flat_shader, uniforms, ui.buffers)
 
-	fmt.println("drawing ui")
+	// fmt.println("drawing ui")
 	ea_buffer_draw(ui.buffers.indices, instance_count = 3)
 
 	gl.VertexAttribDivisor(1, 0)
