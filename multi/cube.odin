@@ -1,5 +1,6 @@
 package multi
 
+import "core:fmt"
 import gl "vendor:wasm/WebGL"
 
 Buffers :: struct {
@@ -29,6 +30,11 @@ buffer_init :: proc(b: ^Buffer, data: []$T) {
 	gl.BindBuffer(b.target, b.id)
 	gl.BufferDataSlice(b.target, data[:], b.usage)
 }
+buffer_update :: proc(b: Buffer, data: []$T) {
+	gl.BindBuffer(b.target, b.id)
+	// gl.BufferDataSlice(b.target, data[:], b.usage)
+	gl.BufferSubDataSlice(b.target, 0, data[:])
+}
 ea_buffer_init :: proc(b: ^EaBuffer, data: []$T) {
 	b.count = (len(data) * size_of(T)) / 2 // 2 is size of unsigned_short (u16)
 	b.offset = nil
@@ -36,9 +42,14 @@ ea_buffer_init :: proc(b: ^EaBuffer, data: []$T) {
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.id)
 	gl.BufferDataSlice(gl.ELEMENT_ARRAY_BUFFER, data[:], b.usage)
 }
-ea_buffer_draw :: proc(b: EaBuffer) {
+ea_buffer_draw :: proc(b: EaBuffer, instance_count: int = 0) {
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.id)
-	gl.DrawElements(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, b.offset)
+	if instance_count > 0 {
+		// fmt.println("b.count:", b.count, "instance count:", instance_count)
+		gl.DrawElementsInstanced(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, 0, instance_count)
+	} else {
+		gl.DrawElements(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, b.offset)
+	}
 }
 
 cube_buffers_init :: proc(buffers: ^Buffers) {

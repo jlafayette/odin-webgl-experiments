@@ -50,6 +50,7 @@ shader_use :: proc(
 ) -> (
 	ok: bool,
 ) {
+	// fmt.println("cube")
 	gl.UseProgram(s.program)
 	// set attributes
 	shader_set_attribute(s.a_pos, buffer_pos)
@@ -69,6 +70,7 @@ shader_use :: proc(
 shader_set_attribute :: proc(index: i32, b: Buffer) {
 	gl.BindBuffer(b.target, b.id)
 	gl.VertexAttribPointer(index, b.size, b.type, false, 0, 0)
+	// fmt.printf("- Sh enable %d\n", index)
 	gl.EnableVertexAttribArray(index)
 }
 

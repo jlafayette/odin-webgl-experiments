@@ -41,6 +41,7 @@ State :: struct {
 	w:               i32,
 	h:               i32,
 	dpr:             f32,
+	ui:              Ui,
 }
 @(private = "file")
 g_state: State = {
@@ -77,6 +78,8 @@ start :: proc(state: ^State) -> (ok: bool) {
 	ok = textures_init(&state.textures)
 	if !ok {return}
 
+	ui_init(&state.ui)
+
 	return check_gl_error()
 }
 
@@ -108,40 +111,51 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 	world_matrix := glm.mat4(1) * glm.mat4Rotate({0, 1, 0}, state.rotation * 5.0)
 	world_inverse_transpose_matrix := glm.inverse_transpose_matrix4x4(world_matrix)
 
-	if state.selection.current_shader == .Cube {
-		uniforms: CubeUniforms = {
-			model_view_matrix = camera_matrix * world_matrix,
-			projection_matrix = projection_matrix,
+	switch state.selection.current_shader {
+	case .Cube:
+		{
+			uniforms: CubeUniforms = {
+				model_view_matrix = camera_matrix * world_matrix,
+				projection_matrix = projection_matrix,
+			}
+			ok = shader_use(
+				state.cube_shader,
+				uniforms,
+				state.geo_buffers[state.selection.current_geo].pos,
+				state.geo_buffers[state.selection.current_geo].tex,
+				state.textures[state.selection.current_texture],
+			)
+			if !ok {
+				fmt.eprintln("shader use cube failed")
+				return
+			}
 		}
-		ok = shader_use(
-			state.cube_shader,
-			uniforms,
-			state.geo_buffers[state.selection.current_geo].pos,
-			state.geo_buffers[state.selection.current_geo].tex,
-			state.textures[state.selection.current_texture],
-		)
-		if !ok {return}
-	} else if state.selection.current_shader == .Lighting {
-		uniforms: LightingUniforms = {
-			normal_matrix          = world_inverse_transpose_matrix,
-			model_matrix           = world_matrix,
-			view_projection_matrix = view_projection_matrix,
+	case .Lighting:
+		{
+			uniforms: LightingUniforms = {
+				normal_matrix          = world_inverse_transpose_matrix,
+				model_matrix           = world_matrix,
+				view_projection_matrix = view_projection_matrix,
+			}
+			ok = lighting_shader_use(
+				state.lighting_shader,
+				uniforms,
+				state.geo_buffers[state.selection.current_geo].pos,
+				state.geo_buffers[state.selection.current_geo].tex,
+				state.geo_buffers[state.selection.current_geo].normal,
+				state.textures[state.selection.current_texture],
+			)
+			if !ok {
+				fmt.eprintln("shader use lighting failed")
+				return
+			}
 		}
-		ok = lighting_shader_use(
-			state.lighting_shader,
-			uniforms,
-			state.geo_buffers[state.selection.current_geo].pos,
-			state.geo_buffers[state.selection.current_geo].tex,
-			state.geo_buffers[state.selection.current_geo].normal,
-			state.textures[state.selection.current_texture],
-		)
-		if !ok {return}
 	}
 	ea_buffer_draw(state.geo_buffers[state.selection.current_geo].indices)
 
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-	text_projection := glm.mat4Ortho3d(0, f32(state.w), 0, f32(state.h), -1, 1)
+	text_projection := glm.mat4Ortho3d(0, f32(state.w), 0, f32(state.h), -10, 10)
 	{
 		scale: i32 = math.max(1, i32(math.round(state.dpr)))
 		spacing: i32 = 2 * scale
@@ -203,8 +217,9 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 			}
 		}
 	}
+	ui_draw(&state.ui, text_projection)
 
-	return ok
+	return check_gl_error()
 }
 
 update :: proc(state: ^State, dt: f32) {
@@ -217,6 +232,7 @@ update :: proc(state: ^State, dt: f32) {
 		state.dpr = r.dpr
 	}
 	update_input(&g_input, &g_state.selection, state.w, state.h, dt)
+	ui_update(&state.ui, state.w, state.h)
 }
 
 @(export)
