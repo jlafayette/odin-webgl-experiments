@@ -16,6 +16,7 @@ State :: struct {
 	w:          i32,
 	h:          i32,
 	dpr:        f32,
+	shapes:     Shapes,
 }
 @(private = "file")
 g_state: State = {}
@@ -35,6 +36,8 @@ start :: proc(state: ^State) -> (ok: bool) {
 	}
 
 	init_input(&g_input)
+
+	shapes_init(&state.shapes)
 
 	return check_gl_error()
 }
@@ -78,6 +81,8 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 		_ = text.debug({x, y}, text_2) or_return
 	}
 
+	shapes_draw(&state.shapes, text_projection)
+
 	return check_gl_error()
 }
 
@@ -90,6 +95,7 @@ update :: proc(state: ^State, dt: f32) {
 		state.dpr = r.dpr
 	}
 	update_input(&g_input, dt)
+	shapes_update(&state.shapes, state.w, state.h)
 }
 
 @(export)
