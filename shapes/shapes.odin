@@ -186,9 +186,13 @@ shapes_init :: proc(s: ^Shapes, w, h: i32) -> (ok: bool) {
 	add_circle(s, {{20, 20}, 5, {1, 1, 1}})
 	add_circle(s, {{20, 20}, 5, {1, 1, 1}})
 
-	add_line(s, {{100, 100}, {100, 500}, 2, {1, 1, 1}})
-	add_line(s, {{100, 100}, {100, 500}, 8, {1, 1, 1}})
-	add_line(s, {{100, 100}, {100, 500}, 16, {1, 1, 1}})
+	add_line(s, {{0, 0}, {100, 100}, 2, {1, 1, 1}})
+	add_line(s, {{0, 0}, {100, 100}, 2, {1, 1, 1}})
+	add_line(s, {{0, 0}, {100, 100}, 2, {1, 1, 1}})
+	add_line(s, {{0, 0}, {100, 100}, 2, {1, 1, 1}})
+	add_line(s, {{100, 100}, {500, 100}, 2, {1, 1, 1}})
+	add_line(s, {{100, 100}, {500, 100}, 8, {1, 1, 1}})
+	add_line(s, {{100, 100}, {500, 100}, 16, {1, 1, 1}})
 	add_line(s, {{100, 100}, {500, 500}, 16, {1, 1, 1}})
 	add_line(s, {{0, 0}, {500, 500}, 4, {1, 1, 1}})
 
@@ -238,6 +242,9 @@ shapes_update :: proc(s: ^Shapes, w, h: i32, dt: f32) {
 	s.circles[3].pos = {w - 20, h - 20}
 
 	_line_offset += dt
+
+	s.lines[0] = {{0, 0}, {w, h}, 8, {1, 1, 1}}
+	s.lines[1] = {{0, h}, {w, 0}, 8, {1, 1, 1}}
 }
 
 shapes_draw :: proc(s: ^Shapes, projection_matrix: glm.mat4) {
@@ -245,7 +252,6 @@ shapes_draw :: proc(s: ^Shapes, projection_matrix: glm.mat4) {
 	mi: int = 0
 	for rect, i in s.rectangles {
 		if i < s.rectangle_count {
-			// m := glm.mat4(1)
 			m := glm.mat4Translate({f32(rect.pos.x), f32(rect.pos.y), -1.0})
 			m *= glm.mat4Rotate({0, 0, 1}, rect.rotation)
 			m *= glm.mat4Scale({f32(rect.size.x), f32(rect.size.y), 1.0})
@@ -269,8 +275,7 @@ shapes_draw :: proc(s: ^Shapes, projection_matrix: glm.mat4) {
 		if i < s.line_count {
 			line_diff_i32: [2]i32 = l.end - l.start
 			line_diff: [2]f32 = {f32(line_diff_i32.x), f32(line_diff_i32.y)}
-			angle := math.atan2(line_diff.y, line_diff.x) - math.TAU * 0.25
-			angle *= -1
+			angle := math.atan2(line_diff.y, line_diff.x)
 			x_scale := glm.length(line_diff)
 			y_scale := f32(l.thickness)
 			m := glm.mat4Translate({f32(l.start.x), f32(l.start.y), -1.0})
