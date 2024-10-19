@@ -67,7 +67,7 @@ buffers_init :: proc(buffers: ^Buffers) {
 	}
 	ea_buffer_init(&buffers.indices, indices_data[:])
 
-	model_matrices: [N_SHAPES]glm.mat4 = glm.mat4(1)
+	model_matrices: [N_SHAPES * 3]glm.mat4 = glm.mat4(1)
 	buffers.model_matrices = {
 		size   = 4,
 		type   = gl.FLOAT,
@@ -176,11 +176,21 @@ shapes_init :: proc(s: ^Shapes, w, h: i32) -> (ok: bool) {
 	add_rectangle(s, {{10, 10}, {20, 20}, 0, {1, 1, 1}})
 	add_rectangle(s, {{10, 10}, {20, 20}, 0, {1, 1, 1}})
 	add_rectangle(s, {{10, 10}, {20, 20}, 0, {1, 1, 1}})
-
 	for i in 0 ..< 5 {
 		part: f32 = math.TAU / 5
 		add_rectangle(s, {{200 + i32(i) * 50, 200}, {300, 50}, f32(i) * part, {1, 1, 1}})
 	}
+
+	add_circle(s, {{20, 20}, 5, {1, 1, 1}})
+	add_circle(s, {{20, 20}, 5, {1, 1, 1}})
+	add_circle(s, {{20, 20}, 5, {1, 1, 1}})
+	add_circle(s, {{20, 20}, 5, {1, 1, 1}})
+
+	add_line(s, {{100, 100}, {100, 500}, 2, {1, 1, 1}})
+	add_line(s, {{100, 100}, {100, 500}, 8, {1, 1, 1}})
+	add_line(s, {{100, 100}, {100, 500}, 16, {1, 1, 1}})
+	add_line(s, {{100, 100}, {500, 500}, 16, {1, 1, 1}})
+	add_line(s, {{0, 0}, {500, 500}, 4, {1, 1, 1}})
 
 	return ok
 }
@@ -192,7 +202,22 @@ add_rectangle :: proc(s: ^Shapes, r: Rectangle) {
 	s.rectangles[s.rectangle_count] = r
 	s.rectangle_count += 1
 }
+add_circle :: proc(s: ^Shapes, c: Circle) {
+	if s.circle_count >= N_SHAPES {
+		return
+	}
+	s.circles[s.circle_count] = c
+	s.circle_count += 1
+}
+add_line :: proc(s: ^Shapes, l: Line) {
+	if s.line_count >= N_SHAPES {
+		return
+	}
+	s.lines[s.line_count] = l
+	s.line_count += 1
+}
 
+_line_offset: f32 = 0
 shapes_update :: proc(s: ^Shapes, w, h: i32, dt: f32) {
 	s.rectangles[0].pos = {10, 10}
 	s.rectangles[1].pos = {10, h - 10}
@@ -206,35 +231,65 @@ shapes_update :: proc(s: ^Shapes, w, h: i32, dt: f32) {
 			rect.rotation += dt
 		}
 	}
+
+	s.circles[0].pos = {20, 20}
+	s.circles[1].pos = {20, h - 20}
+	s.circles[2].pos = {w - 20, 20}
+	s.circles[3].pos = {w - 20, h - 20}
+
+	_line_offset += dt
 }
 
 shapes_draw :: proc(s: ^Shapes, projection_matrix: glm.mat4) {
-	rect_matrices: [N_SHAPES]glm.mat4
+	rect_matrices: [N_SHAPES * 3]glm.mat4 = glm.mat4(1)
+	mi: int = 0
 	for rect, i in s.rectangles {
 		if i < s.rectangle_count {
-			m := glm.mat4(1)
-			m *= glm.mat4Translate({f32(rect.pos.x), f32(rect.pos.y), -1.0})
+			// m := glm.mat4(1)
+			m := glm.mat4Translate({f32(rect.pos.x), f32(rect.pos.y), -1.0})
 			m *= glm.mat4Rotate({0, 0, 1}, rect.rotation)
 			m *= glm.mat4Scale({f32(rect.size.x), f32(rect.size.y), 1.0})
-			rect_matrices[i] = m
+			rect_matrices[mi] = m
+			mi += 1
 		} else {
-			rect_matrices[i] = glm.mat4(1)
+			break
+		}
+	}
+	for c, i in s.circles {
+		if i < s.circle_count {
+			m := glm.mat4Translate({f32(c.pos.x), f32(c.pos.y), -1.0})
+			m *= glm.mat4Scale({f32(c.radius * 2), f32(c.radius * 2), 1.0})
+			rect_matrices[mi] = m
+			mi += 1
+		} else {
+			break
+		}
+	}
+	for l, i in s.lines {
+		if i < s.line_count {
+			line_diff_i32: [2]i32 = l.end - l.start
+			line_diff: [2]f32 = {f32(line_diff_i32.x), f32(line_diff_i32.y)}
+			angle := math.atan2(line_diff.y, line_diff.x) - math.TAU * 0.25
+			angle *= -1
+			x_scale := glm.length(line_diff)
+			y_scale := f32(l.thickness)
+			m := glm.mat4Translate({f32(l.start.x), f32(l.start.y), -1.0})
+			m *= glm.mat4Rotate({0, 0, 1}, angle)
+			m *= glm.mat4Scale({x_scale, y_scale, 1.0})
+			m *= glm.mat4Translate({0.5, 0, 0})
+			rect_matrices[mi] = m
+			mi += 1
+		} else {
+			break
 		}
 	}
 
-	// for btn, i in ui.buttons {
-	// 	// fmt.println("button:", btn.pos, btn.size)
-	// 	mat: glm.mat4 = glm.mat4(1)
-	// 	mat *= glm.mat4Translate({f32(btn.pos.x), f32(btn.pos.y), -1.0})
-	// 	mat *= glm.mat4Scale({f32(btn.size.x), f32(btn.size.y), 1.0})
-	// 	rect_matrices[i] = mat
-	// }
-
-	buffer_update(s.buffers.model_matrices, rect_matrices[:])
+	instance_count: int = s.rectangle_count + s.circle_count + s.line_count
+	buffer_update(s.buffers.model_matrices, rect_matrices[:instance_count])
 	uniforms: FlatUniforms = {{1, 1, 1, 0.2}, projection_matrix}
 	flat_shader_use(s.shader, uniforms, s.buffers)
 
-	ea_buffer_draw(s.buffers.indices, instance_count = s.rectangle_count)
+	ea_buffer_draw(s.buffers.indices, instance_count = instance_count)
 
 	gl.VertexAttribDivisor(1, 0)
 	gl.VertexAttribDivisor(2, 0)
