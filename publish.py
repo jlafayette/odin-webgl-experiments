@@ -23,6 +23,7 @@ def main(args: Args):
 		"rectangle",
 		"input",
 		"camera",
+		"shapes",
 	]
 	for project in projects:
 		build_args = build.Args(project=project, go=False, odin=True, optimized=True, run=False)
