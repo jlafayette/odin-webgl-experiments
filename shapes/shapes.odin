@@ -166,11 +166,16 @@ Shapes :: struct {
 	shader:          FlatShader,
 }
 
-shapes_init :: proc(s: ^Shapes) -> (ok: bool) {
+shapes_init :: proc(s: ^Shapes, w, h: i32) -> (ok: bool) {
 	ok = flat_shader_init(&s.shader)
 	if !ok {return false}
 
 	buffers_init(&s.buffers)
+
+	add_rectangle(s, {{10, 10}, {20, 20}, 0, {1, 1, 1}})
+	add_rectangle(s, {{10, 10}, {20, 20}, 0, {1, 1, 1}})
+	add_rectangle(s, {{10, 10}, {20, 20}, 0, {1, 1, 1}})
+	add_rectangle(s, {{10, 10}, {20, 20}, 0, {1, 1, 1}})
 
 	for i in 0 ..< 5 {
 		part: f32 = math.TAU / 5
@@ -189,8 +194,15 @@ add_rectangle :: proc(s: ^Shapes, r: Rectangle) {
 }
 
 shapes_update :: proc(s: ^Shapes, w, h: i32, dt: f32) {
+	s.rectangles[0].pos = {10, 10}
+	s.rectangles[1].pos = {10, h - 10}
+	s.rectangles[2].pos = {w - 10, 10}
+	s.rectangles[3].pos = {w - 10, h - 10}
+
 	for &rect, i in s.rectangles {
-		if i < s.rectangle_count {
+		if i < 4 {
+			rect.rotation = 0
+		} else if i < s.rectangle_count {
 			rect.rotation += dt
 		}
 	}

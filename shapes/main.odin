@@ -37,7 +37,7 @@ start :: proc(state: ^State) -> (ok: bool) {
 
 	init_input(&g_input)
 
-	shapes_init(&state.shapes)
+	shapes_init(&state.shapes, state.w, state.h)
 
 	return check_gl_error()
 }
