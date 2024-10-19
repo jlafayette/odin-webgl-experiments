@@ -30,7 +30,7 @@ buffer_init :: proc(b: ^Buffer, data: []$T) {
 }
 ea_buffer_init :: proc(b: ^EaBuffer, data: []$T) {
 	b.count = (len(data) * size_of(T)) / 2 // 2 is size of unsigned_short (u16)
-	fmt.println("b.count:", b.count)
+	// fmt.println("b.count:", b.count)
 	b.offset = nil
 	b.id = gl.CreateBuffer()
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.id)
@@ -49,6 +49,7 @@ Buffers :: struct {
 	pos:            Buffer,
 	indices:        EaBuffer,
 	colors:         Buffer,
+	circle_blends:  Buffer,
 	model_matrices: Buffer,
 }
 buffers_init :: proc(buffers: ^Buffers) {
@@ -77,6 +78,15 @@ buffers_init :: proc(buffers: ^Buffers) {
 	}
 	buffer_init(&buffers.colors, colors[:])
 
+	circle_blends: [N_SHAPES * 3]f32
+	buffers.circle_blends = {
+		size   = 1,
+		type   = gl.FLOAT,
+		target = gl.ARRAY_BUFFER,
+		usage  = gl.DYNAMIC_DRAW,
+	}
+	buffer_init(&buffers.circle_blends, circle_blends[:])
+
 	model_matrices: [N_SHAPES * 3]glm.mat4 = glm.mat4(1)
 	buffers.model_matrices = {
 		size   = 4,
@@ -94,6 +104,7 @@ FlatShader :: struct {
 	a_pos:                    i32,
 	a_color:                  i32,
 	a_model_matrix:           i32,
+	a_circle_blend:           i32,
 	u_view_projection_matrix: i32,
 }
 FlatUniforms :: struct {
@@ -110,15 +121,17 @@ flat_shader_init :: proc(s: ^FlatShader) -> (ok: bool) {
 	s.a_pos = gl.GetAttribLocation(program, "aPos")
 	s.a_color = gl.GetAttribLocation(program, "aColor")
 	s.a_model_matrix = gl.GetAttribLocation(program, "aModelMatrix")
+	s.a_circle_blend = gl.GetAttribLocation(program, "aCircleBlend")
 	s.u_view_projection_matrix = gl.GetUniformLocation(program, "uViewProjectionMatrix")
-	return true
+	return check_gl_error()
 }
 flat_shader_use :: proc(s: FlatShader, u: FlatUniforms, buffers: Buffers) {
 	gl.UseProgram(s.program)
 	// set attributes
 	shader_set_attribute(s.a_pos, buffers.pos)
-	shader_set_instance_attribute(s.a_color, buffers.colors)
+	shader_set_instance_vec4_attribute(s.a_color, buffers.colors)
 	shader_set_instance_matrix_attribute(s.a_model_matrix, buffers.model_matrices)
+	shader_set_instance_f_attribute(s.a_circle_blend, buffers.circle_blends)
 
 	// set uniforms
 	gl.UniformMatrix4fv(s.u_view_projection_matrix, u.view_projection_matrix)
@@ -132,7 +145,14 @@ buffer_update :: proc(b: Buffer, data: []$T) {
 	gl.BindBuffer(b.target, b.id)
 	gl.BufferSubDataSlice(b.target, 0, data[:])
 }
-shader_set_instance_attribute :: proc(index: i32, b: Buffer) {
+shader_set_instance_f_attribute :: proc(index: i32, b: Buffer) {
+	gl.BindBuffer(b.target, b.id)
+	gl.EnableVertexAttribArray(index)
+	stride := size_of(f32)
+	gl.VertexAttribPointer(index, b.size, b.type, false, stride, 0)
+	gl.VertexAttribDivisor(u32(index), 1)
+}
+shader_set_instance_vec4_attribute :: proc(index: i32, b: Buffer) {
 	gl.BindBuffer(b.target, b.id)
 	gl.EnableVertexAttribArray(index)
 	size := size_of(glm.vec4)
@@ -192,17 +212,20 @@ shapes_init :: proc(s: ^Shapes, w, h: i32) -> (ok: bool) {
 	add_rectangle(s, {{10, 10}, {20, 20}, 0, {1, 1, 1, 0.2}})
 	add_rectangle(s, {{10, 10}, {20, 20}, 0, {1, 1, 1, 0.2}})
 	add_rectangle(s, {{10, 10}, {20, 20}, 0, {1, 1, 1, 0.2}})
+	add_rectangle(s, {{10, 10}, {20, 20}, 0, {1, 1, 1, 0.2}})
 	for i in 0 ..< 5 {
 		part: f32 = math.TAU / 5
 		add_rectangle(s, {{200 + i32(i) * 50, 200}, {300, 50}, f32(i) * part, {1, 1, 1, 0.2}})
 	}
 
-	add_circle(s, {{20, 20}, 5, {1, 1, 1, 0.5}})
-	add_circle(s, {{20, 20}, 5, {1, 1, 1, 0.5}})
-	add_circle(s, {{20, 20}, 5, {1, 1, 1, 0.5}})
-	add_circle(s, {{20, 20}, 5, {1, 1, 1, 0.5}})
-
 	c: glm.vec4 = {1, 1, 1, 1}
+	add_circle(s, {{20, 20}, 5, c})
+	add_circle(s, {{20, 20}, 5, c})
+	add_circle(s, {{20, 20}, 5, c})
+	add_circle(s, {{20, 20}, 5, c})
+	add_circle(s, {{20, 20}, 5, c})
+	add_circle(s, {{20, 20}, 5, c})
+
 	add_line(s, {{0, 0}, {100, 100}, 2, c})
 	add_line(s, {{0, 0}, {100, 100}, 2, c})
 	add_line(s, {{0, 0}, {100, 100}, 2, c})
@@ -248,6 +271,10 @@ shapes_update :: proc(s: ^Shapes, w, h: i32, dt: f32) {
 	s.rectangles[2].pos = {w - 10, 10}
 	s.rectangles[3].pos = {w - 10, h - 10}
 
+	s.rectangles[4].pos = {w - 100, h / 2}
+	s.rectangles[4].size = {100, 100}
+	s.rectangles[4].rotation = 0
+
 	for &rect, i in s.rectangles {
 		if i < 4 {
 			rect.rotation = 0
@@ -260,6 +287,11 @@ shapes_update :: proc(s: ^Shapes, w, h: i32, dt: f32) {
 	s.circles[1].pos = {20, h - 20}
 	s.circles[2].pos = {w - 20, 20}
 	s.circles[3].pos = {w - 20, h - 20}
+
+	s.circles[4].pos = {w - 100, h / 2}
+	s.circles[4].radius = 50
+	s.circles[5].pos = {w - 220, h / 2}
+	s.circles[5].radius = 50
 
 	_line_offset += dt
 
@@ -276,6 +308,7 @@ shapes_update :: proc(s: ^Shapes, w, h: i32, dt: f32) {
 shapes_draw :: proc(s: ^Shapes, projection_matrix: glm.mat4) {
 	rect_matrices: [N_SHAPES * 3]glm.mat4 = glm.mat4(1)
 	colors: [N_SHAPES * 3]glm.vec4
+	circle_blends: [N_SHAPES * 3]f32
 	mi: int = 0
 	for rect, i in s.rectangles {
 		if i < s.rectangle_count {
@@ -295,6 +328,7 @@ shapes_draw :: proc(s: ^Shapes, projection_matrix: glm.mat4) {
 			m *= glm.mat4Scale({f32(c.radius * 2), f32(c.radius * 2), 1.0})
 			rect_matrices[mi] = m
 			colors[mi] = c.color
+			circle_blends[mi] = 1
 			mi += 1
 		} else {
 			break
@@ -322,6 +356,7 @@ shapes_draw :: proc(s: ^Shapes, projection_matrix: glm.mat4) {
 	instance_count: int = s.rectangle_count + s.circle_count + s.line_count
 	buffer_update(s.buffers.colors, colors[:instance_count])
 	buffer_update(s.buffers.model_matrices, rect_matrices[:instance_count])
+	buffer_update(s.buffers.circle_blends, circle_blends[:instance_count])
 	uniforms: FlatUniforms = {projection_matrix}
 	flat_shader_use(s.shader, uniforms, s.buffers)
 
