@@ -95,7 +95,7 @@ update :: proc(state: ^State, dt: f32) {
 		state.dpr = r.dpr
 	}
 	update_input(&g_input, dt)
-	shapes_update(&state.shapes, state.w, state.h)
+	shapes_update(&state.shapes, state.w, state.h, dt)
 }
 
 @(export)

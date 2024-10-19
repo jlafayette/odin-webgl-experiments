@@ -2,6 +2,7 @@ package shapes
 
 import "../shared/text"
 import "core:fmt"
+import "core:math"
 import glm "core:math/linalg/glsl"
 import gl "vendor:wasm/WebGL"
 
@@ -38,6 +39,7 @@ ea_buffer_init :: proc(b: ^EaBuffer, data: []$T) {
 ea_buffer_draw :: proc(b: EaBuffer, instance_count: int = 0) {
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.id)
 	if instance_count > 0 {
+		// fmt.printf("drawing b.count %d, instance_count: %d\n", b.count, instance_count)
 		gl.DrawElementsInstanced(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, 0, instance_count)
 	} else {
 		gl.DrawElements(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, b.offset)
@@ -49,7 +51,8 @@ Buffers :: struct {
 	model_matrices: Buffer,
 }
 buffers_init :: proc(buffers: ^Buffers) {
-	pos_data: [4][2]f32 = {{0, 0}, {0, 1}, {1, 1}, {1, 0}}
+	// pos_data: [4][2]f32 = {{0, 0}, {0, 1}, {1, 1}, {1, 0}}
+	pos_data: [4][2]f32 = {{-0.5, -0.5}, {-0.5, 0.5}, {0.5, 0.5}, {0.5, -0.5}}
 	buffers.pos = {
 		size   = 2,
 		type   = gl.FLOAT,
@@ -64,7 +67,7 @@ buffers_init :: proc(buffers: ^Buffers) {
 	}
 	ea_buffer_init(&buffers.indices, indices_data[:])
 
-	model_matrices: [3]glm.mat4 = glm.mat4(1)
+	model_matrices: [N_SHAPES]glm.mat4 = glm.mat4(1)
 	buffers.model_matrices = {
 		size   = 4,
 		type   = gl.FLOAT,
@@ -132,26 +135,35 @@ shader_set_instance_matrix_attribute :: proc(index: i32, b: Buffer) {
 	}
 }
 
-ShapeType :: enum {
-	RECTANGLE,
-	CIRCLE,
-	LINE,
+Rectangle :: struct {
+	pos:      [2]i32,
+	size:     [2]i32,
+	rotation: f32,
+	color:    [3]f32,
+}
+Circle :: struct {
+	pos:    [2]i32,
+	radius: i32,
+	color:  [3]f32,
+}
+Line :: struct {
+	start:     [2]i32,
+	end:       [2]i32,
+	thickness: i32,
+	color:     [3]f32,
 }
 
-Shape :: struct {
-	type:  ShapeType,
-	pos:   [2]i32,
-	size:  [2]i32,
-	color: [3]f32,
-}
-
-MAX_SHAPES :: 64
+N_SHAPES :: 64
 
 Shapes :: struct {
-	shape_count: int,
-	shapes:      [MAX_SHAPES]Shape,
-	buffers:     Buffers,
-	shader:      FlatShader,
+	rectangle_count: int,
+	circle_count:    int,
+	line_count:      int,
+	rectangles:      [N_SHAPES]Rectangle,
+	circles:         [N_SHAPES]Circle,
+	lines:           [N_SHAPES]Line,
+	buffers:         Buffers,
+	shader:          FlatShader,
 }
 
 shapes_init :: proc(s: ^Shapes) -> (ok: bool) {
@@ -160,15 +172,43 @@ shapes_init :: proc(s: ^Shapes) -> (ok: bool) {
 
 	buffers_init(&s.buffers)
 
+	for i in 0 ..< 5 {
+		part: f32 = math.TAU / 5
+		add_rectangle(s, {{200 + i32(i) * 50, 200}, {300, 50}, f32(i) * part, {1, 1, 1}})
+	}
+
 	return ok
 }
 
-shapes_update :: proc(s: ^Shapes, w, h: i32) {
+add_rectangle :: proc(s: ^Shapes, r: Rectangle) {
+	if s.rectangle_count >= N_SHAPES {
+		return
+	}
+	s.rectangles[s.rectangle_count] = r
+	s.rectangle_count += 1
+}
+
+shapes_update :: proc(s: ^Shapes, w, h: i32, dt: f32) {
+	for &rect, i in s.rectangles {
+		if i < s.rectangle_count {
+			rect.rotation += dt
+		}
+	}
 }
 
 shapes_draw :: proc(s: ^Shapes, projection_matrix: glm.mat4) {
-	// draw rects for buttons
-	rect_matrices: [3]glm.mat4
+	rect_matrices: [N_SHAPES]glm.mat4
+	for rect, i in s.rectangles {
+		if i < s.rectangle_count {
+			m := glm.mat4(1)
+			m *= glm.mat4Translate({f32(rect.pos.x), f32(rect.pos.y), -1.0})
+			m *= glm.mat4Rotate({0, 0, 1}, rect.rotation)
+			m *= glm.mat4Scale({f32(rect.size.x), f32(rect.size.y), 1.0})
+			rect_matrices[i] = m
+		} else {
+			rect_matrices[i] = glm.mat4(1)
+		}
+	}
 
 	// for btn, i in ui.buttons {
 	// 	// fmt.println("button:", btn.pos, btn.size)
@@ -178,18 +218,15 @@ shapes_draw :: proc(s: ^Shapes, projection_matrix: glm.mat4) {
 	// 	rect_matrices[i] = mat
 	// }
 
-	// buffer_update(ui.buffers.model_matrices, rect_matrices[:])
-	// c := ui.buttons[0].color
-	uniforms: FlatUniforms = {{1, 1, 1, 1}, projection_matrix}
+	buffer_update(s.buffers.model_matrices, rect_matrices[:])
+	uniforms: FlatUniforms = {{1, 1, 1, 0.2}, projection_matrix}
 	flat_shader_use(s.shader, uniforms, s.buffers)
 
-	// fmt.println("drawing ui")
-	ea_buffer_draw(s.buffers.indices, instance_count = s.shape_count)
+	ea_buffer_draw(s.buffers.indices, instance_count = s.rectangle_count)
 
 	gl.VertexAttribDivisor(1, 0)
 	gl.VertexAttribDivisor(2, 0)
 	gl.VertexAttribDivisor(3, 0)
 	gl.VertexAttribDivisor(4, 0)
-
 }
 
