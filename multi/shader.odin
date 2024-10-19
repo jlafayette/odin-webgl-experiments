@@ -70,7 +70,6 @@ shader_use :: proc(
 shader_set_attribute :: proc(index: i32, b: Buffer) {
 	gl.BindBuffer(b.target, b.id)
 	gl.VertexAttribPointer(index, b.size, b.type, false, 0, 0)
-	// fmt.printf("- Sh enable %d\n", index)
 	gl.EnableVertexAttribArray(index)
 }
 
