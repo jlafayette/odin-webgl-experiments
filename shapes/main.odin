@@ -11,12 +11,13 @@ import gl "vendor:wasm/WebGL"
 main :: proc() {}
 
 State :: struct {
-	started:    bool,
-	debug_text: text.Batch,
-	w:          i32,
-	h:          i32,
-	dpr:        f32,
-	shapes:     Shapes,
+	started:      bool,
+	debug_text:   text.Batch,
+	w:            i32,
+	h:            i32,
+	dpr:          f32,
+	shapes:       Shapes,
+	time_elapsed: f64,
 }
 @(private = "file")
 g_state: State = {}
@@ -67,18 +68,17 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 			spacing = spacing,
 			scale = scale,
 		)
-		text_0 := "Rectangle [r]"
-		text_1 := "Circle    [c]"
-		text_2 := "Line      [l]"
+		// text_0 := "Rectangle [r]"
+		// text_1 := "Circle    [c]"
+		// text_2 := "Line      [l]"
 		h: i32 = text.debug_get_height()
 		line_gap: i32 = 5 * scale
 		x: i32 = 16 * scale
-		y: i32 = state.h - h - 16
-		_ = text.debug({x, y}, text_0) or_return
-		y -= h + line_gap
-		_ = text.debug({x, y}, text_1) or_return
-		y -= h + line_gap
-		_ = text.debug({x, y}, text_2) or_return
+		y: i32 = state.h - h - 120
+		for dv, i in g_input.values {
+			_ = text.debug({x, y}, fmt.tprintf("[%d] %.2f", i, dv.value)) or_return
+			y -= h + line_gap
+		}
 	}
 
 	shapes_draw(&state.shapes, text_projection)
@@ -87,6 +87,7 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 }
 
 update :: proc(state: ^State, dt: f32) {
+	state.time_elapsed += f64(dt)
 	{
 		r: resize.ResizeState
 		resize.resize(&r)
@@ -95,7 +96,7 @@ update :: proc(state: ^State, dt: f32) {
 		state.dpr = r.dpr
 	}
 	update_input(&g_input, dt)
-	shapes_update(&state.shapes, state.w, state.h, dt)
+	shapes_update(&state.shapes, state.w, state.h, dt, state.time_elapsed)
 }
 
 @(export)

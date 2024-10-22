@@ -69,7 +69,7 @@ buffers_init :: proc(buffers: ^Buffers) {
 	}
 	ea_buffer_init(&buffers.indices, indices_data[:])
 
-	colors: [N_SHAPES * 3]glm.vec4 = glm.vec4({1, 1, 1, 1})
+	colors: [N_INSTANCE]glm.vec4 = glm.vec4({1, 1, 1, 1})
 	buffers.colors = {
 		size   = 4,
 		type   = gl.FLOAT,
@@ -78,7 +78,7 @@ buffers_init :: proc(buffers: ^Buffers) {
 	}
 	buffer_init(&buffers.colors, colors[:])
 
-	circle_blends: [N_SHAPES * 3]f32
+	circle_blends: [N_INSTANCE]f32
 	buffers.circle_blends = {
 		size   = 1,
 		type   = gl.FLOAT,
@@ -87,7 +87,7 @@ buffers_init :: proc(buffers: ^Buffers) {
 	}
 	buffer_init(&buffers.circle_blends, circle_blends[:])
 
-	model_matrices: [N_SHAPES * 3]glm.mat4 = glm.mat4(1)
+	model_matrices: [N_INSTANCE]glm.mat4 = glm.mat4(1)
 	buffers.model_matrices = {
 		size   = 4,
 		type   = gl.FLOAT,
@@ -190,6 +190,25 @@ Line :: struct {
 }
 
 N_SHAPES :: 64
+N_INSTANCE :: N_SHAPES * 3 + 3
+
+Node :: struct($S: typeid) {
+	pos:          [2]i32,
+	rot:          f32,
+	shape_offset: [2]f32,
+	shape:        S,
+}
+Node1 :: struct($S, $N: typeid) {
+	pos:          [2]i32,
+	rot:          f32,
+	shape_offset: [2]f32,
+	shape:        S,
+	child:        N,
+}
+Head :: Node(Circle)
+Body :: Node1(Rectangle, Head)
+Root :: Node1(Line, Body)
+Character :: Root
 
 Shapes :: struct {
 	rectangle_count: int,
@@ -198,6 +217,7 @@ Shapes :: struct {
 	rectangles:      [N_SHAPES]Rectangle,
 	circles:         [N_SHAPES]Circle,
 	lines:           [N_SHAPES]Line,
+	character:       Character,
 	buffers:         Buffers,
 	shader:          FlatShader,
 }
@@ -265,7 +285,7 @@ add_line :: proc(s: ^Shapes, l: Line) {
 }
 
 _line_offset: f32 = 0
-shapes_update :: proc(s: ^Shapes, w, h: i32, dt: f32) {
+shapes_update :: proc(s: ^Shapes, w, h: i32, dt: f32, time_elapsed: f64) {
 	s.rectangles[0].pos = {10, 10}
 	s.rectangles[1].pos = {10, h - 10}
 	s.rectangles[2].pos = {w - 10, 10}
@@ -303,7 +323,65 @@ shapes_update :: proc(s: ^Shapes, w, h: i32, dt: f32) {
 	c.a = 0.5
 	s.lines[2] = {{0, 0}, {w, h}, 4, c}
 	s.lines[3] = {{0, h}, {w, 0}, 4, c}
+
+	// update char
+	{
+		// line starts in center of screen
+		root: ^Character = &s.character
+		root.pos = {w / 2, h / 2}
+		root.shape = {{0, 0}, {0, -50}, 4, {0, 0, 1, 1}}
+		root.rot = f32(math.sin(time_elapsed * 5)) * 0.25
+
+		body: ^Body = &root.child
+		body.pos = {0, -52}
+		body.shape_offset = {0, -0.5}
+		body.shape.size = {24, 40}
+		body.shape.color = {0.1, 0.1, 0.7, 1.0}
+		dyn_value := f64(g_input.values[0].value)
+		body.rot = f32(math.sin(time_elapsed * 5 - dyn_value)) * 0.15
+
+		head: ^Head = &body.child
+		head.pos = {0, -42}
+		head.shape_offset = {0, -0.5}
+		head.shape.radius = 20
+		head.shape.color = {0.2, 0.2, 0.5, 1.0}
+		dyn_value = f64(g_input.values[1].value)
+		head.rot = f32(math.sin(time_elapsed * 5 - dyn_value)) * 0.15
+	}
 }
+
+line_angle :: proc(line: Line) -> f32 {
+	line_diff_i32: [2]i32 = line.end - line.start
+	line_diff: [2]f32 = {f32(line_diff_i32.x), f32(line_diff_i32.y)}
+	angle := math.atan2(line_diff.y, line_diff.x)
+	return angle
+}
+line_to_matrix :: proc(line: Line, rotation: f32 = 0) -> glm.mat4 {
+	line_diff_i32: [2]i32 = line.end - line.start
+	line_diff: [2]f32 = {f32(line_diff_i32.x), f32(line_diff_i32.y)}
+	angle := math.atan2(line_diff.y, line_diff.x)
+	x_scale := glm.length(line_diff)
+	y_scale := f32(line.thickness)
+	m := glm.mat4Translate({f32(line.start.x), f32(line.start.y), -1.0})
+	m *= glm.mat4Rotate({0, 0, 1}, angle + rotation)
+	m *= glm.mat4Scale({x_scale, y_scale, 1.0})
+	m *= glm.mat4Translate({0.5, 0, 0})
+	return m
+}
+rect_to_matrix :: proc(rect: Rectangle) -> glm.mat4 {
+	m := glm.mat4Translate({f32(rect.pos.x), f32(rect.pos.y), -1.0})
+	m *= glm.mat4Rotate({0, 0, 1}, rect.rotation)
+	m *= glm.mat4Scale({f32(rect.size.x), f32(rect.size.y), 1.0})
+	return m
+}
+node_to_matrix :: proc(n: Node1($S, $T)) -> glm.mat4 {
+	p: [2]f32 = {f32(n.pos.x), f32(n.pos.y)}
+	r: f32 = n.rot
+	m := glm.mat4Translate({p.x, p.y, 0})
+	m *= glm.mat4Rotate({0, 0, 1}, r)
+	return m
+}
+
 
 shapes_draw :: proc(s: ^Shapes, projection_matrix: glm.mat4) {
 	rect_matrices: [N_SHAPES * 3]glm.mat4 = glm.mat4(1)
@@ -312,9 +390,7 @@ shapes_draw :: proc(s: ^Shapes, projection_matrix: glm.mat4) {
 	mi: int = 0
 	for rect, i in s.rectangles {
 		if i < s.rectangle_count {
-			m := glm.mat4Translate({f32(rect.pos.x), f32(rect.pos.y), -1.0})
-			m *= glm.mat4Rotate({0, 0, 1}, rect.rotation)
-			m *= glm.mat4Scale({f32(rect.size.x), f32(rect.size.y), 1.0})
+			m := rect_to_matrix(rect)
 			rect_matrices[mi] = m
 			colors[mi] = rect.color
 			mi += 1
@@ -336,15 +412,7 @@ shapes_draw :: proc(s: ^Shapes, projection_matrix: glm.mat4) {
 	}
 	for l, i in s.lines {
 		if i < s.line_count {
-			line_diff_i32: [2]i32 = l.end - l.start
-			line_diff: [2]f32 = {f32(line_diff_i32.x), f32(line_diff_i32.y)}
-			angle := math.atan2(line_diff.y, line_diff.x)
-			x_scale := glm.length(line_diff)
-			y_scale := f32(l.thickness)
-			m := glm.mat4Translate({f32(l.start.x), f32(l.start.y), -1.0})
-			m *= glm.mat4Rotate({0, 0, 1}, angle)
-			m *= glm.mat4Scale({x_scale, y_scale, 1.0})
-			m *= glm.mat4Translate({0.5, 0, 0})
+			m := line_to_matrix(l)
 			rect_matrices[mi] = m
 			colors[mi] = l.color
 			mi += 1
@@ -352,8 +420,52 @@ shapes_draw :: proc(s: ^Shapes, projection_matrix: glm.mat4) {
 			break
 		}
 	}
+	// draw character
+	{
+		// leg
+		root: Root = s.character
+		leg: Line = root.shape
+		leg.start = root.pos + leg.start
+		leg.end = root.pos + leg.end
+		m := line_to_matrix(leg, root.rot)
+		rect_matrices[mi] = m
+		colors[mi] = leg.color
+		mi += 1
 
-	instance_count: int = s.rectangle_count + s.circle_count + s.line_count
+		// body
+		body: Body = root.child
+		rect: Rectangle = body.shape
+		rect.pos = body.pos + rect.pos
+		rect.rotation = body.rot + rect.rotation
+		root_m := node_to_matrix(root)
+		m = root_m
+		offset: [2]f32 = body.shape_offset
+		m *= rect_to_matrix(rect)
+		m *= glm.mat4Translate({offset.x, offset.y, 0.0})
+		rect_matrices[mi] = m
+		colors[mi] = rect.color
+		mi += 1
+
+		// head
+		head: Head = body.child
+		circle := head.shape
+		circle.pos = head.pos + circle.pos
+		circle_rotation := head.rot
+		offset = head.shape_offset
+		m = root_m
+		body_m := node_to_matrix(body)
+		m *= body_m
+		m *= glm.mat4Translate({f32(circle.pos.x), f32(circle.pos.y), -1.0})
+		m *= glm.mat4Rotate({0, 0, 1}, circle_rotation)
+		m *= glm.mat4Scale({f32(circle.radius * 2), f32(circle.radius * 2), 1.0})
+		m *= glm.mat4Translate({offset.x, offset.y, 0.0})
+		rect_matrices[mi] = m
+		colors[mi] = circle.color
+		circle_blends[mi] = 1
+		mi += 1
+	}
+
+	instance_count: int = s.rectangle_count + s.circle_count + s.line_count + 3
 	buffer_update(s.buffers.colors, colors[:instance_count])
 	buffer_update(s.buffers.model_matrices, rect_matrices[:instance_count])
 	buffer_update(s.buffers.circle_blends, circle_blends[:instance_count])

@@ -18,6 +18,5 @@ void main() {
                             _radius+(_radius*softness),
                             dot(dist,dist)*4.0);    
     fragColor = vColor;
-    // fragColor.r = vCircleBlend;
     fragColor.a = mix(fragColor.a * d, fragColor.a, 1.0-vCircleBlend);
 }
