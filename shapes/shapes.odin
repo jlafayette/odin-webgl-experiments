@@ -28,6 +28,10 @@ buffer_init :: proc(b: ^Buffer, data: []$T) {
 	gl.BindBuffer(b.target, b.id)
 	gl.BufferDataSlice(b.target, data[:], b.usage)
 }
+buffer_update :: proc(b: Buffer, data: []$T) {
+	gl.BindBuffer(b.target, b.id)
+	gl.BufferSubDataSlice(b.target, 0, data[:])
+}
 ea_buffer_init :: proc(b: ^EaBuffer, data: []$T) {
 	b.count = (len(data) * size_of(T)) / 2 // 2 is size of unsigned_short (u16)
 	// fmt.println("b.count:", b.count)
@@ -140,10 +144,6 @@ shader_set_attribute :: proc(index: i32, b: Buffer) {
 	gl.BindBuffer(b.target, b.id)
 	gl.VertexAttribPointer(index, b.size, b.type, false, 0, 0)
 	gl.EnableVertexAttribArray(index)
-}
-buffer_update :: proc(b: Buffer, data: []$T) {
-	gl.BindBuffer(b.target, b.id)
-	gl.BufferSubDataSlice(b.target, 0, data[:])
 }
 shader_set_instance_f_attribute :: proc(index: i32, b: Buffer) {
 	gl.BindBuffer(b.target, b.id)
@@ -467,9 +467,15 @@ shapes_draw :: proc(s: ^Shapes, projection_matrix: glm.mat4) {
 
 	instance_count: int = s.rectangle_count + s.circle_count + s.line_count + 3
 	if instance_count > 0 {
+		fmt.println("colors next...")
 		buffer_update(s.buffers.colors, colors[:instance_count])
+		fmt.println("model_matrices next...")
 		buffer_update(s.buffers.model_matrices, rect_matrices[:instance_count])
+		fmt.println("circle_blends next...")
 		buffer_update(s.buffers.circle_blends, circle_blends[:instance_count])
+		fmt.println("done")
+	} else {
+		fmt.println("skipping buffer update because instances <= 0")
 	}
 	uniforms: FlatUniforms = {projection_matrix}
 	flat_shader_use(s.shader, uniforms, s.buffers)
