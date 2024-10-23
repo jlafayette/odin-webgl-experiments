@@ -383,9 +383,9 @@ node_to_matrix :: proc(n: Node1($S, $T)) -> glm.mat4 {
 }
 
 shapes_draw :: proc(s: ^Shapes, projection_matrix: glm.mat4) {
-	rect_matrices := make([]glm.mat4, N_INSTANCE)
-	colors := make([]glm.vec4, N_INSTANCE)
-	circle_blends := make([]f32, N_INSTANCE)
+	rect_matrices := make([]glm.mat4, N_INSTANCE, allocator = context.temp_allocator)
+	colors := make([]glm.vec4, N_INSTANCE, allocator = context.temp_allocator)
+	circle_blends := make([]f32, N_INSTANCE, allocator = context.temp_allocator)
 	mi: int = 0
 	for rect, i in s.rectangles {
 		if i < s.rectangle_count {

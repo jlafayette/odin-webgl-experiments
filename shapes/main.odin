@@ -77,21 +77,18 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 		x: i32 = 16 * scale
 		y: i32 = state.h - h - 120
 		for dv, i in g_input.values {
-			// fmt.printf("printing dynamic value index [%d]\n", i)
-			// text_buf: [16]byte
-			// sb := strings.builder_from_bytes(text_buf[:])
-			// fmt.sbprintf(&sb, "[%d] %.2f", i, dv.value)
-			// text_ := strings.to_string(sb)
-			// fmt.printf("drawing %s\n", text_)
-			_ = text.debug({x, y}, fmt.tprintf("[%d] %.2f", i, dv.value)) or_return
+			text_buf: [16]byte
+			sb := strings.builder_from_bytes(text_buf[:])
+			fmt.sbprintf(&sb, "[%d] %.2f", i, dv.value)
+			text_ := strings.to_string(sb)
+			_ = text.debug({x, y}, text_) or_return
 			y -= h + line_gap
 		}
-		// fmt.println("done with text rendering")
 	}
 
 	shapes_draw(&state.shapes, text_projection)
 
-	return check_gl_error()
+	return true
 }
 
 update :: proc(state: ^State, dt: f32) {
@@ -122,7 +119,7 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 	ok = draw_scene(&g_state)
 	if !ok {return false}
 
-	return check_gl_error()
+	return true
 }
 
 check_gl_error :: proc() -> (ok: bool) {
