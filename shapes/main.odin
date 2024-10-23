@@ -76,10 +76,10 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 		line_gap: i32 = 5 * scale
 		x: i32 = 16 * scale
 		y: i32 = state.h - h - 120
-		text_buf: [16]byte
-		sb := strings.builder_from_bytes(text_buf[:])
 		for dv, i in g_input.values {
-			strings.builder_reset(&sb)
+			fmt.printf("printing dynamic value index [%d]\n", i)
+			text_buf: [16]byte
+			sb := strings.builder_from_bytes(text_buf[:])
 			fmt.sbprintf(&sb, "[%d] %.2f", i, dv.value)
 			text_ := strings.to_string(sb)
 			fmt.printf("drawing %s\n", text_)
