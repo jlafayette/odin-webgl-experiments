@@ -6,6 +6,7 @@ import "core:fmt"
 import "core:math"
 import glm "core:math/linalg/glsl"
 import "core:mem"
+import "core:strings"
 import gl "vendor:wasm/WebGL"
 
 main :: proc() {}
@@ -75,8 +76,12 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 		line_gap: i32 = 5 * scale
 		x: i32 = 16 * scale
 		y: i32 = state.h - h - 120
+		text_buf: [16]byte
+		sb := strings.builder_from_bytes(text_buf[:])
 		for dv, i in g_input.values {
-			text_ := fmt.tprintf("[%d] %.2f", i, dv.value)
+			strings.builder_reset(&sb)
+			fmt.sbprintf(&sb, "[%d] %.2f", i, dv.value)
+			text_ := strings.to_string(sb)
 			fmt.printf("drawing %s\n", text_)
 			_ = text.debug({x, y}, text_) or_return
 			y -= h + line_gap
