@@ -382,11 +382,10 @@ node_to_matrix :: proc(n: Node1($S, $T)) -> glm.mat4 {
 	return m
 }
 
-
 shapes_draw :: proc(s: ^Shapes, projection_matrix: glm.mat4) {
-	rect_matrices: [N_SHAPES * 3]glm.mat4 = glm.mat4(1)
-	colors: [N_SHAPES * 3]glm.vec4
-	circle_blends: [N_SHAPES * 3]f32
+	rect_matrices := make([]glm.mat4, N_INSTANCE)
+	colors := make([]glm.vec4, N_INSTANCE)
+	circle_blends := make([]f32, N_INSTANCE)
 	mi: int = 0
 	for rect, i in s.rectangles {
 		if i < s.rectangle_count {
@@ -466,17 +465,9 @@ shapes_draw :: proc(s: ^Shapes, projection_matrix: glm.mat4) {
 	}
 
 	instance_count: int = s.rectangle_count + s.circle_count + s.line_count + 3
-	if instance_count > 0 {
-		// fmt.println("colors next...")
-		buffer_update(s.buffers.colors, colors[:instance_count])
-		// fmt.println("model_matrices next...")
-		buffer_update(s.buffers.model_matrices, rect_matrices[:instance_count])
-		// fmt.println("circle_blends next...")
-		buffer_update(s.buffers.circle_blends, circle_blends[:instance_count])
-		// fmt.println("done")
-	} else {
-		// fmt.println("skipping buffer update because instances <= 0")
-	}
+	buffer_update(s.buffers.colors, colors[:instance_count])
+	buffer_update(s.buffers.model_matrices, rect_matrices[:instance_count])
+	buffer_update(s.buffers.circle_blends, circle_blends[:instance_count])
 	uniforms: FlatUniforms = {projection_matrix}
 	flat_shader_use(s.shader, uniforms, s.buffers)
 
