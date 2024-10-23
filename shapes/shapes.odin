@@ -467,15 +467,15 @@ shapes_draw :: proc(s: ^Shapes, projection_matrix: glm.mat4) {
 
 	instance_count: int = s.rectangle_count + s.circle_count + s.line_count + 3
 	if instance_count > 0 {
-		fmt.println("colors next...")
+		// fmt.println("colors next...")
 		buffer_update(s.buffers.colors, colors[:instance_count])
-		fmt.println("model_matrices next...")
+		// fmt.println("model_matrices next...")
 		buffer_update(s.buffers.model_matrices, rect_matrices[:instance_count])
-		fmt.println("circle_blends next...")
+		// fmt.println("circle_blends next...")
 		buffer_update(s.buffers.circle_blends, circle_blends[:instance_count])
-		fmt.println("done")
+		// fmt.println("done")
 	} else {
-		fmt.println("skipping buffer update because instances <= 0")
+		// fmt.println("skipping buffer update because instances <= 0")
 	}
 	uniforms: FlatUniforms = {projection_matrix}
 	flat_shader_use(s.shader, uniforms, s.buffers)
