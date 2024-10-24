@@ -35,7 +35,6 @@ aspect ratio was off and top of content cut off.  Took a while to find the answe
 
 [ ] multi: Have js send if running on mobile
 [ ] multi: Buttons for mobile inputs to cycle things
-[ ] camera: support mobile controls
 [ ] new: Buttons (do main menu example)
 [ ] new: Sound queues and pools (can have buttons)
 [ ] sounds: Add volume slider

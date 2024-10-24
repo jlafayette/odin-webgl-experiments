@@ -101,9 +101,10 @@ update :: proc(dt: f32) {
 	g_mouse_diff = {0, 0}
 
 	// touch inputs (yaw and pitch)
+	sensitivity = 10
 	touch_movement: [2]f32 = touch_movement(g_touch_count, g_touches, g_prev_touches)
-	g_yaw += touch_movement.x * dt * sensitivity
-	g_pitch += -touch_movement.y * dt * sensitivity
+	g_yaw += -touch_movement.x * dt * sensitivity
+	g_pitch += touch_movement.y * dt * sensitivity
 	g_prev_touches = g_touches
 
 	// rotate camera
