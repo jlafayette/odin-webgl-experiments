@@ -16,10 +16,14 @@ Shader :: struct {
 	a_normal_matrix:     i32,
 	u_view_matrix:       i32,
 	u_projection_matrix: i32,
+	u_max_fog_distance:  i32,
+	u_fog_color:         i32,
 }
 Uniforms :: struct {
 	view_matrix:       glm.mat4,
 	projection_matrix: glm.mat4,
+	max_fog_distance:  f32,
+	fog_color:         glm.vec4,
 }
 
 shader_init :: proc(s: ^Shader) -> (ok: bool) {
@@ -36,9 +40,11 @@ shader_init :: proc(s: ^Shader) -> (ok: bool) {
 
 	s.u_view_matrix = gl.GetUniformLocation(s.program, "uViewMatrix")
 	s.u_projection_matrix = gl.GetUniformLocation(s.program, "uProjectionMatrix")
+	s.u_max_fog_distance = gl.GetUniformLocation(s.program, "uMaxFogDistance")
+	s.u_fog_color = gl.GetUniformLocation(s.program, "uFogColor")
 
-	// return check_gl_error()
-	return true
+	return check_gl_error()
+	// return true
 }
 
 shader_use :: proc(s: Shader, u: Uniforms, buffers: Buffers) -> (ok: bool) {
@@ -53,6 +59,8 @@ shader_use :: proc(s: Shader, u: Uniforms, buffers: Buffers) -> (ok: bool) {
 	// set uniforms
 	gl.UniformMatrix4fv(s.u_view_matrix, u.view_matrix)
 	gl.UniformMatrix4fv(s.u_projection_matrix, u.projection_matrix)
+	gl.Uniform1f(s.u_max_fog_distance, u.max_fog_distance)
+	gl.Uniform4fv(s.u_fog_color, u.fog_color)
 
 	return check_gl_error()
 }

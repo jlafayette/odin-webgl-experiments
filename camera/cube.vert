@@ -10,6 +10,8 @@ in mat4 aNormalMatrix;
 
 uniform mat4 uViewMatrix;
 uniform mat4 uProjectionMatrix;
+uniform float uMaxFogDistance;
+uniform vec4 uFogColor;
 
 out vec3 vLighting;
 out vec4 vColor;
@@ -25,23 +27,22 @@ void main() {
 	gl_Position = uProjectionMatrix * uViewMatrix * aModelMatrix * vec4(aVertexPosition.xyz, 1.0);
 	vColor = aVertexColor;
 	float fogDistance = length(gl_Position.xyz);
-	fogDistance = clamp(fogDistance, 0.0, 600.0) / 600.0;
-	vec3 fogColor = vec3(0.0, 0.1, 0.4);
-	vColor.xyz = mix(aVertexColor.xyz, fogColor, fogDistance);
+	fogDistance = clamp(fogDistance, 0.0, uMaxFogDistance) / uMaxFogDistance;
+	vColor = mix(aVertexColor, uFogColor, fogDistance);
 
 	vec4 transformedNormal = aNormalMatrix * vec4(aVertexNormal, 1.0);
 
-	vLighting = vec3(0.3, 0.3, 0.3) * 0.3
+	vLighting = vec3(0.3, 0.4, 0.4) * 0.3
 		+ light(
 			vec3(1.0, 0.9, 0.8),
 			vec3(0.85, 0.8, 0.75),
 			transformedNormal
-		  ) * 1.0
+		  ) * 1.8
 		+ light(
-			vec3(0.1, 0.25, 0.5),
+			vec3(0.2, 0.45, 0.7),
 			vec3(-0.2, -0.1, -0.3),
 			transformedNormal
-		  ) * 0.5
+		  ) * 0.6
 	;
 }
 

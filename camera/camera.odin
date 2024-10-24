@@ -103,6 +103,8 @@ draw_scene :: proc() -> (ok: bool) {
 	uniforms: Uniforms
 	uniforms.view_matrix = view_mat
 	uniforms.projection_matrix = projection_mat
+	uniforms.max_fog_distance = Z_FAR
+	uniforms.fog_color = {0, 0.1, 0.4, 1}
 	ok = shader_use(state.shader, uniforms, state.buffers)
 	if !ok {
 		fmt.eprintln("Error using shader")
