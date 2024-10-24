@@ -3,7 +3,6 @@
 precision highp float;
 
 in vec4 aVertexPosition;
-in vec4 aVertexColor;
 in vec3 aVertexNormal;
 in mat4 aModelMatrix;
 in mat4 aNormalMatrix;
@@ -25,6 +24,8 @@ vec3 light(in vec3 color, in vec3 dir, in vec4 normal) {
 
 void main() {
 	gl_Position = uProjectionMatrix * uViewMatrix * aModelMatrix * vec4(aVertexPosition.xyz, 1.0);
+	// could make this an instance attribute
+	vec4 aVertexColor = vec4(1.0);
 	vColor = aVertexColor;
 	float fogDistance = length(gl_Position.xyz);
 	fogDistance = clamp(fogDistance, 0.0, uMaxFogDistance) / uMaxFogDistance;
@@ -32,17 +33,17 @@ void main() {
 
 	vec4 transformedNormal = aNormalMatrix * vec4(aVertexNormal, 1.0);
 
-	vLighting = vec3(0.3, 0.4, 0.4) * 0.3
+	vLighting = vec3(0.3, 0.4, 0.4) * 0.15
 		+ light(
 			vec3(1.0, 0.9, 0.8),
 			vec3(0.85, 0.8, 0.75),
 			transformedNormal
-		  ) * 1.8
+		  ) * 0.9
 		+ light(
 			vec3(0.2, 0.45, 0.7),
 			vec3(-0.2, -0.1, -0.3),
 			transformedNormal
-		  ) * 0.6
+		  ) * 0.3
 	;
 }
 

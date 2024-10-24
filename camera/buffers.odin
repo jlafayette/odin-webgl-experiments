@@ -8,7 +8,6 @@ import gl "vendor:wasm/WebGL"
 
 Buffers :: struct {
 	position:        Buffer,
-	color:           Buffer,
 	normal:          Buffer,
 	indices:         EaBuffer,
 	model_matrices:  Buffer,
@@ -87,16 +86,6 @@ init_buffers :: proc(b: ^Buffers, n_cubes: int) {
 		usage  = gl.STATIC_DRAW,
 	}
 	buffer_init(&b.position, position_data[:])
-
-	c: [4]f32 = {0.5, 0.5, 0.5, 1}
-	color_data: [6 * 4][4]f32 = c
-	b.color = {
-		size   = 4,
-		type   = gl.FLOAT,
-		target = gl.ARRAY_BUFFER,
-		usage  = gl.STATIC_DRAW,
-	}
-	buffer_init(&b.color, color_data[:])
 
 	normal_data: [6 * 4][3]f32 = {
 		{0, 0, 1},

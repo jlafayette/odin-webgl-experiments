@@ -10,7 +10,6 @@ frag_source := #load("cube.frag", string)
 Shader :: struct {
 	program:             gl.Program,
 	a_vertex_position:   i32,
-	a_vertex_color:      i32,
 	a_vertex_normal:     i32,
 	a_model_matrix:      i32,
 	a_normal_matrix:     i32,
@@ -33,7 +32,6 @@ shader_init :: proc(s: ^Shader) -> (ok: bool) {
 		return false
 	}
 	s.a_vertex_position = gl.GetAttribLocation(s.program, "aVertexPosition")
-	s.a_vertex_color = gl.GetAttribLocation(s.program, "aVertexColor")
 	s.a_vertex_normal = gl.GetAttribLocation(s.program, "aVertexNormal")
 	s.a_model_matrix = gl.GetAttribLocation(s.program, "aModelMatrix")
 	s.a_normal_matrix = gl.GetAttribLocation(s.program, "aNormalMatrix")
@@ -51,7 +49,6 @@ shader_use :: proc(s: Shader, u: Uniforms, buffers: Buffers) -> (ok: bool) {
 	gl.UseProgram(s.program)
 	// set attributes
 	shader_set_attribute(s.a_vertex_position, buffers.position)
-	shader_set_attribute(s.a_vertex_color, buffers.color)
 	shader_set_attribute(s.a_vertex_normal, buffers.normal)
 	shader_set_instance_matrix_attribute(s.a_model_matrix, buffers.model_matrices)
 	shader_set_instance_matrix_attribute(s.a_normal_matrix, buffers.normal_matrices)
