@@ -16,6 +16,14 @@ g_yaw: f32 = -90
 g_pitch: f32 = 0
 g_input_mode: InputMode
 
+Touch :: struct {
+	id:         i32,
+	client_pos: glm.vec2,
+}
+g_prev_touches: [16]Touch
+g_touches: [16]Touch
+g_touch_count: int
+
 InputMode :: enum {
 	MouseKeyboard,
 	Gamepad,
@@ -92,6 +100,12 @@ update :: proc(dt: f32) {
 	// update it to 0,0
 	g_mouse_diff = {0, 0}
 
+	// touch inputs (yaw and pitch)
+	touch_movement: [2]f32 = touch_movement(g_touch_count, g_touches, g_prev_touches)
+	g_yaw += touch_movement.x * dt * sensitivity
+	g_pitch += -touch_movement.y * dt * sensitivity
+	g_prev_touches = g_touches
+
 	// rotate camera
 	if g_pitch > 89.9 {g_pitch = 89.9}
 	if g_pitch < -89.9 {g_pitch = -89.9}
@@ -157,5 +171,58 @@ setup_event_listeners :: proc() {
 	js.add_window_event_listener(.Mouse_Move, {}, on_mouse_move)
 	js.add_window_event_listener(.Focus, {}, on_focus)
 	js.add_window_event_listener(.Blur, {}, on_blur)
+
+	js.add_window_event_listener(.Touch_Start, {}, on_touch_start)
+	js.add_window_event_listener(.Touch_End, {}, on_touch_end)
+	js.add_window_event_listener(.Touch_Move, {}, on_touch_move)
+	js.add_window_event_listener(.Touch_Cancel, {}, on_touch_cancel)
+	for &touch in g_touches {
+		touch.id = -1
+	}
+	for &touch in g_prev_touches {
+		touch.id = -1
+	}
+}
+
+copy_touches :: proc(touch_count: int, touches: [16]js.Touch) {
+	for touch, i in touches {
+		if i < touch_count {
+			g_touches[i].client_pos = {f32(touch.client.x), f32(touch.client.y)}
+			g_touches[i].id = i32(touch.identifier)
+		} else {
+			g_touches[i].client_pos = 0
+			g_touches[i].id = -1
+		}
+	}
+	g_touch_count = touch_count
+}
+
+touch_movement :: proc(touch_count: int, touches, prev_touches: [16]Touch) -> glm.vec2 {
+	movement: glm.vec2
+	for t1, i in touches {
+		t2 := prev_touches[i]
+		if i < touch_count && t1.id >= 0 && t2.id >= 0 {
+			diff := t1.client_pos - t2.client_pos
+			if glm.length(diff) > glm.length(movement) {
+				movement = diff
+			}
+		} else {
+			break
+		}
+	}
+	return movement
+}
+
+on_touch_start :: proc(e: js.Event) {
+	copy_touches(e.touch.touch_count, e.touch.touches)
+}
+on_touch_end :: proc(e: js.Event) {
+	copy_touches(e.touch.touch_count, e.touch.touches)
+}
+on_touch_move :: proc(e: js.Event) {
+	copy_touches(e.touch.touch_count, e.touch.touches)
+}
+on_touch_cancel :: proc(e: js.Event) {
+	copy_touches(e.touch.touch_count, e.touch.touches)
 }
 
