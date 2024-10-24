@@ -9,6 +9,7 @@ import "core:sys/wasm/js"
 g_camera_pos: glm.vec3 = {0, 0, 3}
 g_camera_front: glm.vec3 = {0, 0, -1}
 g_camera_up: glm.vec3 = {0, 1, 0}
+g_camera_vel: glm.vec3
 g_time: f32 = 0
 g_has_focus: bool = true
 g_yaw: f32 = -90
@@ -25,7 +26,7 @@ deadzone :: proc(v: f32) -> f32 {
 }
 update :: proc(dt: f32) {
 	g_time += dt
-	camera_speed := 50 * dt
+	camera_acc: glm.vec3
 
 	gp := gamepad.get_input()
 	if gp.connected {
@@ -47,13 +48,9 @@ update :: proc(dt: f32) {
 		g_fov += dt * (gp.buttons[6].value - gp.buttons[7].value)
 
 		// forward and backwards
-		g_camera_pos += deadzone(-gp.axes[1]) * camera_speed * g_camera_front
+		camera_acc += deadzone(-gp.axes[1]) * g_camera_front
 		// strafe (side to side)
-		g_camera_pos +=
-			deadzone(gp.axes[0]) *
-			glm.normalize(glm.cross(g_camera_front, g_camera_up)) *
-			camera_speed
-
+		camera_acc += deadzone(gp.axes[0]) * glm.normalize(glm.cross(g_camera_front, g_camera_up))
 		// yaw and pitch
 		sensitivity: f32 = 100
 		g_yaw += deadzone(gp.axes[2]) * dt * sensitivity
@@ -69,8 +66,21 @@ update :: proc(dt: f32) {
 	strafe: f32 = 0
 	if g_key_left {strafe -= 1}
 	if g_key_right {strafe += 1}
-	g_camera_pos += forward * camera_speed * g_camera_front
-	g_camera_pos += strafe * camera_speed * glm.normalize(glm.cross(g_camera_front, g_camera_up))
+	camera_acc += forward * g_camera_front
+	camera_acc += strafe * glm.normalize(glm.cross(g_camera_front, g_camera_up))
+
+	// position += velocity * delta + acceleration * delta * delta * 0.5
+	max_speed: f32 = 100
+	drag: f32 = 0.995
+	multiplier: f32 = 35
+	acc: glm.vec3 = camera_acc * dt * multiplier
+	g_camera_vel += acc
+	g_camera_vel *= drag
+	if glm.length(g_camera_vel) > max_speed {
+		g_camera_vel *= max_speed / glm.length(g_camera_vel)
+	}
+	g_camera_pos += g_camera_vel * dt + camera_acc * dt * dt * 0.5
+	fmt.printf("vel: %.2f, acc: %.2f\n", glm.length(g_camera_vel), glm.length(acc))
 
 	// mouse inputs (yaw and pitch)
 	sensitivity: f32 = 5
