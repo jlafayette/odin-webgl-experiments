@@ -53,6 +53,7 @@ Buffers :: struct {
 	pos:            Buffer,
 	indices:        EaBuffer,
 	colors:         Buffer,
+	tile_infos:     Buffer,
 	model_matrices: Buffer,
 }
 buffers_init :: proc(buffers: ^Buffers) {
@@ -80,7 +81,16 @@ buffers_init :: proc(buffers: ^Buffers) {
 	}
 	buffer_init(&buffers.colors, colors[:])
 
-	model_matrices := make([]glm.mat4, N_INSTANCE, allocator = context.allocator)
+	tile_infos := make([]glm.vec4, N_INSTANCE, allocator = context.temp_allocator)
+	buffers.tile_infos = {
+		size   = 4,
+		type   = gl.FLOAT,
+		target = gl.ARRAY_BUFFER,
+		usage  = gl.DYNAMIC_DRAW,
+	}
+	buffer_init(&buffers.tile_infos, tile_infos[:])
+
+	model_matrices := make([]glm.mat4, N_INSTANCE, allocator = context.temp_allocator)
 	buffers.model_matrices = {
 		size   = 4,
 		type   = gl.FLOAT,
@@ -96,8 +106,10 @@ FlatShader :: struct {
 	program:                  gl.Program,
 	a_pos:                    i32,
 	a_color:                  i32,
+	a_tile_info:              i32,
 	a_model_matrix:           i32,
 	u_view_projection_matrix: i32,
+	u_sampler:                i32,
 }
 FlatUniforms :: struct {
 	view_projection_matrix: glm.mat4,
@@ -112,19 +124,28 @@ flat_shader_init :: proc(s: ^FlatShader) -> (ok: bool) {
 	s.program = program
 	s.a_pos = gl.GetAttribLocation(program, "aPos")
 	s.a_color = gl.GetAttribLocation(program, "aColor")
+	s.a_tile_info = gl.GetAttribLocation(program, "aTileInfo")
 	s.a_model_matrix = gl.GetAttribLocation(program, "aModelMatrix")
 	s.u_view_projection_matrix = gl.GetUniformLocation(program, "uViewProjectionMatrix")
+	s.u_sampler = gl.GetUniformLocation(program, "uSampler")
 	return check_gl_error()
 }
-flat_shader_use :: proc(s: FlatShader, u: FlatUniforms, buffers: Buffers) {
+flat_shader_use :: proc(s: FlatShader, u: FlatUniforms, buffers: Buffers, texture: TextureInfo) {
 	gl.UseProgram(s.program)
 	// set attributes
 	shader_set_attribute(s.a_pos, buffers.pos)
+
 	shader_set_instance_vec4_attribute(s.a_color, buffers.colors)
+	shader_set_instance_vec4_attribute(s.a_tile_info, buffers.tile_infos)
 	shader_set_instance_matrix_attribute(s.a_model_matrix, buffers.model_matrices)
 
 	// set uniforms
 	gl.UniformMatrix4fv(s.u_view_projection_matrix, u.view_projection_matrix)
+
+	// set texture
+	gl.ActiveTexture(texture.unit)
+	gl.BindTexture(gl.TEXTURE_2D, texture.id)
+	gl.Uniform1i(s.u_sampler, 0)
 }
 shader_set_attribute :: proc(index: i32, b: Buffer) {
 	gl.BindBuffer(b.target, b.id)
@@ -162,6 +183,7 @@ Rectangle :: struct {
 	size:     [2]i32,
 	rotation: f32,
 	color:    [4]f32,
+	tile:     Tile,
 }
 Line :: struct {
 	start:     [2]i32,
@@ -181,6 +203,7 @@ Shapes :: struct {
 	lines:           [N_LINES]Line,
 	buffers:         Buffers,
 	shader:          FlatShader,
+	texture_info:    TextureInfo,
 }
 
 shapes_init :: proc(s: ^Shapes, w, h: i32) -> (ok: bool) {
@@ -188,6 +211,8 @@ shapes_init :: proc(s: ^Shapes, w, h: i32) -> (ok: bool) {
 	if !ok {return false}
 
 	buffers_init(&s.buffers)
+	ok = texture_init(&s.texture_info)
+	if !ok {return false}
 
 	return ok
 }
@@ -241,6 +266,7 @@ rect_to_matrix :: proc(rect: Rectangle) -> glm.mat4 {
 shapes_draw :: proc(g: ^Game, s: ^Shapes, projection_matrix: glm.mat4) {
 	rect_matrices := make([]glm.mat4, N_INSTANCE, allocator = context.temp_allocator)
 	colors := make([]glm.vec4, N_INSTANCE, allocator = context.temp_allocator)
+	tile_infos := make([]glm.vec4, N_INSTANCE, allocator = context.temp_allocator)
 
 	clear_rectangles(s)
 	for yi in 0 ..< g.grid.col_count {
@@ -260,7 +286,7 @@ shapes_draw :: proc(g: ^Game, s: ^Shapes, projection_matrix: glm.mat4) {
 			} else {
 				c.r = 1 - (f32(len(square.options)) / OPTIONS_COUNT)
 			}
-			add_rectangle(s, Rectangle{{x, y}, size, 0, c})
+			add_rectangle(s, Rectangle{{x, y}, size, 0, c, .CORNER})
 		}
 	}
 
@@ -270,6 +296,7 @@ shapes_draw :: proc(g: ^Game, s: ^Shapes, projection_matrix: glm.mat4) {
 			m := rect_to_matrix(rect)
 			rect_matrices[mi] = m
 			colors[mi] = rect.color
+			tile_infos[mi] = {0, 0, 0.2, 1.0}
 			mi += 1
 		} else {
 			break
@@ -280,6 +307,7 @@ shapes_draw :: proc(g: ^Game, s: ^Shapes, projection_matrix: glm.mat4) {
 			m := line_to_matrix(l)
 			rect_matrices[mi] = m
 			colors[mi] = l.color
+			tile_infos[mi] = {0, 0, 1, 1}
 			mi += 1
 		} else {
 			break
@@ -288,9 +316,10 @@ shapes_draw :: proc(g: ^Game, s: ^Shapes, projection_matrix: glm.mat4) {
 
 	instance_count: int = s.rectangle_count + s.line_count
 	buffer_update(s.buffers.colors, colors[:instance_count])
+	buffer_update(s.buffers.tile_infos, tile_infos[:instance_count])
 	buffer_update(s.buffers.model_matrices, rect_matrices[:instance_count])
 	uniforms: FlatUniforms = {projection_matrix}
-	flat_shader_use(s.shader, uniforms, s.buffers)
+	flat_shader_use(s.shader, uniforms, s.buffers, s.texture_info)
 
 	ea_buffer_draw(s.buffers.indices, instance_count = instance_count)
 

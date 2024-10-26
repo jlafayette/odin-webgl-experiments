@@ -3,10 +3,14 @@
 precision highp float;
 
 in vec4 vColor;
-in float vCircleBlend;
+in vec2 vTexCoord;
+
+uniform sampler2D uSampler;
 
 out vec4 fragColor;
 
 void main() {
-    fragColor = vColor;
+    vec4 col = texture(uSampler, vTexCoord);
+    fragColor.a = vColor.a;
+    fragColor.rgb = vColor.rgb * col.rgb;
 }

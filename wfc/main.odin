@@ -32,7 +32,7 @@ Game :: struct {
 	mode:         Mode,
 	tile_size:    f32,
 }
-TILE_SIZE :: 32
+TILE_SIZE :: 100
 game_init :: proc(g: ^Game, width, height: i32) {
 	size: f32 = TILE_SIZE
 	rows := cast(int)math.floor(f32(width) / size)
