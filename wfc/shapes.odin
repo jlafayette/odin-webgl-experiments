@@ -179,11 +179,11 @@ shader_set_instance_matrix_attribute :: proc(index: i32, b: Buffer) {
 }
 
 Rectangle :: struct {
-	pos:      [2]i32,
-	size:     [2]i32,
-	rotation: f32,
-	color:    [4]f32,
-	tile:     Tile,
+	pos:         [2]i32,
+	size:        [2]i32,
+	rotation:    f32,
+	color:       [4]f32,
+	tile_option: TileOption,
 }
 Line :: struct {
 	start:     [2]i32,
@@ -258,6 +258,27 @@ line_to_matrix :: proc(line: Line, rotation: f32 = 0) -> glm.mat4 {
 }
 rect_to_matrix :: proc(rect: Rectangle) -> glm.mat4 {
 	m := glm.mat4Translate({f32(rect.pos.x), f32(rect.pos.y), -1.0})
+	switch rect.tile_option.xform {
+	case .None:
+	case .Rotate90:
+		{
+			m *= glm.mat4Rotate({0, 0, 1}, glm.radians_f32(90))
+		}
+	case .FlipH:
+		{
+			m *= glm.mat4Scale({-1, 1, 1})
+		}
+	case .FlipV:
+		{
+			m *= glm.mat4Scale({1, -1, 1})
+		}
+	case .FlipV_Rotate90:
+		{
+			m *= glm.mat4Rotate({0, 0, 1}, glm.radians_f32(90))
+			m *= glm.mat4Scale({1, -1, 1})
+		}
+	}
+
 	m *= glm.mat4Rotate({0, 0, 1}, rect.rotation)
 	m *= glm.mat4Scale({f32(rect.size.x), f32(rect.size.y), 1.0})
 	return m
@@ -269,6 +290,7 @@ shapes_draw :: proc(g: ^Game, s: ^Shapes, projection_matrix: glm.mat4) {
 	tile_infos := make([]glm.vec4, N_INSTANCE, allocator = context.temp_allocator)
 
 	clear_rectangles(s)
+	last_collapsed: int = 0
 	for yi in 0 ..< g.grid.col_count {
 		for xi in 0 ..< g.grid.row_count {
 			square, ok := grid_get(&g.grid, xi, yi).?
@@ -280,13 +302,18 @@ shapes_draw :: proc(g: ^Game, s: ^Shapes, projection_matrix: glm.mat4) {
 			x: i32 = i32(xi) * TILE_SIZE + TILE_SIZE / 2
 			y: i32 = i32(yi) * TILE_SIZE + TILE_SIZE / 2
 			size: [2]i32 = {TILE_SIZE, TILE_SIZE}
+			to: TileOption = {.EMPTY, .None}
 			if square.collapsed {
+				to = g.tile_options[square.option]
 				c.g = 1.0
 				c.r = 0.2
 			} else {
 				c.r = 1 - (f32(len(square.options)) / OPTIONS_COUNT)
 			}
-			add_rectangle(s, Rectangle{{x, y}, size, 0, c, .CORNER})
+			if square.collapsed {
+				last_collapsed = s.rectangle_count
+			}
+			add_rectangle(s, Rectangle{{x, y}, size, 0, c, to})
 		}
 	}
 
@@ -296,7 +323,8 @@ shapes_draw :: proc(g: ^Game, s: ^Shapes, projection_matrix: glm.mat4) {
 			m := rect_to_matrix(rect)
 			rect_matrices[mi] = m
 			colors[mi] = rect.color
-			tile_infos[mi] = {0, 0, 0.2, 1.0}
+			offset: f32 = f32(rect.tile_option.tile) / f32(len(Tile))
+			tile_infos[mi] = {offset, 0, 0.2, 1.0}
 			mi += 1
 		} else {
 			break

@@ -43,7 +43,7 @@ load_texture :: proc(img: ^image.Image) -> gl.Texture {
 	}
 	type := gl.UNSIGNED_BYTE
 	gl.BindTexture(gl.TEXTURE_2D, texture)
-	gl.PixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1)
+	// gl.PixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1)
 	gl.TexImage2DSlice(
 		gl.TEXTURE_2D,
 		level,

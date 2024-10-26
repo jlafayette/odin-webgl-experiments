@@ -40,6 +40,7 @@ wfc_step :: proc(game: ^Game) {
 	square_i := int(math.floor(f))
 	square := squares[square_i]
 	square_collapse(square)
+	fmt.println("collapsed square:", game.tile_options[square.option])
 
 	// print_options(squares)
 

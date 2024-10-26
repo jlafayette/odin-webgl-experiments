@@ -15,8 +15,18 @@ out vec2 vTexCoord;
 void main() {
     gl_PointSize = 10.0;
     gl_Position = uViewProjectionMatrix * aModelMatrix * vec4(aPos.xy, 1.0, 1.0);
+    vec2 tex = aPos;
+
+    // flipV
+    // tex = mat2(1.0, 0.0,
+    //            0.0, -1.0) * tex;
+    // flipH
+    // tex = mat2(-1.0, 0.0,
+    //             0.0, 1.0) * tex;
     
-    vec2 tex = aPos + vec2(0.5, 0.5); // 0-1
+    tex += vec2(0.5, 0.5); // 0-1
+    // tex = mat2(0.5, 0.0,
+    //            0.0, -0.5) * tex;
     tex = tex * aTileInfo.zw; // scaled to tile size
     tex = tex + aTileInfo.xy; // offset to correct tile
     vTexCoord = tex;
