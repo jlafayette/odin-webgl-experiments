@@ -82,6 +82,7 @@ square_less_options :: proc(i, j: ^Square) -> bool {
 
 grid_init :: proc(grid: ^Grid, row_count, col_count: int) {
 	grid.allocator = grid_arena_allocator
+	grid.resolved = false
 	count := row_count * col_count
 	err: mem.Allocator_Error
 	grid.squares, err = make_slice([]^Square, count, allocator = grid.allocator)

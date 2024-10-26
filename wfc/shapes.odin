@@ -71,7 +71,7 @@ buffers_init :: proc(buffers: ^Buffers) {
 	}
 	ea_buffer_init(&buffers.indices, indices_data[:])
 
-	colors: [N_INSTANCE]glm.vec4 = glm.vec4({1, 1, 1, 1})
+	colors := make([]glm.vec4, N_INSTANCE, allocator = context.temp_allocator)
 	buffers.colors = {
 		size   = 4,
 		type   = gl.FLOAT,
@@ -80,7 +80,7 @@ buffers_init :: proc(buffers: ^Buffers) {
 	}
 	buffer_init(&buffers.colors, colors[:])
 
-	model_matrices: [N_INSTANCE]glm.mat4 = glm.mat4(1)
+	model_matrices := make([]glm.mat4, N_INSTANCE, allocator = context.allocator)
 	buffers.model_matrices = {
 		size   = 4,
 		type   = gl.FLOAT,
@@ -170,14 +170,15 @@ Line :: struct {
 	color:     [4]f32,
 }
 
-N_SHAPES :: 64
-N_INSTANCE :: N_SHAPES * 2
+N_RECTANGES :: 8000
+N_LINES :: 64
+N_INSTANCE :: N_RECTANGES + N_LINES
 
 Shapes :: struct {
 	rectangle_count: int,
 	line_count:      int,
-	rectangles:      [N_SHAPES]Rectangle,
-	lines:           [N_SHAPES]Line,
+	rectangles:      [N_RECTANGES]Rectangle,
+	lines:           [N_LINES]Line,
 	buffers:         Buffers,
 	shader:          FlatShader,
 }
@@ -188,77 +189,28 @@ shapes_init :: proc(s: ^Shapes, w, h: i32) -> (ok: bool) {
 
 	buffers_init(&s.buffers)
 
-	add_rectangle(s, {{10, 10}, {20, 20}, 0, {1, 1, 1, 0.2}})
-	add_rectangle(s, {{10, 10}, {20, 20}, 0, {1, 1, 1, 0.2}})
-	add_rectangle(s, {{10, 10}, {20, 20}, 0, {1, 1, 1, 0.2}})
-	add_rectangle(s, {{10, 10}, {20, 20}, 0, {1, 1, 1, 0.2}})
-	add_rectangle(s, {{10, 10}, {20, 20}, 0, {1, 1, 1, 0.2}})
-	for i in 0 ..< 5 {
-		part: f32 = math.TAU / 5
-		add_rectangle(s, {{200 + i32(i) * 50, 200}, {300, 50}, f32(i) * part, {1, 1, 1, 0.2}})
-	}
-
-	c: glm.vec4 = {1, 1, 1, 1}
-	add_line(s, {{0, 0}, {100, 100}, 2, c})
-	add_line(s, {{0, 0}, {100, 100}, 2, c})
-	add_line(s, {{0, 0}, {100, 100}, 2, c})
-	add_line(s, {{0, 0}, {100, 100}, 2, c})
-	add_line(s, {{100, 100}, {500, 100}, 2, c})
-	c.a = 0.4
-	add_line(s, {{100, 100}, {500, 100}, 8, c})
-	c.a = 0.2
-	add_line(s, {{100, 100}, {500, 100}, 16, c})
-	add_line(s, {{100, 100}, {500, 500}, 16, c})
-	c.a = 0.8
-	add_line(s, {{0, 0}, {500, 500}, 4, c})
-
 	return ok
 }
 
+clear_rectangles :: proc(s: ^Shapes) {
+	s.rectangle_count = 0
+}
 add_rectangle :: proc(s: ^Shapes, r: Rectangle) {
-	if s.rectangle_count >= N_SHAPES {
+	if s.rectangle_count >= N_RECTANGES {
 		return
 	}
 	s.rectangles[s.rectangle_count] = r
 	s.rectangle_count += 1
 }
 add_line :: proc(s: ^Shapes, l: Line) {
-	if s.line_count >= N_SHAPES {
+	if s.line_count >= N_LINES {
 		return
 	}
 	s.lines[s.line_count] = l
 	s.line_count += 1
 }
 
-_line_offset: f32 = 0
 shapes_update :: proc(s: ^Shapes, w, h: i32, dt: f32, time_elapsed: f64) {
-	s.rectangles[0].pos = {10, 10}
-	s.rectangles[1].pos = {10, h - 10}
-	s.rectangles[2].pos = {w - 10, 10}
-	s.rectangles[3].pos = {w - 10, h - 10}
-
-	s.rectangles[4].pos = {w - 100, h / 2}
-	s.rectangles[4].size = {100, 100}
-	s.rectangles[4].rotation = 0
-
-	for &rect, i in s.rectangles {
-		if i < 4 {
-			rect.rotation = 0
-		} else if i < s.rectangle_count {
-			rect.rotation += dt
-		}
-	}
-
-	_line_offset += dt
-
-	c: glm.vec4 = {1, 1, 1, 1}
-	s.lines[0] = {{0, 0}, {w, h}, 2, c}
-	s.lines[1] = {{0, h}, {w, 0}, 2, c}
-	c.r = 0.5
-	c.g = 0.7
-	c.a = 0.5
-	s.lines[2] = {{0, 0}, {w, h}, 4, c}
-	s.lines[3] = {{0, h}, {w, 0}, 4, c}
 }
 
 line_angle :: proc(line: Line) -> f32 {
@@ -289,6 +241,28 @@ rect_to_matrix :: proc(rect: Rectangle) -> glm.mat4 {
 shapes_draw :: proc(g: ^Game, s: ^Shapes, projection_matrix: glm.mat4) {
 	rect_matrices := make([]glm.mat4, N_INSTANCE, allocator = context.temp_allocator)
 	colors := make([]glm.vec4, N_INSTANCE, allocator = context.temp_allocator)
+
+	clear_rectangles(s)
+	for yi in 0 ..< g.grid.col_count {
+		for xi in 0 ..< g.grid.row_count {
+			square, ok := grid_get(&g.grid, xi, yi).?
+			if !ok {
+				fmt.printf("error, no square at %d,%d\n", xi, yi)
+				continue
+			}
+			c: glm.vec4 = {0.5, 0.2, 0.5, 1.0}
+			x: i32 = i32(xi) * TILE_SIZE + TILE_SIZE / 2
+			y: i32 = i32(yi) * TILE_SIZE + TILE_SIZE / 2
+			size: [2]i32 = {TILE_SIZE, TILE_SIZE}
+			if square.collapsed {
+				c.g = 1.0
+				c.r = 0.2
+			} else {
+				c.r = 1 - (f32(len(square.options)) / OPTIONS_COUNT)
+			}
+			add_rectangle(s, Rectangle{{x, y}, size, 0, c})
+		}
+	}
 
 	mi: int = 0
 	for rect, i in s.rectangles {
