@@ -14,7 +14,7 @@ grid_arena_allocator := mem.arena_allocator(&grid_arena)
 OPTIONS_COUNT :: 13
 
 Grid :: struct {
-	squares:   [dynamic]^Square,
+	squares:   []^Square,
 	row_count: int,
 	col_count: int,
 	resolved:  bool,
@@ -45,7 +45,7 @@ square_init :: proc(
 		return
 	}
 	for i := 0; i < options_count; i += 1 {
-		append(&s.options, i)
+		s.options[i] = i
 	}
 	s.x = x
 	s.y = y
@@ -56,6 +56,11 @@ square_reset :: proc(s: ^Square, options_count: int) {
 		append(&s.options, i)
 	}
 	s.collapsed = false
+	if s.x == 0 && s.y == 0 {
+		fmt.println("square reset")
+		fmt.println(len(s.options))
+		fmt.println(s.options)
+	}
 }
 square_collapse :: proc(s: ^Square) {
 	f := rand.float32() * cast(f32)len(s.options)
@@ -79,12 +84,7 @@ grid_init :: proc(grid: ^Grid, row_count, col_count: int) {
 	grid.allocator = grid_arena_allocator
 	count := row_count * col_count
 	err: mem.Allocator_Error
-	grid.squares, err = make_dynamic_array_len_cap(
-		[dynamic]^Square,
-		count,
-		count,
-		allocator = grid.allocator,
-	)
+	grid.squares, err = make_slice([]^Square, count, allocator = grid.allocator)
 	if err != nil {
 		fmt.println("grid_init allocation error:", err)
 		return
@@ -92,6 +92,7 @@ grid_init :: proc(grid: ^Grid, row_count, col_count: int) {
 	grid.row_count = row_count
 	grid.col_count = col_count
 	size := grid.row_count * grid.col_count
+	i: int = 0
 	for y in 0 ..< grid.col_count {
 		for x in 0 ..< grid.row_count {
 			square: ^Square
@@ -100,8 +101,9 @@ grid_init :: proc(grid: ^Grid, row_count, col_count: int) {
 				fmt.println("new Square allocation error:", err)
 				return
 			}
-			square_init(square, x, y, OPTIONS_COUNT)
-			append(&grid.squares, square)
+			square_init(square, x, y, OPTIONS_COUNT, allocator = grid.allocator)
+			grid.squares[i] = square
+			i += 1
 		}
 	}
 	arena := transmute(^mem.Arena)grid.allocator.data
@@ -110,6 +112,7 @@ grid_init :: proc(grid: ^Grid, row_count, col_count: int) {
 	// used 995360 bytes of 2097152	
 	fmt.printf("used %d bytes of %d\n", arena.offset, len(arena.data))
 }
+
 grid_reset :: proc(grid: ^Grid) {
 	grid.resolved = false
 	for y in 0 ..< grid.col_count {

@@ -63,7 +63,6 @@ State :: struct {
 	shapes:       Shapes,
 	time_elapsed: f64,
 	game:         Game,
-	_a:           []int,
 }
 @(private = "file")
 g_state: State = {}
@@ -77,11 +76,10 @@ start :: proc(state: ^State) -> (ok: bool) {
 		return false
 	}
 
+	update_handle_resize(state)
 	init_input(&g_input)
 	shapes_init(&state.shapes, state.w, state.h)
 	game_init(&state.game, state.w, state.h)
-	state._a = make([]int, 1000)
-
 	return check_gl_error()
 }
 
@@ -127,7 +125,7 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 	// 	}
 	// }
 
-	shapes_draw(&state.shapes, projection)
+	shapes_draw(&state.game, &state.shapes, projection)
 
 	return true
 }

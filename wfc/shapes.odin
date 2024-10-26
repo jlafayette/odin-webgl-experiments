@@ -286,10 +286,10 @@ rect_to_matrix :: proc(rect: Rectangle) -> glm.mat4 {
 	return m
 }
 
-shapes_draw :: proc(s: ^Shapes, projection_matrix: glm.mat4) {
+shapes_draw :: proc(g: ^Game, s: ^Shapes, projection_matrix: glm.mat4) {
 	rect_matrices := make([]glm.mat4, N_INSTANCE, allocator = context.temp_allocator)
 	colors := make([]glm.vec4, N_INSTANCE, allocator = context.temp_allocator)
-	circle_blends := make([]f32, N_INSTANCE, allocator = context.temp_allocator)
+
 	mi: int = 0
 	for rect, i in s.rectangles {
 		if i < s.rectangle_count {
@@ -325,3 +325,4 @@ shapes_draw :: proc(s: ^Shapes, projection_matrix: glm.mat4) {
 	gl.VertexAttribDivisor(3, 0)
 	gl.VertexAttribDivisor(4, 0)
 }
+

@@ -11,21 +11,13 @@ wfc_step :: proc(game: ^Game) {
 	grid := &game.grid
 	if grid.resolved do return
 	if len(grid.squares) == 0 do return
-	when ODIN_DEBUG {fmt.print(".")}
+	// when ODIN_DEBUG {fmt.print(".")} // doesn't seem to work with wasm...
+	fmt.print(".")
 
 	// copy so sorting doesn't rearange placement in grid
-	squares_backing := make_dynamic_array_len(
-		[dynamic]^Square,
-		len(grid.squares),
-		context.temp_allocator,
-	)
-	for s, i in grid.squares {
-		squares_backing[i] = s
-	}
-	squares := squares_backing[:]
+	squares := slice.clone(grid.squares, allocator = context.temp_allocator)
 
 	// sort by fewest possible states
-	// unordered_remove(&squares[4].options, 3)
 	slice.sort_by(squares, square_less_options)
 	// print_options(squares)
 
