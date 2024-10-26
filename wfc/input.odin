@@ -10,6 +10,7 @@ Input :: struct {
 	next_step:   bool,
 	play_toggle: bool,
 	restart:     bool,
+	restart_at:  Maybe([2]i64),
 	play:        bool,
 }
 g_input := Input{}
@@ -24,6 +25,7 @@ update_input :: proc(input: ^Input, dt: f32) {
 
 on_pointer_down :: proc(e: js.Event) {
 	g_input.restart = true
+	g_input.restart_at = e.pointer.client
 	g_input.play = true
 	fmt.println("click")
 }

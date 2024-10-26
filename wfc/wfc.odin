@@ -26,21 +26,31 @@ wfc_step :: proc(game: ^Game) {
 		grid.resolved = true
 		return
 	}
-	rand_mult: int = 0 // track how many we are randomly picking from
-	options_count := len(squares[0].options)
-	for s in squares {
-		if s.collapsed || len(s.options) > options_count {
-			break
-		}
-		rand_mult += 1
+	starting_coords, ok := grid.start_at.?
+	square: ^Square
+	if ok {
+		fmt.println("starting at:", starting_coords)
+		square, ok = grid_get(grid, starting_coords.x, starting_coords.y).?
+		grid.start_at = nil
 	}
-	// fmt.printf("tied with %d: %d\n", options_count, rand_mult)
-	f := rand.float32()
-	f *= f32(rand_mult)
-	square_i := int(math.floor(f))
-	square := squares[square_i]
+	if square == nil {
+		rand_mult: int = 0 // track how many we are randomly picking from
+		options_count := len(squares[0].options)
+		for s in squares {
+			if s.collapsed || len(s.options) > options_count {
+				break
+			}
+			rand_mult += 1
+		}
+		// fmt.printf("tied with %d: %d\n", options_count, rand_mult)
+		f := rand.float32()
+		f *= f32(rand_mult)
+		square_i := int(math.floor(f))
+		square = squares[square_i]
+	}
 	square_collapse(square)
-	fmt.println("collapsed square:", game.tile_options[square.option])
+	// fmt.println("collapsed square:", game.tile_options[square.option])
+
 
 	// print_options(squares)
 

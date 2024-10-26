@@ -18,6 +18,7 @@ Grid :: struct {
 	row_count: int,
 	col_count: int,
 	resolved:  bool,
+	start_at:  Maybe([2]int),
 	allocator: mem.Allocator,
 }
 Square :: struct {
@@ -114,8 +115,10 @@ grid_init :: proc(grid: ^Grid, row_count, col_count: int) {
 	fmt.printf("used %d bytes of %d\n", arena.offset, len(arena.data))
 }
 
-grid_reset :: proc(grid: ^Grid) {
+grid_reset :: proc(grid: ^Grid, maybe_restart_at: Maybe([2]int)) {
 	grid.resolved = false
+	grid.start_at = nil
+	grid.start_at = maybe_restart_at
 	for y in 0 ..< grid.col_count {
 		for x in 0 ..< grid.row_count {
 			maybe_s := grid_get(grid, x, y)
@@ -128,6 +131,7 @@ grid_reset :: proc(grid: ^Grid) {
 grid_destroy :: proc(grid: ^Grid) {
 	free_all(grid.allocator)
 }
+
 
 grid_get :: proc(g: ^Grid, x, y: int) -> (square: Maybe(^Square)) {
 	if x < 0 || y < 0 || x >= g.row_count || y >= g.col_count {
