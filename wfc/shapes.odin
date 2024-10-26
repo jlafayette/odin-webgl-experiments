@@ -192,7 +192,7 @@ Line :: struct {
 	color:     [4]f32,
 }
 
-N_RECTANGES :: 8000
+N_RECTANGES :: 192 * 108
 N_LINES :: 64
 N_INSTANCE :: N_RECTANGES + N_LINES
 

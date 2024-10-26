@@ -12,20 +12,10 @@ wfc_step :: proc(game: ^Game) {
 	if grid.resolved do return
 	if len(grid.squares) == 0 do return
 	// when ODIN_DEBUG {fmt.print(".")} // doesn't seem to work with wasm...
-	fmt.print(".")
+	// fmt.print(".")
 
-	// copy so sorting doesn't rearange placement in grid
-	squares := slice.clone(grid.squares, allocator = context.temp_allocator)
-
-	// sort by fewest possible states
-	slice.sort_by(squares, square_less_options)
-	// print_options(squares)
-
-	// pick random out of ones with least options
-	if squares[0].collapsed {
-		grid.resolved = true
-		return
-	}
+	// pick random square out of ones with least options
+	squares := grid.squares
 	starting_coords, ok := grid.start_at.?
 	square: ^Square
 	if ok {
@@ -35,22 +25,38 @@ wfc_step :: proc(game: ^Game) {
 	}
 	if square == nil {
 		rand_mult: int = 0 // track how many we are randomly picking from
-		options_count := len(squares[0].options)
+		least_count: int = OPTIONS_COUNT
 		for s in squares {
-			if s.collapsed || len(s.options) > options_count {
-				break
+			if s.collapsed {continue}
+
+			if len(s.options) < least_count {
+				least_count = len(s.options)
+				rand_mult = 1
+			} else if len(s.options) == least_count {
+				rand_mult += 1
 			}
-			rand_mult += 1
 		}
-		// fmt.printf("tied with %d: %d\n", options_count, rand_mult)
 		f := rand.float32()
 		f *= f32(rand_mult)
 		square_i := int(math.floor(f))
-		square = squares[square_i]
+		i: int = 0
+		for s in squares {
+			if s.collapsed {continue}
+			if len(s.options) == least_count {
+				if square_i == i {
+					square = s
+					break
+				}
+				i += 1
+			}
+		}
+	}
+	if square == nil {
+		grid.resolved = true
+		return
 	}
 	square_collapse(square)
 	// fmt.println("collapsed square:", game.tile_options[square.option])
-
 
 	// print_options(squares)
 
