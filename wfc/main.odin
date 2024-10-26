@@ -32,11 +32,13 @@ Game :: struct {
 	mode:         Mode,
 	tile_size:    f32,
 }
-TILE_SIZE :: 10
+MAX_ROWS :: 192
+MAX_COLS :: 192
+TILE_SIZE :: 20
 game_init :: proc(g: ^Game, width, height: i32) {
 	size: f32 = TILE_SIZE
-	rows := cast(int)math.floor(f32(width) / size)
-	cols := cast(int)math.floor(f32(height) / size)
+	rows := math.min(MAX_ROWS, cast(int)math.floor(f32(width) / size))
+	cols := math.min(MAX_COLS, cast(int)math.floor(f32(height) / size))
 	g.tile_size = size
 	fmt.printf("w: %d, h: %d, rows: %d, cols: %d\n", width, height, rows, cols)
 

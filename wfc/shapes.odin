@@ -4,8 +4,23 @@ import "../shared/text"
 import "core:fmt"
 import "core:math"
 import glm "core:math/linalg/glsl"
+import "core:mem"
 import gl "vendor:wasm/WebGL"
 
+@(private = "file")
+BUFFER_SIZE ::
+	N_INSTANCE * size_of(glm.vec4) +
+	N_INSTANCE * size_of(glm.vec4) +
+	N_INSTANCE * size_of(glm.mat4) +
+	64
+@(private = "file")
+_shapes_arena_buffer: [BUFFER_SIZE]byte
+@(private = "file")
+_shapes_arena: mem.Arena = {
+	data = _shapes_arena_buffer[:],
+}
+@(private = "file")
+shapes_arena_allocator := mem.arena_allocator(&_shapes_arena)
 
 Buffer :: struct {
 	id:     gl.Buffer,
@@ -56,7 +71,12 @@ Buffers :: struct {
 	tile_infos:     Buffer,
 	model_matrices: Buffer,
 }
-buffers_init :: proc(buffers: ^Buffers) {
+buffers_init :: proc(
+	buffers: ^Buffers,
+	colors: []glm.vec4,
+	tile_infos: []glm.vec4,
+	model_matrices: []glm.mat4,
+) {
 	pos_data: [4][2]f32 = {{-0.5, -0.5}, {-0.5, 0.5}, {0.5, 0.5}, {0.5, -0.5}}
 	buffers.pos = {
 		size   = 2,
@@ -72,7 +92,6 @@ buffers_init :: proc(buffers: ^Buffers) {
 	}
 	ea_buffer_init(&buffers.indices, indices_data[:])
 
-	colors := make([]glm.vec4, N_INSTANCE, allocator = context.temp_allocator)
 	buffers.colors = {
 		size   = 4,
 		type   = gl.FLOAT,
@@ -81,7 +100,6 @@ buffers_init :: proc(buffers: ^Buffers) {
 	}
 	buffer_init(&buffers.colors, colors[:])
 
-	tile_infos := make([]glm.vec4, N_INSTANCE, allocator = context.temp_allocator)
 	buffers.tile_infos = {
 		size   = 4,
 		type   = gl.FLOAT,
@@ -90,7 +108,6 @@ buffers_init :: proc(buffers: ^Buffers) {
 	}
 	buffer_init(&buffers.tile_infos, tile_infos[:])
 
-	model_matrices := make([]glm.mat4, N_INSTANCE, allocator = context.temp_allocator)
 	buffers.model_matrices = {
 		size   = 4,
 		type   = gl.FLOAT,
@@ -192,7 +209,7 @@ Line :: struct {
 	color:     [4]f32,
 }
 
-N_RECTANGES :: 192 * 108
+N_RECTANGES :: MAX_ROWS * MAX_COLS
 N_LINES :: 64
 N_INSTANCE :: N_RECTANGES + N_LINES
 
@@ -204,13 +221,33 @@ Shapes :: struct {
 	buffers:         Buffers,
 	shader:          FlatShader,
 	texture_info:    TextureInfo,
+	rect_matrices:   []glm.mat4,
+	colors:          []glm.vec4,
+	tile_infos:      []glm.vec4,
 }
 
 shapes_init :: proc(s: ^Shapes, w, h: i32) -> (ok: bool) {
 	ok = flat_shader_init(&s.shader)
 	if !ok {return false}
 
-	buffers_init(&s.buffers)
+	err: mem.Allocator_Error
+	s.rect_matrices, err = make([]glm.mat4, N_INSTANCE, allocator = shapes_arena_allocator)
+	if err != nil {
+		fmt.eprintln("shapes_init rect_matrices error allocating:", err)
+		return false
+	}
+	s.colors, err = make([]glm.vec4, N_INSTANCE, allocator = shapes_arena_allocator)
+	if err != nil {
+		fmt.eprintln("shapes_init colors error allocating:", err)
+		return false
+	}
+	s.tile_infos, err = make([]glm.vec4, N_INSTANCE, allocator = shapes_arena_allocator)
+	if err != nil {
+		fmt.eprintln("shapes_init tile_infos error allocating:", err)
+		return false
+	}
+
+	buffers_init(&s.buffers, s.colors, s.tile_infos, s.rect_matrices)
 	ok = texture_init(&s.texture_info)
 	if !ok {return false}
 
@@ -285,9 +322,9 @@ rect_to_matrix :: proc(rect: Rectangle) -> glm.mat4 {
 }
 
 shapes_draw :: proc(g: ^Game, s: ^Shapes, projection_matrix: glm.mat4) {
-	rect_matrices := make([]glm.mat4, N_INSTANCE, allocator = context.temp_allocator)
-	colors := make([]glm.vec4, N_INSTANCE, allocator = context.temp_allocator)
-	tile_infos := make([]glm.vec4, N_INSTANCE, allocator = context.temp_allocator)
+	// rect_matrices := make([]glm.mat4, N_INSTANCE, allocator = context.temp_allocator)
+	// colors := make([]glm.vec4, N_INSTANCE, allocator = context.temp_allocator)
+	// tile_infos := make([]glm.vec4, N_INSTANCE, allocator = context.temp_allocator)
 
 	clear_rectangles(s)
 	last_collapsed: int = 0
@@ -321,10 +358,10 @@ shapes_draw :: proc(g: ^Game, s: ^Shapes, projection_matrix: glm.mat4) {
 	for rect, i in s.rectangles {
 		if i < s.rectangle_count {
 			m := rect_to_matrix(rect)
-			rect_matrices[mi] = m
-			colors[mi] = rect.color
+			s.rect_matrices[mi] = m
+			s.colors[mi] = rect.color
 			offset: f32 = f32(rect.tile_option.tile) / f32(len(Tile))
-			tile_infos[mi] = {offset, 0, 0.2, 1.0}
+			s.tile_infos[mi] = {offset, 0, 0.2, 1.0}
 			mi += 1
 		} else {
 			break
@@ -333,9 +370,9 @@ shapes_draw :: proc(g: ^Game, s: ^Shapes, projection_matrix: glm.mat4) {
 	for l, i in s.lines {
 		if i < s.line_count {
 			m := line_to_matrix(l)
-			rect_matrices[mi] = m
-			colors[mi] = l.color
-			tile_infos[mi] = {0, 0, 1, 1}
+			s.rect_matrices[mi] = m
+			s.colors[mi] = l.color
+			s.tile_infos[mi] = {0, 0, 1, 1}
 			mi += 1
 		} else {
 			break
@@ -343,9 +380,9 @@ shapes_draw :: proc(g: ^Game, s: ^Shapes, projection_matrix: glm.mat4) {
 	}
 
 	instance_count: int = s.rectangle_count + s.line_count
-	buffer_update(s.buffers.colors, colors[:instance_count])
-	buffer_update(s.buffers.tile_infos, tile_infos[:instance_count])
-	buffer_update(s.buffers.model_matrices, rect_matrices[:instance_count])
+	buffer_update(s.buffers.colors, s.colors[:instance_count])
+	buffer_update(s.buffers.tile_infos, s.tile_infos[:instance_count])
+	buffer_update(s.buffers.model_matrices, s.rect_matrices[:instance_count])
 	uniforms: FlatUniforms = {projection_matrix}
 	flat_shader_use(s.shader, uniforms, s.buffers, s.texture_info)
 

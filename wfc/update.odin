@@ -19,14 +19,14 @@ game_update :: proc(game: ^Game, input: Input, dpr: f32) {
 			game.mode = ModePause{}
 		case ModePause:
 			game.mode = ModePlay {
-				steps_per_frame = 100,
+				steps_per_frame = 50,
 			}
 			fmt.println("play", game.mode)
 		}
 	}
 	if input.play {
 		game.mode = ModePlay {
-			steps_per_frame = 100,
+			steps_per_frame = 50,
 		}
 		fmt.println("play", game.mode)
 	}
