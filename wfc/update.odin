@@ -5,14 +5,14 @@ import "core:fmt"
 import "core:math"
 import "core:mem"
 
-screen_to_grid_xy :: proc(tile_size: int, screen_pos: [2]i64) -> [2]int {
+screen_to_grid_xy :: proc(tile_size: int, screen_pos: [2]i64, dpr: f32) -> [2]int {
 	pos: [2]int
-	pos.x = cast(int)math.floor(f32(screen_pos.x) / f32(tile_size))
-	pos.y = cast(int)math.floor(f32(screen_pos.y) / f32(tile_size))
+	pos.x = cast(int)math.floor((f32(screen_pos.x) * dpr) / f32(tile_size))
+	pos.y = cast(int)math.floor((f32(screen_pos.y) * dpr) / f32(tile_size))
 	return pos
 }
 
-game_update :: proc(game: ^Game, input: Input) {
+game_update :: proc(game: ^Game, input: Input, dpr: f32) {
 	if input.play_toggle {
 		switch m in game.mode {
 		case ModePlay:
@@ -34,7 +34,7 @@ game_update :: proc(game: ^Game, input: Input) {
 		start_at: Maybe([2]int)
 		screen_pos, ok := input.restart_at.?
 		if ok {
-			start_at = screen_to_grid_xy(TILE_SIZE, screen_pos)
+			start_at = screen_to_grid_xy(TILE_SIZE, screen_pos, dpr)
 		}
 		grid_reset(&game.grid, start_at)
 	}
@@ -70,7 +70,7 @@ update :: proc(state: ^State, dt: f32) {
 		game_destroy(&state.game)
 		game_init(&state.game, state.w, state.h)
 	}
-	game_update(&state.game, g_input)
+	game_update(&state.game, g_input, state.dpr)
 	g_input = {}
 }
 
