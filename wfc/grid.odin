@@ -14,14 +14,13 @@ grid_arena_allocator := mem.arena_allocator(&grid_arena)
 OPTIONS_COUNT :: 13
 
 Grid :: struct {
-	squares:        []^Square,
-	sorted_squares: []^Square,
-	option_counts:  []int,
-	row_count:      int,
-	col_count:      int,
-	resolved:       bool,
-	start_at:       Maybe([2]int),
-	allocator:      mem.Allocator,
+	squares:       []^Square,
+	option_counts: []int,
+	row_count:     int,
+	col_count:     int,
+	resolved:      bool,
+	start_at:      Maybe([2]int),
+	allocator:     mem.Allocator,
 }
 Square :: struct {
 	x:         int,
@@ -88,11 +87,6 @@ grid_init :: proc(grid: ^Grid, row_count, col_count: int) {
 		fmt.println("grid_init allocation error:", err)
 		return
 	}
-	grid.sorted_squares, err = make_slice([]^Square, count, allocator = grid.allocator)
-	if err != nil {
-		fmt.println("grid_init allocation error:", err)
-		return
-	}
 	grid.row_count = row_count
 	grid.col_count = col_count
 	size := grid.row_count * grid.col_count
@@ -107,7 +101,6 @@ grid_init :: proc(grid: ^Grid, row_count, col_count: int) {
 			}
 			square_init(square, x, y, OPTIONS_COUNT, allocator = grid.allocator)
 			grid.squares[i] = square
-			grid.sorted_squares[i] = square
 			i += 1
 		}
 	}
