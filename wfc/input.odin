@@ -10,15 +10,22 @@ Input :: struct {
 	next_step:   bool,
 	play_toggle: bool,
 	restart:     bool,
+	play:        bool,
 }
 g_input := Input{}
 
 init_input :: proc(input: ^Input) {
 	js.add_window_event_listener(.Key_Down, {}, on_key_down)
+	js.add_window_event_listener(.Pointer_Down, {}, on_pointer_down)
 }
 update_input :: proc(input: ^Input, dt: f32) {
-
 	return
+}
+
+on_pointer_down :: proc(e: js.Event) {
+	g_input.restart = true
+	g_input.play = true
+	fmt.println("click")
 }
 
 on_key_down :: proc(e: js.Event) {

@@ -16,6 +16,12 @@ game_update :: proc(game: ^Game, input: Input) {
 			fmt.println("play", game.mode)
 		}
 	}
+	if input.play {
+		game.mode = ModePlay {
+			steps_per_frame = 5,
+		}
+		fmt.println("play", game.mode)
+	}
 	if input.restart {
 		grid_reset(&game.grid)
 	}
