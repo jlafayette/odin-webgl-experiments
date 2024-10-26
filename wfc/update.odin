@@ -13,20 +13,21 @@ screen_to_grid_xy :: proc(tile_size: int, screen_pos: [2]i64, dpr: f32) -> [2]in
 }
 
 game_update :: proc(game: ^Game, input: Input, dpr: f32) {
+	steps_per_frame: int = (game.grid.row_count * game.grid.col_count) / 180
 	if input.play_toggle {
 		switch m in game.mode {
 		case ModePlay:
 			game.mode = ModePause{}
 		case ModePause:
 			game.mode = ModePlay {
-				steps_per_frame = 50,
+				steps_per_frame = steps_per_frame,
 			}
 			fmt.println("play", game.mode)
 		}
 	}
 	if input.play {
 		game.mode = ModePlay {
-			steps_per_frame = 50,
+			steps_per_frame = steps_per_frame,
 		}
 		fmt.println("play", game.mode)
 	}

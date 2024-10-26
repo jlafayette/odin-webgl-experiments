@@ -322,10 +322,6 @@ rect_to_matrix :: proc(rect: Rectangle) -> glm.mat4 {
 }
 
 shapes_draw :: proc(g: ^Game, s: ^Shapes, projection_matrix: glm.mat4) {
-	// rect_matrices := make([]glm.mat4, N_INSTANCE, allocator = context.temp_allocator)
-	// colors := make([]glm.vec4, N_INSTANCE, allocator = context.temp_allocator)
-	// tile_infos := make([]glm.vec4, N_INSTANCE, allocator = context.temp_allocator)
-
 	clear_rectangles(s)
 	last_collapsed: int = 0
 	for yi in 0 ..< g.grid.col_count {

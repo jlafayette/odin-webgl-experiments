@@ -11,7 +11,7 @@ import gl "vendor:wasm/WebGL"
 
 main :: proc() {}
 
-temp_arena_buffer: [mem.Megabyte * 16]byte
+temp_arena_buffer: [mem.Megabyte * 1]byte
 temp_arena: mem.Arena = {
 	data = temp_arena_buffer[:],
 }
@@ -98,37 +98,29 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	projection := glm.mat4Ortho3d(0, f32(state.w), f32(state.h), 0, -10, 10)
-	// {
-	// 	scale: i32 = math.max(1, i32(math.round(state.dpr)))
-	// 	spacing: i32 = 2 * scale
-	// 	text.batch_start(
-	// 		&state.debug_text,
-	// 		.A16,
-	// 		{1, 1, 1},
-	// 		text_projection,
-	// 		128,
-	// 		spacing = spacing,
-	// 		scale = scale,
-	// 	)
-	// 	// text_0 := "Rectangle [r]"
-	// 	// text_1 := "Circle    [c]"
-	// 	// text_2 := "Line      [l]"
-	// 	h: i32 = text.debug_get_height()
-	// 	line_gap: i32 = 5 * scale
-	// 	x: i32 = 16 * scale
-	// 	y: i32 = state.h - h - 120
-	// 	for dv, i in g_input.values {
-	// 		text_buf: [16]byte
-	// 		sb := strings.builder_from_bytes(text_buf[:])
-	// 		fmt.sbprintf(&sb, "[%d] %.2f", i, dv.value)
-	// 		text_ := strings.to_string(sb)
-	// 		_ = text.debug({x, y}, text_) or_return
-	// 		y -= h + line_gap
-	// 	}
-	// }
 
 	shapes_draw(&state.game, &state.shapes, projection)
 
+	_, paused := state.game.mode.(ModePause)
+	if paused {
+		scale: i32 = math.max(1, i32(math.round(state.dpr)))
+		spacing: i32 = 5 * scale
+		text.batch_start(
+			&state.debug_text,
+			.A40,
+			{1, 1, 1},
+			projection,
+			128,
+			spacing = spacing,
+			scale = scale,
+		)
+		h: i32 = text.debug_get_height()
+		text_0 := "Click to Start"
+		w: i32 = text.debug_get_width(text_0)
+		x: i32 = state.w / 2 - w / 2
+		y: i32 = state.h / 2 - h
+		_ = text.debug({x, y}, text_0) or_return
+	}
 	return true
 }
 
