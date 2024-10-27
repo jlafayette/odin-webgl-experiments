@@ -338,8 +338,7 @@ shapes_draw :: proc(g: ^Game, s: ^Shapes, projection_matrix: glm.mat4) {
 			to: TileOption = {.EMPTY, .None}
 			if square.collapsed {
 				to = g.tile_options[square.option]
-				c.g = 1.0
-				c.r = 0.2
+				c.rgb = {0.1, 0.7, 0.4}
 			} else {
 				c.r = 1 - (f32(len(square.options)) / OPTIONS_COUNT)
 			}
