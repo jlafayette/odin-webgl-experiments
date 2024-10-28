@@ -144,7 +144,7 @@ _get_batch_space :: #force_inline proc(atlas: ^Atlas, spacing: i32, scale: i32) 
 	char_w := i32(atlas.chars[30].w)
 	return (char_w * scale) + spacing
 }
-debug :: proc(pos: [2]i32, str: string) -> (width: i32, ok: bool) {
+debug :: proc(pos: [2]i32, str: string, flip_y: bool = false) -> (width: i32, ok: bool) {
 	if _current_batch == nil {
 		fmt.eprintf("current batch not set, run text.batch_start first")
 		return 0, false
@@ -199,11 +199,17 @@ debug :: proc(pos: [2]i32, str: string) -> (width: i32, ok: bool) {
 		tx2 := tx + f32(ch.w) * w_mult
 		ty2: f32 = 1
 		i = data_i * 4
-		tex_data[i + 0] = {tx, ty2}
-		tex_data[i + 1] = {tx, ty}
-		tex_data[i + 2] = {tx2, ty}
-		tex_data[i + 3] = {tx2, ty2}
-
+		if flip_y {
+			tex_data[i + 0] = {tx, ty}
+			tex_data[i + 1] = {tx, ty2}
+			tex_data[i + 2] = {tx2, ty2}
+			tex_data[i + 3] = {tx2, ty}
+		} else {
+			tex_data[i + 0] = {tx, ty2}
+			tex_data[i + 1] = {tx, ty}
+			tex_data[i + 2] = {tx2, ty}
+			tex_data[i + 3] = {tx2, ty2}
+		}
 		ii := data_i
 		i_off := u16(b.buffers.offset * 4)
 		indices_data[ii][0] = i_off + u16(i) + 0

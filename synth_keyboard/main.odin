@@ -22,6 +22,8 @@ Layout :: struct {
 	w:              i32,
 	h:              i32,
 	dpr:            f32,
+	key_dimensions: [2]f32,
+	resized:        bool,
 }
 State :: struct {
 	started:     bool,
@@ -32,6 +34,7 @@ State :: struct {
 	keys:        []Key,
 	text_batch:  text.Batch,
 }
+@(private = "file")
 state: State = {}
 
 temp_arena_buffer: [mem.Megabyte * 4]byte
@@ -47,31 +50,14 @@ start :: proc() -> (ok: bool) {
 		fmt.eprintln("Failed to set current context to 'canvas-1'")
 		return false
 	}
-	state.layout.w = gl.DrawingBufferWidth()
-	state.layout.h = gl.DrawingBufferHeight()
+	update_handle_resize(&state.layout)
 	state.layout.number_of_keys = 11
 	state.keys = make([]Key, state.layout.number_of_keys)
 
 	init_input(&g_input, state.layout.number_of_keys)
 
 	key_shader_init(&state.key_shader)
-	key_dim := key_buffers_init(&state.key_buffers, state.layout)
-	{
-		total_key_width: f32 = key_dim.x * f32(len(state.keys))
-		canvas_w := f32(state.layout.w)
-		spacing := (canvas_w - total_key_width) / f32(len(state.keys) + 1)
-		x: f32 = spacing
-		y: f32 = spacing
-		for &key, i in state.keys {
-			key.pos = {x, y}
-			key.w = key_dim.x
-			key.h = key_dim.y
-			key.label_offset_height = 20 //  + (6 * f32(i))
-			x += key.w + spacing
-		}
-		key_buffer_update_matrix_data(state.keys, state.key_buffers.matrices)
-	}
-
+	key_buffers_init(&state.key_buffers, state.keys, &state.layout)
 	{
 		labels: [7]string = {"C", "D", "E", "F", "G", "A", "B"}
 		for i in 0 ..< state.layout.number_of_keys {
@@ -84,6 +70,7 @@ start :: proc() -> (ok: bool) {
 
 	return check_gl_error()
 }
+
 
 check_gl_error :: proc() -> (ok: bool) {
 	err := gl.GetError()
@@ -104,33 +91,18 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
-	w := gl.DrawingBufferWidth()
-	h := gl.DrawingBufferHeight()
-	state.layout.w = w
-	state.layout.h = h
+	w := state.layout.w
+	h := state.layout.h
+
+	gl.Viewport(0, 0, w, h)
 
 	// 0,0 is bottom left
 	view_projection_matrix := glm.mat4Ortho3d(0, f32(w), 0, f32(h), -100, 100)
 
 	model_matrix := glm.mat4(1)
-	model_matrix *= glm.mat4Translate({0, 0, 0})
-	model_matrix *= glm.mat4Scale({1, 1, 1})
+	// model_matrix *= glm.mat4Translate({0, 0, 0})
+	// model_matrix *= glm.mat4Scale({1, 1, 1})
 
-	{
-		// update instance colors
-		color_data := make([]glm.vec4, state.layout.number_of_keys)
-		defer delete(color_data)
-		for i in 0 ..< state.layout.number_of_keys {
-			if input_state(i) {
-				color_data[i] = {0.4, 0.9, 1, 1}
-			} else {
-				color_data[i] = {1, 1, 1, 1}
-			}
-		}
-		b := state.key_buffers.colors
-		gl.BindBuffer(b.target, b.id)
-		gl.BufferSubDataSlice(b.target, 0, color_data)
-	}
 	uniforms: KeyUniforms = {
 		model_matrix           = model_matrix,
 		view_projection_matrix = view_projection_matrix,
@@ -164,18 +136,42 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 			pos: [2]i32 = {i32(key.pos.x), i32(key.pos.y)}
 			pos.x += i32(key.w / 2) - w / 2
 			pos.y += i32(key.label_offset_height)
-			_ = text.debug(pos, key.label) or_return
+			_ = text.debug(pos, key.label, flip_y = true) or_return
 		}
 	}
 	return ok
 }
 
-update_handle_resize :: proc(state: ^State) {
+update :: proc(state: ^State, input: ^Input, dt: f32) {
+	update_handle_resize(&state.layout)
+	if state.layout.resized {
+		update_keys(state.key_buffers, state.keys, state.layout)
+	}
+	update_input(&g_input, state.keys, dt)
+	{
+		// update instance colors
+		color_data := make([]glm.vec4, state.layout.number_of_keys)
+		defer delete(color_data)
+		for i in 0 ..< state.layout.number_of_keys {
+			if input_state(i) {
+				color_data[i] = {0.4, 0.9, 1, 1}
+			} else {
+				color_data[i] = {1, 1, 1, 1}
+			}
+		}
+		b := state.key_buffers.colors
+		gl.BindBuffer(b.target, b.id)
+		gl.BufferSubDataSlice(b.target, 0, color_data)
+	}
+}
+
+update_handle_resize :: proc(layout: ^Layout) {
 	r: resize.ResizeState
 	resize.resize(&r)
-	state.layout.w = r.canvas_res.x
-	state.layout.h = r.canvas_res.y
-	state.layout.dpr = r.dpr
+	layout.w = r.canvas_res.x
+	layout.h = r.canvas_res.y
+	layout.dpr = r.dpr
+	layout.resized = r.size_changed || r.zoom_changed
 }
 
 @(export)
@@ -188,8 +184,7 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 		if ok = start(); !ok {return false}
 	}
 
-	update_handle_resize(&state)
-	update_input(&g_input, dt)
+	update(&state, &g_input, dt)
 
 	ok = draw_scene(dt)
 	if !ok {return false}

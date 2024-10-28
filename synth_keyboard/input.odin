@@ -3,9 +3,7 @@ package synth_keyboard
 foreign import odin_mouse "odin_mouse"
 
 import "core:fmt"
-import glm "core:math/linalg/glsl"
 import "core:sys/wasm/js"
-import gl "vendor:wasm/WebGL"
 
 Input :: struct {
 	keys_down: []bool,
@@ -118,10 +116,10 @@ init_input :: proc(input: ^Input, number_of_keys: int) {
 	input.keys_down = make([]bool, number_of_keys)
 }
 
-update_input :: proc(input: ^Input, dt: f32) {
+update_input :: proc(input: ^Input, keys: []Key, dt: f32) {
 	new_i := -1
 	if input.clicked {
-		for key, i in state.keys {
+		for key, i in keys {
 			if pos_in_key(input.mouse_pos, key) {
 				new_i = i
 				break

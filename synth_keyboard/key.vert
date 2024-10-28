@@ -14,7 +14,7 @@ out vec2 vTexCoord;
 out vec4 vColor;
 
 void main() {
-    gl_Position = uViewProjectionMatrix * uModelMatrix * aMatrix * aPos;
+    gl_Position = uViewProjectionMatrix * aMatrix * aPos;
     vTexCoord = aTexCoord;
     vColor = aColor;
 }

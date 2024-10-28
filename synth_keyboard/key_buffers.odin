@@ -119,12 +119,70 @@ add_verts :: proc(x, y, w, h: f32, out: [][3]f32) {
 
 NFace :: 9
 
-key_buffers_init :: proc(buffers: ^Buffers, layout: Layout) -> (key_dimensions: [2]f32) {
-	w: f32 = 16
-	h: f32 = 16
+key_buffers_init :: proc(buffers: ^Buffers, keys: []Key, layout: ^Layout) {
 	pos_data: [NFace * 4][3]f32
 	tex_data: [NFace * 4][2]f32
 	indices_data: [NFace * 6]u16
+	key_dimensions := _key_buffers_init(pos_data[:], tex_data[:], indices_data[:])
+	layout.key_dimensions = key_dimensions
+
+	matrix_data := make([]glm.mat4, len(keys))
+	defer delete(matrix_data)
+
+	_key_buffers_update(matrix_data[:], keys, layout^)
+
+	buffers.pos = {
+		size   = 3,
+		type   = gl.FLOAT,
+		target = gl.ARRAY_BUFFER,
+		usage  = gl.STATIC_DRAW,
+	}
+	buffer_init(&buffers.pos, pos_data[:])
+
+	buffers.tex = {
+		size   = 2,
+		type   = gl.FLOAT,
+		target = gl.ARRAY_BUFFER,
+		usage  = gl.STATIC_DRAW,
+	}
+	buffer_init(&buffers.tex, tex_data[:])
+
+	buffers.indices = {
+		usage = gl.STATIC_DRAW,
+	}
+	ea_buffer_init(&buffers.indices, indices_data[:])
+
+	buffers.matrices = {
+		size   = 4,
+		type   = gl.FLOAT,
+		target = gl.ARRAY_BUFFER,
+		usage  = gl.STATIC_DRAW,
+	}
+	buffer_init(&buffers.matrices, matrix_data[:])
+
+	color_data := make([]glm.vec4, layout.number_of_keys)
+	defer delete(color_data)
+	for i in 0 ..< layout.number_of_keys {
+		color_data[i] = {0, 1, 1, 1}
+	}
+	buffers.colors = {
+		size   = 4,
+		type   = gl.FLOAT,
+		target = gl.ARRAY_BUFFER,
+		usage  = gl.DYNAMIC_DRAW,
+	}
+	buffer_init(&buffers.colors, color_data)
+}
+
+_key_buffers_init :: proc(
+	pos_data: [][3]f32,
+	tex_data: [][2]f32,
+	indices_data: []u16,
+) -> (
+	key_dimensions: [2]f32,
+) {
+	w: f32 = 16
+	h: f32 = 16
 	lo, hi: int;hi = 4
 	x, y: f32
 	x_overlap: f32 = 0.8
@@ -184,71 +242,43 @@ key_buffers_init :: proc(buffers: ^Buffers, layout: Layout) -> (key_dimensions: 
 		indices_data[i + 5] = 3 + vo
 	}
 
-	buffers.pos = {
-		size   = 3,
-		type   = gl.FLOAT,
-		target = gl.ARRAY_BUFFER,
-		usage  = gl.STATIC_DRAW,
-	}
-	buffer_init(&buffers.pos, pos_data[:])
-
-	buffers.tex = {
-		size   = 2,
-		type   = gl.FLOAT,
-		target = gl.ARRAY_BUFFER,
-		usage  = gl.STATIC_DRAW,
-	}
-	buffer_init(&buffers.tex, tex_data[:])
-
-	buffers.indices = {
-		usage = gl.STATIC_DRAW,
-	}
-	ea_buffer_init(&buffers.indices, indices_data[:])
-
-	matrix_data := make([]glm.mat4, layout.number_of_keys)
-	defer delete(matrix_data)
-	// for i in 0 ..< layout.number_of_keys {
-	// 	matrix_data[i] = glm.mat4Translate({f32(i) * layout.spacing, 0, 0})
-	// }
-	//  {
-	// 	glm.mat4(1),
-	// 	glm.mat4Translate({52, 0, 0}),
-	// 	glm.mat4Translate({104, 0, 0}),
-	// }
-	// fmt.println("matrix size:", size_of(glm.mat4))
-	buffers.matrices = {
-		size   = 4,
-		type   = gl.FLOAT,
-		target = gl.ARRAY_BUFFER,
-		usage  = gl.STATIC_DRAW,
-	}
-	buffer_init(&buffers.matrices, matrix_data[:])
-
-	color_data := make([]glm.vec4, layout.number_of_keys)
-	defer delete(color_data)
-	for i in 0 ..< layout.number_of_keys {
-		color_data[i] = {0, 1, 1, 1}
-	}
-	buffers.colors = {
-		size   = 4,
-		type   = gl.FLOAT,
-		target = gl.ARRAY_BUFFER,
-		usage  = gl.DYNAMIC_DRAW,
-	}
-	buffer_init(&buffers.colors, color_data)
-
-	check_gl_error()
-
 	return key_dimensions
 }
 
-key_buffer_update_matrix_data :: proc(keys: []Key, b: Buffer) {
+update_keys :: proc(buffers: Buffers, keys: []Key, layout: Layout) {
 	matrix_data := make([]glm.mat4, len(keys))
 	defer delete(matrix_data)
+
+	_key_buffers_update(matrix_data[:], keys, layout)
+
+	buffer_update(buffers.matrices, matrix_data[:])
+}
+
+_key_buffers_update :: proc(matrix_data: []glm.mat4, keys: []Key, layout: Layout) {
+	key_dim := layout.key_dimensions
+	total_key_width: f32 = key_dim.x * f32(len(keys))
+	canvas_w := f32(layout.w)
+	spacing := (canvas_w - total_key_width) / f32(len(keys) + 1)
+	x: f32 = spacing
+	y: f32 = spacing
+	for &key, i in keys {
+		key.pos = {x, y}
+		key.w = key_dim.x
+		key.h = key_dim.y
+		key.label_offset_height = 20 //  + (6 * f32(i))
+		x += key.w + spacing
+	}
 	for key, i in keys {
 		matrix_data[i] = glm.mat4Translate({key.pos.x, key.pos.y, 0})
 	}
+}
+
+buffer_update :: proc(b: Buffer, data: []$T) {
 	gl.BindBuffer(b.target, b.id)
-	gl.BufferSubDataSlice(b.target, 0, matrix_data)
+	gl.BufferSubDataSlice(b.target, 0, data)
+}
+ea_buffer_update :: proc(b: EaBuffer, data: []$T) {
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.id)
+	gl.BufferSubDataSlice(gl.ELEMENT_ARRAY_BUFFER, 0, data)
 }
 
