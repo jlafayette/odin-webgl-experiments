@@ -256,16 +256,16 @@ update_keys :: proc(buffers: Buffers, keys: []Key, layout: Layout) {
 
 _key_buffers_update :: proc(matrix_data: []glm.mat4, keys: []Key, layout: Layout) {
 	key_dim := layout.key_dimensions
-	total_key_width: f32 = key_dim.x * f32(len(keys))
 	canvas_w := f32(layout.w)
-	spacing := (canvas_w - total_key_width) / f32(len(keys) + 1)
-	x: f32 = spacing
-	y: f32 = spacing
+	spacing: f32 = 10
+	total_key_width: f32 = key_dim.x * f32(len(keys)) + spacing * f32(len(keys) - 1)
+	x: f32 = f32(layout.w) / 2 - total_key_width / 2
+	y: f32 = f32(layout.h) / 2 - key_dim.y / 2
 	for &key, i in keys {
 		key.pos = {x, y}
 		key.w = key_dim.x
 		key.h = key_dim.y
-		key.label_offset_height = 20 //  + (6 * f32(i))
+		key.label_offset_height = 20
 		x += key.w + spacing
 	}
 	for key, i in keys {
