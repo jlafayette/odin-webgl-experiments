@@ -25,6 +25,7 @@ def main(args: Args):
 		"camera",
 		"shapes",
 		"wfc",
+		"synth_keyboard",
 	]
 	for project in projects:
 		build_args = build.Args(project=project, go=False, odin=True, optimized=True, run=False)
