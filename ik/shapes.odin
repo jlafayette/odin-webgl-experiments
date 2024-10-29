@@ -176,12 +176,14 @@ Rectangle :: struct {
 	size:     [2]i32,
 	rotation: f32,
 	color:    [4]f32,
+	z:        f32,
 }
 Line :: struct {
 	start:     [2]i32,
 	end:       [2]i32,
 	thickness: i32,
 	color:     [4]f32,
+	z:         f32,
 }
 
 N_RECTANGES :: 64
@@ -223,6 +225,9 @@ shapes_init :: proc(s: ^Shapes, w, h: i32) -> (ok: bool) {
 clear_rectangles :: proc(s: ^Shapes) {
 	s.rectangle_count = 0
 }
+clear_lines :: proc(s: ^Shapes) {
+	s.line_count = 0
+}
 add_rectangle :: proc(s: ^Shapes, r: Rectangle) {
 	if s.rectangle_count >= N_RECTANGES {
 		return
@@ -253,21 +258,30 @@ line_to_matrix :: proc(line: Line, rotation: f32 = 0) -> glm.mat4 {
 	angle := math.atan2(line_diff.y, line_diff.x)
 	x_scale := glm.length(line_diff)
 	y_scale := f32(line.thickness)
-	m := glm.mat4Translate({f32(line.start.x), f32(line.start.y), -1.0})
+	m := glm.mat4Translate({f32(line.start.x), f32(line.start.y), line.z})
 	m *= glm.mat4Rotate({0, 0, 1}, angle + rotation)
 	m *= glm.mat4Scale({x_scale, y_scale, 1.0})
 	m *= glm.mat4Translate({0.5, 0, 0})
 	return m
 }
 rect_to_matrix :: proc(rect: Rectangle) -> glm.mat4 {
-	m := glm.mat4Translate({f32(rect.pos.x), f32(rect.pos.y), -1.0})
+	m := glm.mat4Translate({f32(rect.pos.x), f32(rect.pos.y), rect.z})
 	m *= glm.mat4Rotate({0, 0, 1}, rect.rotation)
 	m *= glm.mat4Scale({f32(rect.size.x), f32(rect.size.y), 1.0})
 	return m
 }
 
-shapes_draw :: proc(s: ^Shapes, projection_matrix: glm.mat4) {
+shapes_draw :: proc(s: ^Shapes, ik: Ik, projection_matrix: glm.mat4) {
 	clear_rectangles(s)
+	clear_lines(s)
+
+	r1, r2: Rectangle
+	line: Line
+	segment_to_shapes(ik.s1, &r1, &r2, &line)
+	add_rectangle(s, r1)
+	add_rectangle(s, r2)
+	add_line(s, line)
+
 	mi: int = 0
 	for rect, i in s.rectangles {
 		if i < s.rectangle_count {

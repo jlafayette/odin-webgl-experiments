@@ -27,6 +27,7 @@ Game :: struct {
 	shapes:       Shapes,
 	time_elapsed: f64,
 	input:        Input,
+	ik:           Ik,
 }
 @(private = "file")
 g_game: Game = {}
@@ -42,6 +43,7 @@ start :: proc(g: ^Game) -> (ok: bool) {
 
 	update_handle_resize(g)
 	init_input(&g.input)
+	ik_init(&g.ik, g.w, g.h)
 	shapes_init(&g.shapes, g.w, g.h)
 	return check_gl_error()
 }
@@ -60,7 +62,7 @@ draw_scene :: proc(g: ^Game) -> (ok: bool) {
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	projection := glm.mat4Ortho3d(0, f32(g.w), f32(g.h), 0, -10, 10)
 
-	shapes_draw(&g.shapes, projection)
+	shapes_draw(&g.shapes, g.ik, projection)
 
 	// scale: i32 = math.max(1, i32(math.round(state.dpr)))
 	// spacing: i32 = 5 * scale
