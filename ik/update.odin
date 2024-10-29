@@ -24,7 +24,7 @@ update :: proc(g: ^Game, dt: f32) {
 	g.time_elapsed += f64(dt)
 	update_handle_resize(g)
 	update_input(&g.input, dt)
-	ik_update(&g.ik, g.input, g.w, g.h, dt)
+	ik_update(&g.ik, g.input, g.w, g.h, g.dpr, dt)
 	shapes_update(&g.shapes, g.w, g.h, dt, g.time_elapsed)
 	g.input = {}
 }

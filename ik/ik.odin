@@ -1,5 +1,7 @@
 package ik
 
+import "core:fmt"
+import "core:math"
 import glm "core:math/linalg/glsl"
 
 Ik :: struct {
@@ -11,8 +13,17 @@ ik_init :: proc(ik: ^Ik, w: i32, h: i32) {
 	ik.s1.length = 200
 }
 
-ik_update :: proc(ik: ^Ik, input: Input, w: i32, h: i32, dt: f32) {
+ik_update :: proc(ik: ^Ik, input: Input, w: i32, h: i32, dpr: f32, dt: f32) {
 	ik.s1.a = {f32(w) / 2, f32(h) / 2}
+	// rotate line to point at the mouse
+
+	if input.mouse_down {
+		mouse_pos: glm.vec2 = {f32(input.mouse_pos.x) * dpr, f32(input.mouse_pos.y) * dpr}
+		pos := mouse_pos - ik.s1.a
+		angle: f32 = math.atan2_f32(pos.y, pos.x)
+		ik.s1.angle = angle
+	}
+
 	segment_calculate_b(&ik.s1)
 }
 
@@ -24,8 +35,9 @@ Segment :: struct {
 }
 
 segment_calculate_b :: proc(seg: ^Segment) {
-	// TODO: real calculation
-	seg.b = seg.a + glm.vec2({seg.length, 0})
+	x: f32 = seg.length * math.cos(seg.angle) + seg.a.x
+	y: f32 = seg.length * math.sin(seg.angle) + seg.a.y
+	seg.b = {x, y}
 }
 
 segment_to_shapes :: proc(seg: Segment, r1, r2: ^Rectangle, line: ^Line) {
