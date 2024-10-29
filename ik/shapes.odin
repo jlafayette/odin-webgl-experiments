@@ -186,8 +186,8 @@ Line :: struct {
 	z:         f32,
 }
 
-N_RECTANGES :: 64
-N_LINES :: 64
+N_RECTANGES :: 1024
+N_LINES :: N_RECTANGES / 2
 N_INSTANCE :: N_RECTANGES + N_LINES
 
 Shapes :: struct {
@@ -275,12 +275,14 @@ shapes_draw :: proc(s: ^Shapes, ik: Ik, projection_matrix: glm.mat4) {
 	clear_rectangles(s)
 	clear_lines(s)
 
-	r1, r2: Rectangle
-	line: Line
-	segment_to_shapes(ik.s1, &r1, &r2, &line)
-	add_rectangle(s, r1)
-	add_rectangle(s, r2)
-	add_line(s, line)
+	for seg in ik.segs {
+		r1, r2: Rectangle
+		line: Line
+		segment_to_shapes(seg, &r1, &r2, &line)
+		add_rectangle(s, r1)
+		add_rectangle(s, r2)
+		add_line(s, line)
+	}
 
 	mi: int = 0
 	for rect, i in s.rectangles {
