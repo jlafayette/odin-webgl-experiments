@@ -13,6 +13,7 @@ ik_init :: proc(ik: ^Ik, w: i32, h: i32) {
 	ik.segs = make([]Segment, 4)
 
 	pos: glm.vec2 = {f32(w) / 2, f32(h) / 2}
+	ik.anchor = pos
 	angle: f32 = 0
 	length: f32 = 100
 	mult: f32 = 1.0
@@ -39,27 +40,30 @@ ik_init :: proc(ik: ^Ik, w: i32, h: i32) {
 		a_pos := seg.a - seg.b
 		seg.angle = math.atan2_f32(a_pos.y, a_pos.x)
 	}
-	ik.segs[0].color = {1.0, 0.2, 0.2}
-	ik.segs[1].color = {0.2, 1.0, 0.2}
+	ik.segs[0].color = {0.8, 0.2, 0.2}
+	ik.segs[1].color = {0.2, 0.7, 0.3}
 	ik.segs[2].color = {0.2, 0.2, 1.0}
 }
 
 ik_update :: proc(ik: ^Ik, input: Input, w: i32, h: i32, dpr: f32, dt: f32) {
+	ik.anchor = {f32(w) / 2, f32(h) / 2}
 
 	// follow mouse
 	if input.mouse_down {
-
 		target: glm.vec2 = {f32(input.mouse_pos.x) * dpr, f32(input.mouse_pos.y) * dpr}
 		#reverse for &seg in ik.segs {
 			segment_follow(&seg, target)
 			target = seg.a
-			a_pos := seg.a - seg.b
-			seg.angle = math.atan2_f32(a_pos.y, a_pos.x)
 		}
+	}
 
-		// target := mouse_pos - ik.s1.a
-		// angle: f32 = math.atan2_f32(pos.y, pos.x)
-		// ik.s1.angle = angle
+	// move everything back to anchor
+	diff: glm.vec2 = ik.anchor - ik.segs[0].a
+	for &seg in ik.segs {
+		seg.a += diff
+		seg.b += diff
+		a_pos := seg.a - seg.b
+		seg.angle = math.atan2_f32(a_pos.y, a_pos.x)
 	}
 }
 
@@ -92,13 +96,13 @@ segment_to_shapes :: proc(seg: Segment, r1, r2: ^Rectangle, line: ^Line) {
 	r1.rotation = seg.angle
 	r1.color.a = 1
 	r1.color.rgb = seg.color * 0.8
-	r1.z = -0.1 + seg.z
+	r1.z = 0.005 + seg.z
 	r2.pos = {i32(seg.b.x), i32(seg.b.y)}
 	r2.size = {10, 10}
 	r2.rotation = seg.angle
 	r2.color.a = 1
 	r2.color.rgb = seg.color
-	r2.z = 1 + seg.z
+	r2.z = 0.005 + seg.z
 	line.start = {i32(seg.a.x), i32(seg.a.y)}
 	line.end = {i32(seg.b.x), i32(seg.b.y)}
 	line.thickness = 4
