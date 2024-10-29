@@ -39,4 +39,5 @@ aspect ratio was off and top of content cut off.  Took a while to find the answe
 [ ] new: Sound queues and pools (can have buttons)
 [ ] sounds: Add volume slider
 [ ] synth_keyboard: Use [DynamicsCompressorNode](https://developer.mozilla.org/en-US/docs/Web/API/DynamicsCompressorNode)
+[ ] synth_keyboard: add attack, sustain, decay, release
 [ ] camera: determine N_CUBES from query parameters if provided
