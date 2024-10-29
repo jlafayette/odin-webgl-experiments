@@ -11,20 +11,25 @@ Ik :: struct {
 ik_init :: proc(ik: ^Ik, w: i32, h: i32) {
 	ik.s1.a = {f32(w) / 2, f32(h) / 2}
 	ik.s1.length = 200
+	segment_calculate_b(&ik.s1)
 }
 
 ik_update :: proc(ik: ^Ik, input: Input, w: i32, h: i32, dpr: f32, dt: f32) {
-	ik.s1.a = {f32(w) / 2, f32(h) / 2}
-	// rotate line to point at the mouse
 
+	// follow mouse
 	if input.mouse_down {
-		mouse_pos: glm.vec2 = {f32(input.mouse_pos.x) * dpr, f32(input.mouse_pos.y) * dpr}
-		pos := mouse_pos - ik.s1.a
-		angle: f32 = math.atan2_f32(pos.y, pos.x)
-		ik.s1.angle = angle
-	}
+		seg := &ik.s1
+		target: glm.vec2 = {f32(input.mouse_pos.x) * dpr, f32(input.mouse_pos.y) * dpr}
+		dir: glm.vec2 = target - seg.a
+		dir = glm.normalize(dir) * seg.length
+		dir *= -1
+		seg.a = target + dir
+		seg.b = target
 
-	segment_calculate_b(&ik.s1)
+		// target := mouse_pos - ik.s1.a
+		// angle: f32 = math.atan2_f32(pos.y, pos.x)
+		// ik.s1.angle = angle
+	}
 }
 
 Segment :: struct {
