@@ -5,8 +5,9 @@ import "core:math"
 import glm "core:math/linalg/glsl"
 
 Ik :: struct {
-	anchor: glm.vec2,
-	segs:   []Segment,
+	anchor:      glm.vec2,
+	prev_target: glm.vec2,
+	segs:        []Segment,
 }
 
 ik_init :: proc(ik: ^Ik, w: i32, h: i32) {
@@ -43,25 +44,31 @@ ik_init :: proc(ik: ^Ik, w: i32, h: i32) {
 	ik.segs[0].color = {0.8, 0.2, 0.2}
 	ik.segs[1].color = {0.2, 0.7, 0.3}
 	ik.segs[2].color = {0.2, 0.2, 1.0}
+	ik.prev_target = ik.segs[len(ik.segs) - 1].b
 }
 
 ik_update :: proc(ik: ^Ik, input: Input, w: i32, h: i32, dpr: f32, dt: f32) {
 	ik.anchor = {f32(w) / 2, f32(h) / 2}
 
 	// follow mouse
+	target: glm.vec2 = ik.prev_target
 	if input.mouse_down {
-		target: glm.vec2 = {f32(input.mouse_pos.x) * dpr, f32(input.mouse_pos.y) * dpr}
-		#reverse for &seg in ik.segs {
-			segment_follow(&seg, target)
-			target = seg.a
-		}
+		target = {f32(input.mouse_pos.x) * dpr, f32(input.mouse_pos.y) * dpr}
+		ik.prev_target = target
+	}
+	#reverse for &seg in ik.segs {
+		segment_follow(&seg, target)
+		target = seg.a
 	}
 
 	// move everything back to anchor
-	diff: glm.vec2 = ik.anchor - ik.segs[0].a
+	anchor: glm.vec2 = ik.anchor
 	for &seg in ik.segs {
+		diff: glm.vec2 = anchor - seg.a
+		// diff = glm.lerp(0, diff, 0.5)
 		seg.a += diff
 		seg.b += diff
+		anchor = seg.b
 		a_pos := seg.a - seg.b
 		seg.angle = math.atan2_f32(a_pos.y, a_pos.x)
 	}
@@ -80,8 +87,12 @@ segment_follow :: proc(seg: ^Segment, target: glm.vec2) {
 	dir: glm.vec2 = target - seg.a
 	dir = glm.normalize(dir) * seg.length
 	dir *= -1
-	seg.a = target + dir
-	seg.b = target
+
+	// target2: glm.vec2 = glm.lerp(seg.b, target, 0.5)
+	target2 := target
+
+	seg.a = target2 + dir
+	seg.b = target2
 }
 
 segment_calculate_b :: proc(seg: ^Segment) {
