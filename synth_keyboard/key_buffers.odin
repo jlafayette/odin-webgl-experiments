@@ -255,9 +255,9 @@ update_keys :: proc(buffers: Buffers, keys: []Key, layout: Layout) {
 }
 
 _key_buffers_update :: proc(matrix_data: []glm.mat4, keys: []Key, layout: Layout) {
-	key_dim := layout.key_dimensions
+	key_dim := layout.key_dimensions * layout.dpr
 	canvas_w := f32(layout.w)
-	spacing: f32 = 10
+	spacing: f32 = 10 * layout.dpr
 	total_key_width: f32 = key_dim.x * f32(len(keys)) + spacing * f32(len(keys) - 1)
 	x: f32 = f32(layout.w) / 2 - total_key_width / 2
 	y: f32 = f32(layout.h) / 2 - key_dim.y / 2
@@ -265,11 +265,13 @@ _key_buffers_update :: proc(matrix_data: []glm.mat4, keys: []Key, layout: Layout
 		key.pos = {x, y}
 		key.w = key_dim.x
 		key.h = key_dim.y
-		key.label_offset_height = 20
+		key.label_offset_height = 20 * layout.dpr
 		x += key.w + spacing
 	}
 	for key, i in keys {
-		matrix_data[i] = glm.mat4Translate({key.pos.x, key.pos.y, 0})
+		m := glm.mat4Translate({key.pos.x, key.pos.y, 0})
+		m *= glm.mat4Scale({layout.dpr, layout.dpr, 1.0})
+		matrix_data[i] = m
 	}
 }
 

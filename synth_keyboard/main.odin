@@ -124,7 +124,7 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 		spacing: i32 = 5 * scale
 		text.batch_start(
 			&state.text_batch,
-			.A40,
+			_pick_atlas(state.layout.dpr),
 			{0, 0, 0},
 			view_projection_matrix,
 			64,
@@ -140,6 +140,21 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 		}
 	}
 	return ok
+}
+
+_pick_atlas :: proc(dpr: f32) -> text.AtlasSize {
+	size: f32 = 40 * dpr
+	if size >= 35 {
+		return .A40
+	} else if size >= 25 {
+		return .A30
+	} else if size >= 15 {
+		return .A20
+	} else if size >= 18 {
+		return .A16
+	} else {
+		return .A12
+	}
 }
 
 update :: proc(state: ^State, input: ^Input, dt: f32) {
