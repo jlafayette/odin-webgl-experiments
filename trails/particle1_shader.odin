@@ -66,7 +66,8 @@ particle_shader_use :: proc(
 	gl.UniformMatrix4fv(s.u_model_matrix, u.model_matrix)
 	gl.UniformMatrix4fv(s.u_view_projection_matrix, u.view_projection_matrix)
 
-	return check_gl_error()
+	// return check_gl_error()
+	return true
 }
 shader_set_attribute :: proc(index: i32, b: Buffer) {
 	gl.BindBuffer(b.target, b.id)

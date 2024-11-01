@@ -3,6 +3,7 @@ package trails
 foreign import odin_mouse "odin_mouse"
 
 import "core:fmt"
+import "core:math"
 import glm "core:math/linalg/glsl"
 import "core:sys/wasm/js"
 import gl "vendor:wasm/WebGL"
@@ -13,8 +14,9 @@ Touch :: struct {
 }
 
 Input :: struct {
-	mouse_pos: [2]f32,
-	mouse_vel: [2]f32,
+	tgt: [2]f32,
+	pos: [2]f32,
+	vel: [2]f32,
 }
 ListenerInput :: struct {
 	mouse_pos:      [2]f32,
@@ -60,8 +62,9 @@ init_input :: proc(input: ^Input) {
 
 // Update global gamestate with listener input
 update_input :: proc(input: ^Input, dt: f32, w: i32, h: i32, dpr: f32) {
-	old := input.mouse_pos
-	new := input.mouse_pos
+	old_pos := input.pos
+	old := input.tgt
+	new := input.tgt
 
 	new_mouse := i_.mouse_pos
 	old_mouse := i_.prev_mouse_pos
@@ -79,8 +82,16 @@ update_input :: proc(input: ^Input, dt: f32, w: i32, h: i32, dpr: f32) {
 	}
 	i_.prev_touches = i_.touches
 
-	input.mouse_pos = new
-	input.mouse_vel = new - old
+	input.tgt = new
+
+	distance := glm.length(old_pos - input.tgt)
+	max_distance := glm.length(glm.vec2({f32(w), f32(h)}))
+	distance = math.clamp(distance, 10, max_distance)
+	lerp_amount: f32 = math.pow(1 - (distance / max_distance), 2)
+	lerp_amount = math.remap(lerp_amount, 0, 1, 0.01, 0.5)
+
+	input.pos = glm.lerp(old_pos, input.tgt, lerp_amount)
+	input.vel = input.pos - old_pos
 }
 
 on_mouse_move :: proc(e: js.Event) {
