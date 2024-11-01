@@ -133,7 +133,7 @@ particle_find_unused :: proc(e: ^ParticleEmitter) -> (int, bool) {
 			return i, true
 		}
 	}
-	fmt.println("e0")
+	// fmt.println("e0")
 	e.last_used = 0
 	return 0, false
 }

@@ -109,7 +109,7 @@ update :: proc(g: ^GameState, dt: f32) {
 	resize.resize(&g.resize)
 	g.w = g.resize.canvas_res.x
 	g.h = g.resize.canvas_res.y
-	update_input(&g_.input, dt)
+	update_input(&g_.input, dt, g.w, g.h, g.resize.dpr)
 	pos := glm.vec2(g.input.mouse_pos)
 	vel := glm.vec2(g.input.mouse_vel)
 	particle_emitter_update(&g.emitter, dt, pos, vel)
