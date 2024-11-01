@@ -169,11 +169,10 @@ on_key_down :: proc(e: js.Event) {
 	if e.key.repeat {
 		return
 	}
+	fmt.println(e.key.code)
 	if e.key.code in k_map {
 		i := k_map[e.key.code]
-		if i < len(g_input.keys_down) {
-			input_on(i, .Key)
-		}
+		input_on(i, .Key)
 	}
 }
 on_key_up :: proc(e: js.Event) {
