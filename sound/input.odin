@@ -6,88 +6,11 @@ import "core:fmt"
 import "core:sys/wasm/js"
 
 Input :: struct {
-	keys_down: []bool,
-	clicked:   bool,
-	mouse_key: int,
+	pointer:   PointerState,
 	mouse_pos: [2]f32,
 }
-g_input := Input {
-	mouse_key = -1,
-}
+g_input := Input{}
 
-InputType :: enum {
-	Key,
-	Mouse,
-}
-
-input_state :: proc(index: int) -> bool {
-	return g_input.keys_down[index] || g_input.mouse_key == index
-}
-
-@(private = "file")
-input_on :: proc(index: int, type: InputType) {
-	if index < 0 || index > len(g_input.keys_down) {
-		return
-	}
-	prev_state := input_state(index)
-	prev_mouse_index := g_input.mouse_key
-	switch type {
-	case .Key:
-		{
-			g_input.keys_down[index] = true
-		}
-	case .Mouse:
-		{
-			g_input.mouse_key = index
-			if prev_mouse_index != index {
-				input_off(prev_mouse_index, .Mouse)
-			}
-		}
-	}
-	if !prev_state {
-		note_pressed(index)
-	}
-}
-@(private = "file")
-input_off :: proc(index: int, type: InputType) {
-	if index < 0 || index > len(g_input.keys_down) {
-		return
-	}
-	prev_state := input_state(index)
-	switch type {
-	case .Key:
-		{
-			g_input.keys_down[index] = false
-		}
-	case .Mouse:
-		{
-			g_input.mouse_key = -1
-		}
-	}
-	if prev_state && !input_state(index) {
-		note_released(index)
-	}
-}
-@(private = "file")
-input_mouse :: proc(index: int) {
-	prev_index := g_input.mouse_key
-	if index < 0 || index > len(g_input.keys_down) {
-		input_off(prev_index, .Mouse)
-		return
-	}
-	if prev_index != index {
-		input_off(prev_index, .Mouse)
-		input_on(index, .Mouse)
-	}
-}
-
-pos_in_key :: proc(pos: [2]f32, key: Key) -> bool {
-	if pos.x < key.pos.x {return false}
-	if pos.x > key.pos.x + key.w {return false}
-	if pos.y < key.pos.y {return false}
-	if pos.y > key.pos.y + key.h {return false}
-	return true
-}
 
 init_input :: proc(input: ^Input, number_of_keys: int) {
 	js.add_window_event_listener(.Key_Down, {}, on_key_down)
@@ -96,21 +19,21 @@ init_input :: proc(input: ^Input, number_of_keys: int) {
 	js.add_window_event_listener(.Mouse_Down, {}, on_mouse_down)
 	js.add_window_event_listener(.Mouse_Up, {}, on_mouse_up)
 	js.add_window_event_listener(.Blur, {}, on_blur)
-	input.keys_down = make([]bool, number_of_keys)
+	input.pointer = .Hover
 }
 
-update_input :: proc(input: ^Input, keys: []Key, dt: f32, dpr: f32) {
+update_input :: proc(input: ^Input, buttons: []Button, dt: f32, dpr: f32) {
 	input.mouse_pos *= dpr
 	new_i := -1
-	if input.clicked {
-		for key, i in keys {
-			if pos_in_key(input.mouse_pos, key) {
-				new_i = i
-				break
-			}
+	for &btn, i in buttons {
+		btn.pointer = .None
+		if button_contains_pos(btn, i_(input.mouse_pos)) {
+			btn.pointer = input.pointer
 		}
 	}
-	input_mouse(new_i)
+	if input.pointer == .Up {
+		input.pointer = .Hover
+	}
 }
 
 on_mouse_move :: proc(e: js.Event) {
@@ -122,51 +45,26 @@ on_mouse_down :: proc(e: js.Event) {
 	if e.mouse.button != 0 {
 		return
 	}
-	g_input.clicked = true
+	g_input.pointer = .Down
 }
 on_mouse_up :: proc(e: js.Event) {
 	// fmt.println("unclick:", e.mouse.button)
 	if e.mouse.button != 0 {
 		return
 	}
-	g_input.clicked = false
+	g_input.pointer = .Up
 }
 
-k_map: map[string]int = {
-	"KeyA"      = 0,
-	"KeyS"      = 1,
-	"KeyD"      = 2,
-	"KeyF"      = 3,
-	"KeyG"      = 4,
-	"KeyH"      = 5,
-	"KeyJ"      = 6,
-	"KeyK"      = 7,
-	"KeyL"      = 8,
-	"Semicolon" = 9,
-	"Quote"     = 10,
-}
 on_key_down :: proc(e: js.Event) {
 	if e.key.repeat {
 		return
 	}
 	// fmt.println(e.key.code)
-	if e.key.code in k_map {
-		i := k_map[e.key.code]
-		input_on(i, .Key)
-	}
 }
 on_key_up :: proc(e: js.Event) {
-	if e.key.code in k_map {
-		i := k_map[e.key.code]
-		input_off(i, .Key)
-	}
 }
 
 on_blur :: proc(e: js.Event) {
-	g_input.clicked = false
-	input_off(g_input.mouse_key, .Mouse)
-	for _, i in g_input.keys_down {
-		input_off(i, .Key)
-	}
+	g_input.pointer = .Hover
 }
 

@@ -333,10 +333,37 @@ rect_to_matrix :: proc(rect: Rectangle) -> glm.mat4 {
 	return m
 }
 
-shapes_draw :: proc(s: ^Shapes, projection_matrix: glm.mat4) {
+i_ :: proc(pos: [2]f32) -> [2]i32 {
+	return {i32(math.round(pos.x)), i32(math.round(pos.y))}
+}
+f_ :: proc(pos: [2]i32) -> [2]f32 {
+	return {f32(pos.x), f32(pos.y)}
+}
+shapes_draw :: proc(s: ^Shapes, buttons: []Button, projection_matrix: glm.mat4) {
 	rect_matrices := make([]glm.mat4, N_INSTANCE, allocator = context.temp_allocator)
 	colors := make([]glm.vec4, N_INSTANCE, allocator = context.temp_allocator)
 	circle_blends := make([]f32, N_INSTANCE, allocator = context.temp_allocator)
+
+	retained_rectangle_count: int = s.rectangle_count
+	retained_circle_count: int = s.circle_count
+	defer {
+		s.rectangle_count = retained_rectangle_count
+		s.circle_count = retained_circle_count
+	}
+	for btn in buttons {
+		btn_shape := button_get_shape(btn)
+		switch shape in btn_shape {
+		case Rectangle:
+			{
+				add_rectangle(s, shape)
+			}
+		case Circle:
+			{
+				add_circle(s, shape)
+			}
+		}
+	}
+
 	mi: int = 0
 	for rect, i in s.rectangles {
 		if i < s.rectangle_count {

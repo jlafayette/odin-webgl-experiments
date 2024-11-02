@@ -10,13 +10,6 @@ import gl "vendor:wasm/WebGL"
 
 main :: proc() {}
 
-Key :: struct {
-	pos:                 [2]f32,
-	w:                   f32,
-	h:                   f32,
-	label:               string,
-	label_offset_height: f32,
-}
 Layout :: struct {
 	number_of_keys: int,
 	w:              i32,
@@ -28,7 +21,7 @@ Layout :: struct {
 State :: struct {
 	started:      bool,
 	layout:       Layout,
-	keys:         []Key,
+	buttons:      []Button,
 	text_batch:   text.Batch,
 	shapes:       Shapes,
 	time_elapsed: f64,
@@ -50,8 +43,7 @@ start :: proc() -> (ok: bool) {
 		return false
 	}
 	update_handle_resize(&state.layout)
-	state.layout.number_of_keys = 11
-	state.keys = make([]Key, state.layout.number_of_keys)
+	state.buttons = buttons_init(state.layout.w, state.layout.h)
 
 	init_input(&g_input, state.layout.number_of_keys)
 
@@ -71,7 +63,7 @@ check_gl_error :: proc() -> (ok: bool) {
 }
 
 draw_scene :: proc(dt: f32) -> (ok: bool) {
-	gl.ClearColor(0.5, 0.5, 0.5, 1)
+	gl.ClearColor(0.1, 0.1, 0.1, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.ClearDepth(1)
 	gl.Enable(gl.DEPTH_TEST)
@@ -87,7 +79,7 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 
 	view_projection_matrix := glm.mat4Ortho3d(0, f32(w), f32(h), 0, -100, 100)
 
-	shapes_draw(&state.shapes, view_projection_matrix)
+	shapes_draw(&state.shapes, state.buttons, view_projection_matrix)
 
 	// {
 	// 	scale: i32 = math.max(1, i32(math.round(state.layout.dpr)))
@@ -116,8 +108,10 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 update :: proc(state: ^State, input: ^Input, dt: f32) {
 	state.time_elapsed += f64(dt)
 	update_handle_resize(&state.layout)
-	update_input(&g_input, state.keys, dt, state.layout.dpr)
-	shapes_update(&state.shapes, state.layout.w, state.layout.h, dt, state.time_elapsed)
+	l := state.layout
+	update_input(&g_input, state.buttons, dt, l.dpr)
+	buttons_update(state.buttons, l.resized, l.w, l.h)
+	shapes_update(&state.shapes, l.w, l.h, dt, state.time_elapsed)
 }
 
 update_handle_resize :: proc(layout: ^Layout) {
