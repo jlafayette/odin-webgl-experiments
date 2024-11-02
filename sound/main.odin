@@ -21,7 +21,7 @@ Layout :: struct {
 State :: struct {
 	started:      bool,
 	layout:       Layout,
-	buttons:      []Button,
+	buttons:      [BUTTON_COUNT]Button,
 	text_batch:   text.Batch,
 	shapes:       Shapes,
 	time_elapsed: f64,
@@ -43,7 +43,6 @@ start :: proc() -> (ok: bool) {
 		return false
 	}
 	update_handle_resize(&state.layout)
-	state.buttons = buttons_init(state.layout.w, state.layout.h)
 
 	init_input(&g_input, state.layout.number_of_keys)
 
@@ -79,7 +78,7 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 
 	view_projection_matrix := glm.mat4Ortho3d(0, f32(w), f32(h), 0, -100, 100)
 
-	shapes_draw(&state.shapes, state.buttons, view_projection_matrix)
+	shapes_draw(&state.shapes, state.buttons[:], view_projection_matrix)
 
 	// {
 	// 	scale: i32 = math.max(1, i32(math.round(state.layout.dpr)))
@@ -109,8 +108,9 @@ update :: proc(state: ^State, input: ^Input, dt: f32) {
 	state.time_elapsed += f64(dt)
 	update_handle_resize(&state.layout)
 	l := state.layout
-	update_input(&g_input, state.buttons, dt, l.dpr)
-	buttons_update(state.buttons, l.resized, l.w, l.h)
+	update_input(&g_input, state.buttons[:], dt, l.dpr)
+	// buttons_update(state.buttons, l.resized, l.w, l.h)
+	buttons_layout(&state.buttons, {{0, 0}, {l.w, l.h}})
 	shapes_update(&state.shapes, l.w, l.h, dt, state.time_elapsed)
 }
 

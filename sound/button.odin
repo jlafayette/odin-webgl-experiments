@@ -3,14 +3,13 @@ package sound
 import "core:fmt"
 import glm "core:math/linalg/glsl"
 
-Shape :: union {
+ShapeType :: enum {
 	Rectangle,
 	Circle,
 }
-Xform :: struct {
-	pos:      [2]i32,
-	size:     [2]i32,
-	rotation: f32,
+Shape :: union {
+	Rectangle,
+	Circle,
 }
 PointerState :: enum {
 	None,
@@ -18,54 +17,98 @@ PointerState :: enum {
 	Down,
 	Up,
 }
+VAlign :: enum {
+	Top,
+	Center,
+	Bottom,
+}
+HAlign :: enum {
+	Left,
+	Center,
+	Right,
+}
 Button :: struct {
-	pos:     [2]i32,
-	shape:   Shape,
-	pointer: PointerState,
+	pos:       [2]i32,
+	size:      [2]i32,
+	shape:     ShapeType,
+	v_align:   VAlign,
+	h_align:   HAlign,
+	pointer:   PointerState,
+	container: Container,
+}
+Container :: struct {
+	pos:  [2]i32,
+	size: [2]i32,
+}
+Bbox :: struct {
+	pos:  [2]i32,
+	size: [2]i32,
 }
 
 button_color: [4]f32 = {0, 0.7, 0.7, 1}
 button_hover_color: [4]f32 = {0, 0.8, 0.8, 1}
 
-buttons_init :: proc(w, h: i32) -> []Button {
-	buttons := make([]Button, 3)
-	{
-		b: Button
-		b.pos = {8, 8}
-		size: [2]i32 = {200, 40}
-		b.shape = Rectangle({{size.x / 2, size.y / 2}, size, 0, button_color})
-		buttons[0] = b
-	}
-	{
-		b: Button
-		size: [2]i32 = {200, 40}
-		b.pos = {w - size.x - 8, h - size.y - 8}
-		b.shape = Rectangle({{size.x / 2, size.y / 2}, size, 0, button_color})
-		buttons[1] = b
-	}
-	{
-		b: Button
-		radius: i32 = 40
-		b.pos = {w - radius * 2 - 8, 8}
-		b.shape = Circle({{radius, radius}, radius, {}})
-		buttons[2] = b
-	}
+BUTTON_COUNT :: 3
 
-	return buttons
-}
-
-buttons_update :: proc(buttons: []Button, resized: bool, w, h: i32) {
-	if !resized {
-		return
-	}
+buttons_layout :: proc(buttons: ^[BUTTON_COUNT]Button, container: Container) {
+	w := container.size.x
+	h := container.size.y
 	size: [2]i32 = {200, 40}
 	buttons[0].pos = {8, 8}
-	buttons[0].shape = Rectangle({{size.x / 2, size.y / 2}, size, 0, {}})
-	buttons[1].pos = {w - size.x - 8, h - size.y - 8}
-	buttons[1].shape = Rectangle({{size.x / 2, size.y / 2}, size, 0, {}})
-	radius: i32 = 40
-	buttons[2].pos = {w - radius * 2 - 8, 8}
-	buttons[2].shape = Circle({{radius, radius}, radius, {}})
+	buttons[0].size = size
+	buttons[0].v_align = .Top
+	buttons[0].h_align = .Left
+	buttons[0].shape = .Rectangle
+
+	buttons[1].pos = {8, 8}
+	buttons[1].size = size
+	buttons[1].v_align = .Bottom
+	buttons[1].h_align = .Right
+	buttons[1].shape = .Rectangle
+
+	size = {80, 80}
+	buttons[2].pos = {8, 8}
+	buttons[2].size = size
+	buttons[2].v_align = .Top
+	buttons[2].h_align = .Right
+	buttons[2].shape = .Circle
+
+	for &b in buttons {
+		b.container = container
+	}
+}
+
+button_get_bbox :: proc(b: Button) -> Bbox {
+	pos: [2]i32
+	switch b.h_align {
+	case .Left:
+		{
+			pos.x = b.pos.x
+		}
+	case .Center:
+		{
+			pos.x = b.container.size.x / 2 - b.size.x / 2
+		}
+	case .Right:
+		{
+			pos.x = b.container.size.x - b.size.x - b.pos.x
+		}
+	}
+	switch b.v_align {
+	case .Top:
+		{
+			pos.y = b.pos.y
+		}
+	case .Center:
+		{
+			pos.y = b.container.size.y / 2 - b.size.y / 2
+		}
+	case .Bottom:
+		{
+			pos.y = b.container.size.y - b.pos.y - b.size.y
+		}
+	}
+	return {pos, b.size}
 }
 
 button_get_shape :: proc(b: Button) -> Shape {
@@ -90,45 +133,46 @@ button_get_shape :: proc(b: Button) -> Shape {
 		size_offset = {2, 2}
 		radius_offset = 1
 	}
+	bbox := button_get_bbox(b)
+	bbox.pos += pos_offset - size_offset / 2
+	bbox.size += size_offset
+
 	result: Shape
-	switch s in b.shape {
-	case Rectangle:
+	switch b.shape {
+	case .Rectangle:
 		{
-			s_ := s
-			s_.color = color
-			s_.size += size_offset
-			s_.pos += pos_offset + b.pos
-			result = s_
+			r: Rectangle = {bbox.pos + bbox.size / 2, bbox.size, 0, color}
+			result = r
 		}
-	case Circle:
+	case .Circle:
 		{
-			s_ := s
-			s_.color = color
-			s_.radius += radius_offset
-			s_.pos += pos_offset + b.pos
-			result = s_
+			c: Circle = {bbox.pos + bbox.size / 2, bbox.size.x / 2, color}
+			result = c
 		}
 	}
-
 	return result
 }
 
 button_contains_pos :: proc(btn: Button, pos: [2]i32) -> bool {
-	switch shape in btn.shape {
-	case Rectangle:
+	bbox := button_get_bbox(btn)
+	btn_pos := bbox.pos
+	btn_size := bbox.size
+	switch btn.shape {
+	case .Rectangle:
 		{
-			btn_pos: [2]i32 = btn.pos + shape.pos - shape.size / 2
 			return(
 				pos.x >= btn_pos.x &&
-				pos.x <= btn_pos.x + shape.size.x &&
+				pos.x <= btn_pos.x + btn_size.x &&
 				pos.y >= btn_pos.y &&
-				pos.y <= btn_pos.y + shape.size.y \
+				pos.y <= btn_pos.y + btn_size.y \
 			)
 		}
-	case Circle:
+	case .Circle:
 		{
-			d: f32 = glm.length((f_(btn.pos) + f_(shape.pos)) - f_(pos))
-			return d < f32(shape.radius)
+			radius := btn_size.x / 2
+			center := btn_pos + btn_size / 2
+			d: f32 = glm.length(f_(center) - f_(pos))
+			return d < f32(radius)
 		}
 	}
 	return false
