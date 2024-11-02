@@ -109,7 +109,6 @@ update :: proc(state: ^State, input: ^Input, dt: f32) {
 	update_handle_resize(&state.layout)
 	l := state.layout
 	update_input(&g_input, state.buttons[:], dt, l.dpr)
-	// buttons_update(state.buttons, l.resized, l.w, l.h)
 	buttons_layout(&state.buttons, {{0, 0}, {l.w, l.h}})
 	shapes_update(&state.shapes, l.w, l.h, dt, state.time_elapsed)
 }

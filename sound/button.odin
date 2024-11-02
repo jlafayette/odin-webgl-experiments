@@ -48,7 +48,7 @@ Bbox :: struct {
 button_color: [4]f32 = {0, 0.7, 0.7, 1}
 button_hover_color: [4]f32 = {0, 0.8, 0.8, 1}
 
-BUTTON_COUNT :: 3
+BUTTON_COUNT :: 4
 
 buttons_layout :: proc(buttons: ^[BUTTON_COUNT]Button, container: Container) {
 	w := container.size.x
@@ -72,6 +72,12 @@ buttons_layout :: proc(buttons: ^[BUTTON_COUNT]Button, container: Container) {
 	buttons[2].v_align = .Top
 	buttons[2].h_align = .Right
 	buttons[2].shape = .Circle
+
+	buttons[3].pos = {8, 8}
+	buttons[3].size = size
+	buttons[3].v_align = .Bottom
+	buttons[3].h_align = .Left
+	buttons[3].shape = .Circle
 
 	for &b in buttons {
 		b.container = container

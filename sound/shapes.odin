@@ -364,11 +364,11 @@ shapes_draw :: proc(s: ^Shapes, buttons: []Button, projection_matrix: glm.mat4) 
 				add_circle(s, shape)
 			}
 		}
-		bbox := button_get_bbox(btn)
-		add_line(s, {bbox.pos, bbox.pos + bbox.size, 2, {1, 1, 1, 1}})
-		p1: [2]i32 = {bbox.pos.x, bbox.pos.y + bbox.size.y}
-		p2: [2]i32 = {bbox.pos.x + bbox.size.x, bbox.pos.y}
-		add_line(s, {p1, p2, 2, {1, 1, 1, 1}})
+		// bbox := button_get_bbox(btn)
+		// add_line(s, {bbox.pos, bbox.pos + bbox.size, 2, {1, 1, 1, 1}})
+		// p1: [2]i32 = {bbox.pos.x, bbox.pos.y + bbox.size.y}
+		// p2: [2]i32 = {bbox.pos.x + bbox.size.x, bbox.pos.y}
+		// add_line(s, {p1, p2, 2, {1, 1, 1, 1}})
 	}
 
 	mi: int = 0
