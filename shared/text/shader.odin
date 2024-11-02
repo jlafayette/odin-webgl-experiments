@@ -74,5 +74,6 @@ shader_set_attribute :: proc(index: i32, b: Buffer) {
 	gl.BindBuffer(b.target, b.id)
 	gl.VertexAttribPointer(index, b.size, b.type, false, 0, 0)
 	gl.EnableVertexAttribArray(index)
+	gl.VertexAttribDivisor(u32(index), 0)
 }
 

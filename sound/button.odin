@@ -35,6 +35,7 @@ Button :: struct {
 	h_align:   HAlign,
 	pointer:   PointerState,
 	container: Container,
+	label:     string,
 }
 Container :: struct {
 	pos:  [2]i32,
@@ -59,12 +60,14 @@ buttons_layout :: proc(buttons: ^[BUTTON_COUNT]Button, container: Container) {
 	buttons[0].v_align = .Top
 	buttons[0].h_align = .Left
 	buttons[0].shape = .Rectangle
+	buttons[0].label = "button 0"
 
 	buttons[1].pos = {8, 8}
 	buttons[1].size = size
 	buttons[1].v_align = .Bottom
 	buttons[1].h_align = .Right
 	buttons[1].shape = .Rectangle
+	buttons[1].label = "button 1"
 
 	size = {80, 80}
 	buttons[2].pos = {8, 8}
@@ -72,12 +75,14 @@ buttons_layout :: proc(buttons: ^[BUTTON_COUNT]Button, container: Container) {
 	buttons[2].v_align = .Top
 	buttons[2].h_align = .Right
 	buttons[2].shape = .Circle
+	buttons[2].label = "2"
 
 	buttons[3].pos = {8, 8}
 	buttons[3].size = size
 	buttons[3].v_align = .Bottom
 	buttons[3].h_align = .Left
 	buttons[3].shape = .Circle
+	buttons[3].label = "3"
 
 	for &b in buttons {
 		b.container = container

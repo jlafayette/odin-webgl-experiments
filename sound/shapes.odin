@@ -229,24 +229,25 @@ shapes_init :: proc(s: ^Shapes, w, h: i32) -> (ok: bool) {
 	add_circle(s, {{20, 20}, 5, c})
 	add_circle(s, {{20, 20}, 5, c})
 
-	add_line(s, {{0, 0}, {100, 100}, 2, c})
-	add_line(s, {{0, 0}, {100, 100}, 2, c})
-	add_line(s, {{0, 0}, {100, 100}, 2, c})
-	add_line(s, {{0, 0}, {100, 100}, 2, c})
-	add_line(s, {{100, 100}, {500, 100}, 2, c})
-	c.a = 0.4
-	add_line(s, {{100, 100}, {500, 100}, 8, c})
-	c.a = 0.2
-	add_line(s, {{100, 100}, {500, 100}, 16, c})
-	add_line(s, {{100, 100}, {500, 500}, 16, c})
-	c.a = 0.8
-	add_line(s, {{0, 0}, {500, 500}, 4, c})
+	// add_line(s, {{0, 0}, {100, 100}, 2, c})
+	// add_line(s, {{0, 0}, {100, 100}, 2, c})
+	// add_line(s, {{0, 0}, {100, 100}, 2, c})
+	// add_line(s, {{0, 0}, {100, 100}, 2, c})
+	// add_line(s, {{100, 100}, {500, 100}, 2, c})
+	// c.a = 0.4
+	// add_line(s, {{100, 100}, {500, 100}, 8, c})
+	// c.a = 0.2
+	// add_line(s, {{100, 100}, {500, 100}, 16, c})
+	// add_line(s, {{100, 100}, {500, 500}, 16, c})
+	// c.a = 0.8
+	// add_line(s, {{0, 0}, {500, 500}, 4, c})
 
 	return ok
 }
 
 add_rectangle :: proc(s: ^Shapes, r: Rectangle) {
 	if s.rectangle_count >= N_SHAPES {
+		fmt.eprintln("Too many rectangle shapes to draw")
 		return
 	}
 	s.rectangles[s.rectangle_count] = r
@@ -254,6 +255,7 @@ add_rectangle :: proc(s: ^Shapes, r: Rectangle) {
 }
 add_circle :: proc(s: ^Shapes, c: Circle) {
 	if s.circle_count >= N_SHAPES {
+		fmt.eprintln("Too many circles shapes to draw")
 		return
 	}
 	s.circles[s.circle_count] = c
@@ -261,6 +263,7 @@ add_circle :: proc(s: ^Shapes, c: Circle) {
 }
 add_line :: proc(s: ^Shapes, l: Line) {
 	if s.line_count >= N_SHAPES {
+		fmt.eprintln("Too many line shapes to draw")
 		return
 	}
 	s.lines[s.line_count] = l
@@ -296,16 +299,16 @@ shapes_update :: proc(s: ^Shapes, w, h: i32, dt: f32, time_elapsed: f64) {
 	s.circles[5].pos = {w - 220, h / 2}
 	s.circles[5].radius = 50
 
-	_line_offset += dt
+	// _line_offset += dt
 
-	c: glm.vec4 = {1, 1, 1, 1}
-	s.lines[0] = {{0, 0}, {w, h}, 2, c}
-	s.lines[1] = {{0, h}, {w, 0}, 2, c}
-	c.r = 0.5
-	c.g = 0.7
-	c.a = 0.5
-	s.lines[2] = {{0, 0}, {w, h}, 4, c}
-	s.lines[3] = {{0, h}, {w, 0}, 4, c}
+	// c: glm.vec4 = {1, 1, 1, 1}
+	// s.lines[0] = {{0, 0}, {w, h}, 2, c}
+	// s.lines[1] = {{0, h}, {w, 0}, 2, c}
+	// c.r = 0.5
+	// c.g = 0.7
+	// c.a = 0.5
+	// s.lines[2] = {{0, 0}, {w, h}, 4, c}
+	// s.lines[3] = {{0, h}, {w, 0}, 4, c}
 }
 
 line_angle :: proc(line: Line) -> f32 {

@@ -80,26 +80,28 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 
 	shapes_draw(&state.shapes, state.buttons[:], view_projection_matrix)
 
-	// {
-	// 	scale: i32 = math.max(1, i32(math.round(state.layout.dpr)))
-	// 	spacing: i32 = 5 * scale
-	// 	text.batch_start(
-	// 		&state.text_batch,
-	// 		_pick_atlas(state.layout.dpr),
-	// 		{0, 0, 0},
-	// 		view_projection_matrix,
-	// 		64,
-	// 		spacing = spacing,
-	// 		scale = scale,
-	// 	)
-	// 	for key in state.keys {
-	// 		w: i32 = text.debug_get_width(key.label)
-	// 		pos: [2]i32 = {i32(key.pos.x), i32(key.pos.y)}
-	// 		pos.x += i32(key.w / 2) - w / 2
-	// 		pos.y += i32(key.label_offset_height)
-	// 		_ = text.debug(pos, key.label, flip_y = true) or_return
-	// 	}
-	// }
+	{
+		scale: i32 = math.max(1, i32(math.round(state.layout.dpr)))
+		spacing: i32 = 2 * scale
+		text.batch_start(
+			&state.text_batch,
+			.A20,
+			{1, 1, 1},
+			view_projection_matrix,
+			128,
+			spacing = spacing,
+			scale = scale,
+		)
+		text_h := text.debug_get_height()
+		for button in state.buttons {
+			text_w: i32 = text.debug_get_width(button.label)
+			bbox := button_get_bbox(button);pos := bbox.pos;size := bbox.size
+			pos.x += size.x / 2 - text_w / 2
+			pos.y += size.y / 2 - text_h / 2
+			fmt.println(button.label, "at", pos)
+			_ = text.debug(pos, button.label, flip_y = false) or_return
+		}
+	}
 	return true
 }
 
