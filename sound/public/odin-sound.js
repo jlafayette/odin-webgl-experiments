@@ -57,12 +57,12 @@ const indexToSound = {
 }
 
 function setupQueues() {
+	console.log("starting setupQueues");
 	qs.push(createSoundQueue(soundLookup["pause"], 3));
 	qs.push(createSoundQueue(soundLookup["unpause"], 3));
 	qs.push(createSoundQueue(soundLookup["pop"], 3));
+	console.log("done setupQueues");
 }
-
-setupQueues();
 
 function createSoundQueue(url, count) {
 	let q = {};
@@ -77,7 +77,7 @@ function createSoundQueue(url, count) {
 			isPlaying: false,
 		};
 		element.addEventListener("canplaythrough", (event) => {
-			// console.log("canplaythrough");
+			console.log("canplaythrough");
 			player.canPlay = true;
 		});
 		element.addEventListener("ended", (event) => {
@@ -94,6 +94,10 @@ function createSoundQueue(url, count) {
 }
 
 function qPlay(index, rate) {
+	if (qs.length <= index) {
+		console.log(`No sounds queue for index ${index}`);
+		return;
+	}
 	const q = qs[index];
 	for (let i = 0; i < q.players.length; i++) {
 		const player = q.players[i];
@@ -108,17 +112,6 @@ function qPlay(index, rate) {
 
 function playSound(index, rate) {
 	qPlay(index, rate);
-	// let elem = null;
-	// if (index == 0) {
-	// 	elem = document.getElementById("sound-pause");
-	// } else if (index == 1) {
-	// 	elem = document.getElementById("sound-unpause");
-	// } else if (index == 2) {
-	// 	elem = document.getElementById("sound-pop");
-	// }
-	// if (elem) {
-	// 	elem.play();
-	// }
 }
 
 function playTone(index, freq) {
@@ -168,7 +161,6 @@ function release(index) {
 	oscList[index].pressed = false;
 }
 
-
 function setupImports(wasmMemoryInterface, consoleElement, memory) {
 	const env = {};
 	if (memory) {
@@ -178,9 +170,6 @@ function setupImports(wasmMemoryInterface, consoleElement, memory) {
 		env,
 		"odin_sound": {
 			play_sound: (index, rate) => {
-				if (!audioContext) {
-					setup();
-				}
 				playSound(index, rate);
 			},
 			note_pressed: (index, freq) => {
@@ -202,4 +191,5 @@ function setupImports(wasmMemoryInterface, consoleElement, memory) {
 }
 window.odinSound = {
 	setupImports: setupImports,
+	load: setupQueues,
 }
