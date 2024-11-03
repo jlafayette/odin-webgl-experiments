@@ -81,7 +81,7 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 	shapes_draw(&state.shapes, state.buttons[:], view_projection_matrix)
 
 	{
-		scale: i32 = math.max(1, i32(math.round(state.layout.dpr)))
+		scale: i32 = 1 // math.max(1, i32(math.round(state.layout.dpr)))
 		spacing: i32 = 2 * scale
 		text.batch_start(
 			&state.text_batch,
@@ -98,7 +98,6 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 			bbox := button_get_bbox(button);pos := bbox.pos;size := bbox.size
 			pos.x += size.x / 2 - text_w / 2
 			pos.y += size.y / 2 - text_h / 2
-			fmt.println(button.label, "at", pos)
 			_ = text.debug(pos, button.label, flip_y = false) or_return
 		}
 	}
@@ -111,6 +110,14 @@ update :: proc(state: ^State, input: ^Input, dt: f32) {
 	update_handle_resize(&state.layout)
 	l := state.layout
 	update_input(&g_input, state.buttons[:], dt, l.dpr)
+	for b, i in state.buttons {
+		if b.fire_down_command {
+			fmt.printf("button[%d] fire down\n", i)
+		}
+		if b.fire_up_command {
+			fmt.printf("button[%d] fire up\n", i)
+		}
+	}
 	buttons_layout(&state.buttons, {{0, 0}, {l.w, l.h}})
 	shapes_update(&state.shapes, l.w, l.h, dt, state.time_elapsed)
 }

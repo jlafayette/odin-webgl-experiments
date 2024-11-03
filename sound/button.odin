@@ -28,14 +28,16 @@ HAlign :: enum {
 	Right,
 }
 Button :: struct {
-	pos:       [2]i32,
-	size:      [2]i32,
-	shape:     ShapeType,
-	v_align:   VAlign,
-	h_align:   HAlign,
-	pointer:   PointerState,
-	container: Container,
-	label:     string,
+	pos:               [2]i32,
+	size:              [2]i32,
+	shape:             ShapeType,
+	v_align:           VAlign,
+	h_align:           HAlign,
+	pointer:           PointerState,
+	fire_down_command: bool,
+	fire_up_command:   bool,
+	container:         Container,
+	label:             string,
 }
 Container :: struct {
 	pos:  [2]i32,

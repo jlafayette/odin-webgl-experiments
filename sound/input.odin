@@ -5,9 +5,19 @@ foreign import odin_mouse "odin_mouse"
 import "core:fmt"
 import "core:sys/wasm/js"
 
+ClickType :: enum {
+	DOWN,
+	UP,
+}
+ClickEvent :: struct {
+	pos:  [2]f32,
+	type: ClickType,
+}
 Input :: struct {
-	pointer:   PointerState,
-	mouse_pos: [2]f32,
+	pointer:       PointerState,
+	mouse_pos:     [2]f32,
+	click_events:  [4]ClickEvent,
+	click_event_i: int,
 }
 g_input := Input{}
 
@@ -27,17 +37,45 @@ update_input :: proc(input: ^Input, buttons: []Button, dt: f32, dpr: f32) {
 	new_i := -1
 	for &btn, i in buttons {
 		btn.pointer = .None
+		btn.fire_down_command = false
+		btn.fire_up_command = false
 		if button_contains_pos(btn, i_(input.mouse_pos)) {
 			btn.pointer = input.pointer
+		}
+	}
+	for me, i in input.click_events {
+		if i >= input.click_event_i {
+			break
+		}
+		pos: [2]i32 = i_(me.pos * dpr)
+		for &btn in buttons {
+			if button_contains_pos(btn, pos) {
+				switch me.type {
+				case .DOWN:
+					btn.fire_down_command = true
+				case .UP:
+					btn.fire_up_command = true
+				}
+				break
+			}
 		}
 	}
 	if input.pointer == .Up {
 		input.pointer = .Hover
 	}
+	input.click_event_i = 0
 }
 
 on_mouse_move :: proc(e: js.Event) {
 	g_input.mouse_pos = {f32(e.mouse.client.x), f32(e.mouse.client.y)}
+}
+
+_record_mouse_click :: proc(pos: [2]f32, type: ClickType) {
+	i := g_input.click_event_i
+	if i < len(g_input.click_events) {
+		g_input.click_events[i] = ClickEvent({pos, type})
+		g_input.click_event_i += 1
+	}
 }
 
 on_mouse_down :: proc(e: js.Event) {
@@ -46,6 +84,7 @@ on_mouse_down :: proc(e: js.Event) {
 		return
 	}
 	g_input.pointer = .Down
+	_record_mouse_click({f32(e.mouse.client.x), f32(e.mouse.client.y)}, .DOWN)
 }
 on_mouse_up :: proc(e: js.Event) {
 	// fmt.println("unclick:", e.mouse.button)
@@ -53,6 +92,7 @@ on_mouse_up :: proc(e: js.Event) {
 		return
 	}
 	g_input.pointer = .Up
+	_record_mouse_click({f32(e.mouse.client.x), f32(e.mouse.client.y)}, .UP)
 }
 
 on_key_down :: proc(e: js.Event) {
