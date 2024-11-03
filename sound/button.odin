@@ -2,6 +2,7 @@ package sound
 
 import "core:fmt"
 import glm "core:math/linalg/glsl"
+import "core:math/rand"
 
 ShapeType :: enum {
 	Rectangle,
@@ -92,6 +93,31 @@ buttons_layout :: proc(buttons: ^[BUTTON_COUNT]Button, container: Container) {
 	}
 	for b, i in buttons {
 		_button_print_fired(b, i)
+		switch b.shape {
+		case .Rectangle:
+			{
+				rate := rand.float64() * 0.2 + 0.9
+				if b.fire_down_command {
+					rate -= 0.1
+					play_sound(0, rate)
+				}
+				if b.fire_up_command {
+					rate += 0.1
+					play_sound(1, rate)
+				}
+			}
+		case .Circle:
+			{
+				if b.fire_down_command {
+					rate := rand.float64() * 0.2 + 0.7
+					play_sound(2, rate)
+				}
+				if b.fire_up_command {
+					rate := rand.float64() * 0.2 + 0.9
+					play_sound(2, rate)
+				}
+			}
+		}
 	}
 }
 

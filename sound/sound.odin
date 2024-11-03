@@ -7,6 +7,12 @@ foreign odin_sound {
 	@(link_name = "note_pressed")
 	_note_pressed :: proc(index: int, freq: f64) ---
 	note_released :: proc(index: int) ---
+	@(link_name = "play_sound")
+	_play_sound :: proc(index: int, rate: f64) ---
+}
+
+play_sound :: proc(index: int, rate: f64 = 1.0) {
+	_play_sound(index, rate)
 }
 
 note_pressed :: proc(key_index: int) {

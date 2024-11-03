@@ -40,7 +40,87 @@ function setup() {
 	sineTerms = new Float32Array([0, 0, 1, 0, 1]);
 	cosineTerms = new Float32Array(sineTerms.length);
 	customWaveform = audioContext.createPeriodicWave(cosineTerms, sineTerms);
+
+	// setupQueues();
 }
+
+const qs = [];
+const soundLookup = {
+	pause: "./sounds/pause.mp3",
+	unpause: "./sounds/unpause.mp3",
+	pop: "./sounds/pop.mp3",
+};
+const indexToSound = {
+	0: "pause",
+	1: "unpause",
+	2: "pop",
+}
+
+function setupQueues() {
+	qs.push(createSoundQueue(soundLookup["pause"], 3));
+	qs.push(createSoundQueue(soundLookup["unpause"], 3));
+	qs.push(createSoundQueue(soundLookup["pop"], 3));
+}
+
+setupQueues();
+
+function createSoundQueue(url, count) {
+	let q = {};
+	q.players = [];
+	for (let i = 0; i < count; i++) {
+		const element = new Audio(url);
+		element.playbackRate = 1.0;
+		element.preservesPitch = false;
+		const player = {
+			element,
+			canPlay: false,
+			isPlaying: false,
+		};
+		element.addEventListener("canplaythrough", (event) => {
+			// console.log("canplaythrough");
+			player.canPlay = true;
+		});
+		element.addEventListener("ended", (event) => {
+			// console.log("ended");
+			player.isPlaying = false;
+		});
+		element.addEventListener("play", (event) => {
+			// console.log("play");
+			player.isPlaying = true;
+		});
+		q.players.push(player);
+	}
+	return q;
+}
+
+function qPlay(index, rate) {
+	const q = qs[index];
+	for (let i = 0; i < q.players.length; i++) {
+		const player = q.players[i];
+		if (player.canPlay && !player.isPlaying) {
+			console.log(`sound[${index}] playing player ${i}`);
+			player.element.playbackRate = rate;
+			player.element.play();
+			break;
+		}
+	}
+}
+
+function playSound(index, rate) {
+	qPlay(index, rate);
+	// let elem = null;
+	// if (index == 0) {
+	// 	elem = document.getElementById("sound-pause");
+	// } else if (index == 1) {
+	// 	elem = document.getElementById("sound-unpause");
+	// } else if (index == 2) {
+	// 	elem = document.getElementById("sound-pop");
+	// }
+	// if (elem) {
+	// 	elem.play();
+	// }
+}
+
 function playTone(index, freq) {
 	let ampInitialGain = 0.0;
 	let osc = null;
@@ -97,6 +177,12 @@ function setupImports(wasmMemoryInterface, consoleElement, memory) {
 	return {
 		env,
 		"odin_sound": {
+			play_sound: (index, rate) => {
+				if (!audioContext) {
+					setup();
+				}
+				playSound(index, rate);
+			},
 			note_pressed: (index, freq) => {
 				// console.log(`note_pressed(index: ${index}, freq: ${freq})`);
 				if (!audioContext) {
