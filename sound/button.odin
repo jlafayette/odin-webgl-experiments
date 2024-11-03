@@ -53,6 +53,7 @@ button_hover_color: [4]f32 = {0, 0.8, 0.8, 1}
 
 BUTTON_COUNT :: 4
 
+
 buttons_layout :: proc(buttons: ^[BUTTON_COUNT]Button, container: Container) {
 	w := container.size.x
 	h := container.size.y
@@ -88,6 +89,18 @@ buttons_layout :: proc(buttons: ^[BUTTON_COUNT]Button, container: Container) {
 
 	for &b in buttons {
 		b.container = container
+	}
+	for b, i in buttons {
+		_button_print_fired(b, i)
+	}
+}
+
+_button_print_fired :: proc(b: Button, i: int) {
+	if b.fire_down_command {
+		fmt.printfln("button[%d] fire down", i)
+	}
+	if b.fire_up_command {
+		fmt.printfln("button[%d] fire up command", i)
 	}
 }
 

@@ -110,14 +110,6 @@ update :: proc(state: ^State, input: ^Input, dt: f32) {
 	update_handle_resize(&state.layout)
 	l := state.layout
 	update_input(&g_input, state.buttons[:], dt, l.dpr)
-	for b, i in state.buttons {
-		if b.fire_down_command {
-			fmt.printf("button[%d] fire down\n", i)
-		}
-		if b.fire_up_command {
-			fmt.printf("button[%d] fire up\n", i)
-		}
-	}
 	buttons_layout(&state.buttons, {{0, 0}, {l.w, l.h}})
 	shapes_update(&state.shapes, l.w, l.h, dt, state.time_elapsed)
 }
