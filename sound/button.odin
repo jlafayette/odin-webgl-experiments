@@ -88,10 +88,10 @@ buttons_layout :: proc(buttons: ^[BUTTON_COUNT]Button, container: Container) {
 	buttons[3].shape = .Circle
 	buttons[3].label = "3"
 
-	for &b in buttons[:] {
+	for &b in buttons[:4] {
 		b.container = container
 	}
-	for b, i in buttons[:] {
+	for b, i in buttons[:4] {
 		_button_print_fired(b, i)
 		switch b.shape {
 		case .Rectangle:
@@ -133,9 +133,43 @@ buttons_layout :: proc(buttons: ^[BUTTON_COUNT]Button, container: Container) {
 			buttons[i].v_align = .Top
 			buttons[i].h_align = .Left
 			buttons[i].shape = .Circle
-			buttons[i].label = "-"
+			buttons[i].label = _itos(i)
 			buttons[i].container = cn_container
+			if buttons[i].fire_down_command {
+				rate := rand.float64() * 0.2 + 0.8
+				play_sound2(int(i - 4), rate)
+			}
+			if buttons[i].fire_up_command {
+				rate := rand.float64() * 0.2 + 1.0
+				play_sound2(int(i - 4), rate)
+			}
 		}
+	}
+}
+_itos :: proc(i: i32) -> string {
+	switch i {
+	case 0:
+		return "0"
+	case 1:
+		return "1"
+	case 2:
+		return "2"
+	case 3:
+		return "3"
+	case 4:
+		return "4"
+	case 5:
+		return "5"
+	case 6:
+		return "6"
+	case 7:
+		return "7"
+	case 8:
+		return "8"
+	case 9:
+		return "9"
+	case:
+		return "-"
 	}
 }
 
