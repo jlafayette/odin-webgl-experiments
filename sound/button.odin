@@ -52,7 +52,7 @@ Bbox :: struct {
 button_color: [4]f32 = {0, 0.7, 0.7, 1}
 button_hover_color: [4]f32 = {0, 0.8, 0.8, 1}
 
-BUTTON_COUNT :: 4
+BUTTON_COUNT :: 8
 
 
 buttons_layout :: proc(buttons: ^[BUTTON_COUNT]Button, container: Container) {
@@ -88,10 +88,10 @@ buttons_layout :: proc(buttons: ^[BUTTON_COUNT]Button, container: Container) {
 	buttons[3].shape = .Circle
 	buttons[3].label = "3"
 
-	for &b in buttons {
+	for &b in buttons[:] {
 		b.container = container
 	}
-	for b, i in buttons {
+	for b, i in buttons[:] {
 		_button_print_fired(b, i)
 		switch b.shape {
 		case .Rectangle:
@@ -117,6 +117,24 @@ buttons_layout :: proc(buttons: ^[BUTTON_COUNT]Button, container: Container) {
 					play_sound(2, rate)
 				}
 			}
+		}
+	}
+
+	{
+		size: [2]i32 = {60, 60}
+		gap: i32 = 10
+		cn_size: [2]i32 = {size.x * 4 + gap * 3, size.y}
+		cn_container: Container = {{w / 2 - cn_size.x / 2, h / 2 - cn_size.y / 2}, cn_size}
+		x: i32 = 0
+		for i: i32 = 4; i < 8; i += 1 {
+			buttons[i].pos = {x, 0}
+			x += size.x + gap
+			buttons[i].size = size
+			buttons[i].v_align = .Top
+			buttons[i].h_align = .Left
+			buttons[i].shape = .Circle
+			buttons[i].label = "-"
+			buttons[i].container = cn_container
 		}
 	}
 }
@@ -160,7 +178,7 @@ button_get_bbox :: proc(b: Button) -> Bbox {
 			pos.y = b.container.size.y - b.pos.y - b.size.y
 		}
 	}
-	return {pos, b.size}
+	return {pos + b.container.pos, b.size}
 }
 
 button_get_shape :: proc(b: Button) -> Shape {

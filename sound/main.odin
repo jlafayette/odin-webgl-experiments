@@ -94,11 +94,17 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 		)
 		text_h := text.debug_get_height()
 		for button in state.buttons {
+			if button.label == "" {
+				continue
+			}
 			text_w: i32 = text.debug_get_width(button.label)
 			bbox := button_get_bbox(button);pos := bbox.pos;size := bbox.size
 			pos.x += size.x / 2 - text_w / 2
 			pos.y += size.y / 2 - text_h / 2
-			_ = text.debug(pos, button.label, flip_y = false) or_return
+			_, ok = text.debug(pos, button.label, flip_y = false)
+			if !ok {
+				fmt.eprintln("Failed to render text for button:", button)
+			}
 		}
 	}
 	return true

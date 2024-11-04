@@ -208,40 +208,7 @@ Shapes :: struct {
 shapes_init :: proc(s: ^Shapes, w, h: i32) -> (ok: bool) {
 	ok = flat_shader_init(&s.shader)
 	if !ok {return false}
-
 	buffers_init(&s.buffers)
-
-	add_rectangle(s, {{10, 10}, {20, 20}, 0, {1, 1, 1, 0.2}})
-	add_rectangle(s, {{10, 10}, {20, 20}, 0, {1, 1, 1, 0.2}})
-	add_rectangle(s, {{10, 10}, {20, 20}, 0, {1, 1, 1, 0.2}})
-	add_rectangle(s, {{10, 10}, {20, 20}, 0, {1, 1, 1, 0.2}})
-	add_rectangle(s, {{10, 10}, {20, 20}, 0, {1, 1, 1, 0.2}})
-	for i in 0 ..< 5 {
-		part: f32 = math.TAU / 5
-		add_rectangle(s, {{200 + i32(i) * 50, 200}, {300, 50}, f32(i) * part, {1, 1, 1, 0.2}})
-	}
-
-	c: glm.vec4 = {1, 1, 1, 1}
-	add_circle(s, {{20, 20}, 5, c})
-	add_circle(s, {{20, 20}, 5, c})
-	add_circle(s, {{20, 20}, 5, c})
-	add_circle(s, {{20, 20}, 5, c})
-	add_circle(s, {{20, 20}, 5, c})
-	add_circle(s, {{20, 20}, 5, c})
-
-	// add_line(s, {{0, 0}, {100, 100}, 2, c})
-	// add_line(s, {{0, 0}, {100, 100}, 2, c})
-	// add_line(s, {{0, 0}, {100, 100}, 2, c})
-	// add_line(s, {{0, 0}, {100, 100}, 2, c})
-	// add_line(s, {{100, 100}, {500, 100}, 2, c})
-	// c.a = 0.4
-	// add_line(s, {{100, 100}, {500, 100}, 8, c})
-	// c.a = 0.2
-	// add_line(s, {{100, 100}, {500, 100}, 16, c})
-	// add_line(s, {{100, 100}, {500, 500}, 16, c})
-	// c.a = 0.8
-	// add_line(s, {{0, 0}, {500, 500}, 4, c})
-
 	return ok
 }
 
@@ -272,43 +239,6 @@ add_line :: proc(s: ^Shapes, l: Line) {
 
 _line_offset: f32 = 0
 shapes_update :: proc(s: ^Shapes, w, h: i32, dt: f32, time_elapsed: f64) {
-	s.rectangles[0].pos = {10, 10}
-	s.rectangles[1].pos = {10, h - 10}
-	s.rectangles[2].pos = {w - 10, 10}
-	s.rectangles[3].pos = {w - 10, h - 10}
-
-	s.rectangles[4].pos = {w - 100, h / 2}
-	s.rectangles[4].size = {100, 100}
-	s.rectangles[4].rotation = 0
-
-	for &rect, i in s.rectangles {
-		if i < 4 {
-			rect.rotation = 0
-		} else if i < s.rectangle_count {
-			rect.rotation += dt
-		}
-	}
-
-	s.circles[0].pos = {20, 20}
-	s.circles[1].pos = {20, h - 20}
-	s.circles[2].pos = {w - 20, 20}
-	s.circles[3].pos = {w - 20, h - 20}
-
-	s.circles[4].pos = {w - 100, h / 2}
-	s.circles[4].radius = 50
-	s.circles[5].pos = {w - 220, h / 2}
-	s.circles[5].radius = 50
-
-	// _line_offset += dt
-
-	// c: glm.vec4 = {1, 1, 1, 1}
-	// s.lines[0] = {{0, 0}, {w, h}, 2, c}
-	// s.lines[1] = {{0, h}, {w, 0}, 2, c}
-	// c.r = 0.5
-	// c.g = 0.7
-	// c.a = 0.5
-	// s.lines[2] = {{0, 0}, {w, h}, 4, c}
-	// s.lines[3] = {{0, h}, {w, 0}, 4, c}
 }
 
 line_angle :: proc(line: Line) -> f32 {
