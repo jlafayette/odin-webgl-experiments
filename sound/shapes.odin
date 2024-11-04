@@ -272,7 +272,7 @@ i_ :: proc(pos: [2]f32) -> [2]i32 {
 f_ :: proc(pos: [2]i32) -> [2]f32 {
 	return {f32(pos.x), f32(pos.y)}
 }
-shapes_draw :: proc(s: ^Shapes, buttons: []Button, projection_matrix: glm.mat4) {
+shapes_draw :: proc(s: ^Shapes, ui: Ui, projection_matrix: glm.mat4) {
 	rect_matrices := make([]glm.mat4, N_INSTANCE, allocator = context.temp_allocator)
 	colors := make([]glm.vec4, N_INSTANCE, allocator = context.temp_allocator)
 	circle_blends := make([]f32, N_INSTANCE, allocator = context.temp_allocator)
@@ -285,7 +285,7 @@ shapes_draw :: proc(s: ^Shapes, buttons: []Button, projection_matrix: glm.mat4) 
 		s.circle_count = retained_circle_count
 		s.line_count = retained_line_count
 	}
-	for btn in buttons {
+	for btn in ui.buttons {
 		btn_shape := button_get_shape(btn)
 		switch shape in btn_shape {
 		case Rectangle:

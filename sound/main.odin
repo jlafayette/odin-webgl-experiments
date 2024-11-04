@@ -21,7 +21,7 @@ Layout :: struct {
 State :: struct {
 	started:      bool,
 	layout:       Layout,
-	buttons:      [BUTTON_COUNT]Button,
+	ui:           Ui,
 	text_batch:   text.Batch,
 	shapes:       Shapes,
 	time_elapsed: f64,
@@ -78,7 +78,7 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 
 	view_projection_matrix := glm.mat4Ortho3d(0, f32(w), f32(h), 0, -100, 100)
 
-	shapes_draw(&state.shapes, state.buttons[:], view_projection_matrix)
+	shapes_draw(&state.shapes, state.ui, view_projection_matrix)
 
 	{
 		scale: i32 = 1 // math.max(1, i32(math.round(state.layout.dpr)))
@@ -93,7 +93,7 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 			scale = scale,
 		)
 		text_h := text.debug_get_height()
-		for button in state.buttons {
+		for button in state.ui.buttons {
 			if button.label == "" {
 				continue
 			}
@@ -116,8 +116,8 @@ update :: proc(state: ^State, input: ^Input, dt: f32) {
 	state.time_elapsed += f64(dt)
 	update_handle_resize(&state.layout)
 	l := state.layout
-	update_input(&g_input, state.buttons[:], dt, l.dpr)
-	buttons_layout(&state.buttons, {{0, 0}, {l.w, l.h}})
+	update_input(&g_input, state.ui.buttons[:], dt, l.dpr)
+	ui_layout(&state.ui, {{0, 0}, {l.w, l.h}})
 	shapes_update(&state.shapes, l.w, l.h, dt, state.time_elapsed)
 }
 
