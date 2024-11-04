@@ -32,19 +32,12 @@ Button :: struct {
 	pos:               [2]i32,
 	size:              [2]i32,
 	shape:             ShapeType,
-	v_align:           VAlign,
-	h_align:           HAlign,
 	pointer:           PointerState,
 	fire_down_command: bool,
 	fire_up_command:   bool,
-	container:         Container,
 	label:             string,
 }
 Container :: struct {
-	pos:  [2]i32,
-	size: [2]i32,
-}
-Bbox :: struct {
 	pos:  [2]i32,
 	size: [2]i32,
 }
@@ -59,38 +52,27 @@ buttons_layout :: proc(buttons: ^[BUTTON_COUNT]Button, container: Container) {
 	w := container.size.x
 	h := container.size.y
 	size: [2]i32 = {200, 40}
-	buttons[0].pos = {8, 8}
+	buttons[0].pos = _button_calc_pos({8, 8}, size, .Left, .Top, container)
 	buttons[0].size = size
-	buttons[0].v_align = .Top
-	buttons[0].h_align = .Left
 	buttons[0].shape = .Rectangle
 	buttons[0].label = "button 0"
 
-	buttons[1].pos = {8, 8}
+	buttons[1].pos = _button_calc_pos({8, 8}, size, .Right, .Bottom, container)
 	buttons[1].size = size
-	buttons[1].v_align = .Bottom
-	buttons[1].h_align = .Right
 	buttons[1].shape = .Rectangle
 	buttons[1].label = "button 1"
 
 	size = {80, 80}
-	buttons[2].pos = {8, 8}
+	buttons[2].pos = _button_calc_pos({8, 8}, size, .Right, .Top, container)
 	buttons[2].size = size
-	buttons[2].v_align = .Top
-	buttons[2].h_align = .Right
 	buttons[2].shape = .Circle
 	buttons[2].label = "2"
 
-	buttons[3].pos = {8, 8}
+	buttons[3].pos = _button_calc_pos({8, 8}, size, .Left, .Bottom, container)
 	buttons[3].size = size
-	buttons[3].v_align = .Bottom
-	buttons[3].h_align = .Left
 	buttons[3].shape = .Circle
 	buttons[3].label = "3"
 
-	for &b in buttons[:4] {
-		b.container = container
-	}
 	for b, i in buttons[:4] {
 		_button_print_fired(b, i)
 		pan := button_get_pan(b, w)
@@ -128,24 +110,20 @@ buttons_layout :: proc(buttons: ^[BUTTON_COUNT]Button, container: Container) {
 		cn_container: Container = {{w / 2 - cn_size.x / 2, h / 2 - cn_size.y / 2}, cn_size}
 		x: i32 = 0
 		for i: i32 = 4; i < 8; i += 1 {
-			buttons[i].pos = {x, 0}
+			b: ^Button = &buttons[i]
+			b.pos = _button_calc_pos({x, 0}, size, .Left, .Top, cn_container)
 			x += size.x + gap
-			buttons[i].size = size
-			buttons[i].v_align = .Top
-			buttons[i].h_align = .Left
-			buttons[i].shape = .Circle
-			buttons[i].label = _itos(i)
-			buttons[i].container = cn_container
-			if buttons[i].fire_down_command {
-				b := buttons[i]
+			b.size = size
+			b.shape = .Circle
+			b.label = _itos(i)
+			if b.fire_down_command {
 				rate := rand.float64() * 0.2 + 0.8
-				pan := button_get_pan(b, w)
+				pan := button_get_pan(b^, w)
 				play_sound(int(i - 4), rate, pan)
 			}
-			if buttons[i].fire_up_command {
-				b := buttons[i]
+			if b.fire_up_command {
 				rate := rand.float64() * 0.2 + 1.0
-				pan := button_get_pan(b, w)
+				pan := button_get_pan(b^, w)
 				play_sound(int(i - 4), rate, pan)
 			}
 		}
@@ -179,8 +157,7 @@ _itos :: proc(i: i32) -> string {
 }
 button_get_pan :: proc(b: Button, w: i32) -> (pan: f64) {
 	if g_input.enable_pan {
-		bb := button_get_bbox(b)
-		pan_x: i32 = bb.pos.x + bb.size.x / 2 - w / 2
+		pan_x: i32 = b.pos.x + b.size.x / 2 - w / 2
 		pan = (f64(pan_x) / f64(w)) * 2
 	}
 	return
@@ -195,37 +172,43 @@ _button_print_fired :: proc(b: Button, i: int) {
 	}
 }
 
-button_get_bbox :: proc(b: Button) -> Bbox {
+_button_calc_pos :: proc(
+	b_pos: [2]i32,
+	b_size: [2]i32,
+	h_align: HAlign,
+	v_align: VAlign,
+	container: Container,
+) -> [2]i32 {
 	pos: [2]i32
-	switch b.h_align {
+	switch h_align {
 	case .Left:
 		{
-			pos.x = b.pos.x
+			pos.x = b_pos.x
 		}
 	case .Center:
 		{
-			pos.x = b.container.size.x / 2 - b.size.x / 2
+			pos.x = container.size.x / 2 - b_size.x / 2
 		}
 	case .Right:
 		{
-			pos.x = b.container.size.x - b.size.x - b.pos.x
+			pos.x = container.size.x - b_size.x - b_pos.x
 		}
 	}
-	switch b.v_align {
+	switch v_align {
 	case .Top:
 		{
-			pos.y = b.pos.y
+			pos.y = b_pos.y
 		}
 	case .Center:
 		{
-			pos.y = b.container.size.y / 2 - b.size.y / 2
+			pos.y = container.size.y / 2 - b_size.y / 2
 		}
 	case .Bottom:
 		{
-			pos.y = b.container.size.y - b.pos.y - b.size.y
+			pos.y = container.size.y - b_pos.y - b_size.y
 		}
 	}
-	return {pos + b.container.pos, b.size}
+	return pos + container.pos
 }
 
 button_get_shape :: proc(b: Button) -> Shape {
@@ -250,20 +233,21 @@ button_get_shape :: proc(b: Button) -> Shape {
 		size_offset = {2, 2}
 		radius_offset = 1
 	}
-	bbox := button_get_bbox(b)
-	bbox.pos += pos_offset - size_offset / 2
-	bbox.size += size_offset
+	pos := b.pos
+	size := b.size
+	pos += pos_offset - size_offset / 2
+	size += size_offset
 
 	result: Shape
 	switch b.shape {
 	case .Rectangle:
 		{
-			r: Rectangle = {bbox.pos + bbox.size / 2, bbox.size, 0, color}
+			r: Rectangle = {pos + size / 2, size, 0, color}
 			result = r
 		}
 	case .Circle:
 		{
-			c: Circle = {bbox.pos + bbox.size / 2, bbox.size.x / 2, color}
+			c: Circle = {pos + size / 2, size.x / 2, color}
 			result = c
 		}
 	}
@@ -271,23 +255,20 @@ button_get_shape :: proc(b: Button) -> Shape {
 }
 
 button_contains_pos :: proc(btn: Button, pos: [2]i32) -> bool {
-	bbox := button_get_bbox(btn)
-	btn_pos := bbox.pos
-	btn_size := bbox.size
 	switch btn.shape {
 	case .Rectangle:
 		{
 			return(
-				pos.x >= btn_pos.x &&
-				pos.x <= btn_pos.x + btn_size.x &&
-				pos.y >= btn_pos.y &&
-				pos.y <= btn_pos.y + btn_size.y \
+				pos.x >= btn.pos.x &&
+				pos.x <= btn.pos.x + btn.size.x &&
+				pos.y >= btn.pos.y &&
+				pos.y <= btn.pos.y + btn.size.y \
 			)
 		}
 	case .Circle:
 		{
-			radius := btn_size.x / 2
-			center := btn_pos + btn_size / 2
+			radius := btn.size.x / 2
+			center := btn.pos + btn.size / 2
 			d: f32 = glm.length(f_(center) - f_(pos))
 			return d < f32(radius)
 		}
