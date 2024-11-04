@@ -30,11 +30,16 @@ function setupQueues() {
 function addToQ(q) {
 	const element = new Audio(q.url);
 	const source = audioContext.createMediaElementSource(element);
+	const panner = new PannerNode(audioContext, {
+		// maxDistance: 1000,
+		positionZ: 1,
+	});
 	element.playbackRate = 1.0;
 	element.preservesPitch = false;
 	const player = {
 		element,
 		source,
+		panner,
 		canPlay: false,
 		isPlaying: false,
 	};
@@ -50,7 +55,7 @@ function addToQ(q) {
 		// console.log("play");
 		player.isPlaying = true;
 	});
-	player.source.connect(mainGainNode);
+	player.source.connect(panner).connect(mainGainNode);
 	q.players.push(player);
 }
 
@@ -64,7 +69,7 @@ function createSoundQueue(url, count) {
 	return q;
 }
 
-function qPlay(index, rate) {
+function qPlay(index, rate, pan) {
 	if (qs.length <= index) {
 		console.log(`No sounds queue for index ${index}`);
 		return;
@@ -74,7 +79,8 @@ function qPlay(index, rate) {
 	for (let i = 0; i < q.players.length; i++) {
 		const player = q.players[i];
 		if (player.canPlay && !player.isPlaying) {
-			console.log(`sound[${index}] playing player ${i}`);
+			console.log(`sound[${index}] playing ${i} (rate: ${rate}, pan: ${pan})`);
+			player.panner.positionX.value = pan;
 			player.element.playbackRate = rate;
 			player.element.play();
 			played = true;
@@ -91,6 +97,8 @@ function qPlay(index, rate) {
 
 function setup() {
 	audioContext = new AudioContext();
+	mainGainNode = new GainNode(audioContext);
+	mainGainNode.gain.value = 0.5;
 
 	compressorNode = audioContext.createDynamicsCompressor();
 	// threshold: The decibel value above which the compression will start
@@ -106,13 +114,8 @@ function setup() {
 	compressorNode.attack.setValueAtTime(0, audioContext.currentTime);
 	// release: The amount of time, in seconds, required to increase the gain by 10 dB.
 	compressorNode.release.setValueAtTime(0.25, audioContext.currentTime);
-	
-	mainGainNode = audioContext.createGain();
-	// g_player.source.connect(mainGainNode);
-	mainGainNode.connect(compressorNode);
-	compressorNode.connect(audioContext.destination);
 
-	mainGainNode.gain.value = 0.5;
+	mainGainNode.connect(compressorNode).connect(audioContext.destination);
 
 	setupQueues();
 }
@@ -125,11 +128,11 @@ function setupImports(wasmMemoryInterface, consoleElement, memory) {
 	return {
 		env,
 		"odin_sound": {
-			play_sound: (index, rate) => {
+			play_sound: (index, rate, pan) => {
 				if (!audioContext) {
 					setup();
 				}
-				qPlay(index, rate);
+				qPlay(index, rate, pan);
 			},
 		},
 	};

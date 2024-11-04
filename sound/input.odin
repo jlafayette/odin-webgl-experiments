@@ -18,6 +18,7 @@ Input :: struct {
 	mouse_pos:     [2]f32,
 	click_events:  [4]ClickEvent,
 	click_event_i: int,
+	enable_pan:    bool,
 }
 g_input := Input{}
 
@@ -100,8 +101,14 @@ on_key_down :: proc(e: js.Event) {
 		return
 	}
 	// fmt.println(e.key.code)
+	if e.key.code == "ControlLeft" {
+		g_input.enable_pan = true
+	}
 }
 on_key_up :: proc(e: js.Event) {
+	if e.key.code == "ControlLeft" {
+		g_input.enable_pan = false
+	}
 }
 
 on_blur :: proc(e: js.Event) {

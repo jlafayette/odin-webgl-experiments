@@ -93,28 +93,29 @@ buttons_layout :: proc(buttons: ^[BUTTON_COUNT]Button, container: Container) {
 	}
 	for b, i in buttons[:4] {
 		_button_print_fired(b, i)
+		pan := button_get_pan(b, w)
 		switch b.shape {
 		case .Rectangle:
 			{
 				rate := rand.float64() * 0.2 + 0.9
 				if b.fire_down_command {
 					rate -= 0.1
-					play_sound(0, rate)
+					play_sound(0, rate, pan)
 				}
 				if b.fire_up_command {
 					rate += 0.1
-					play_sound(1, rate)
+					play_sound(1, rate, pan)
 				}
 			}
 		case .Circle:
 			{
 				if b.fire_down_command {
 					rate := rand.float64() * 0.2 + 0.7
-					play_sound(2, rate)
+					play_sound(2, rate, pan)
 				}
 				if b.fire_up_command {
 					rate := rand.float64() * 0.2 + 0.9
-					play_sound(2, rate)
+					play_sound(2, rate, pan)
 				}
 			}
 		}
@@ -136,12 +137,16 @@ buttons_layout :: proc(buttons: ^[BUTTON_COUNT]Button, container: Container) {
 			buttons[i].label = _itos(i)
 			buttons[i].container = cn_container
 			if buttons[i].fire_down_command {
+				b := buttons[i]
 				rate := rand.float64() * 0.2 + 0.8
-				play_sound(int(i - 4), rate)
+				pan := button_get_pan(b, w)
+				play_sound(int(i - 4), rate, pan)
 			}
 			if buttons[i].fire_up_command {
+				b := buttons[i]
 				rate := rand.float64() * 0.2 + 1.0
-				play_sound(int(i - 4), rate)
+				pan := button_get_pan(b, w)
+				play_sound(int(i - 4), rate, pan)
 			}
 		}
 	}
@@ -171,6 +176,14 @@ _itos :: proc(i: i32) -> string {
 	case:
 		return "-"
 	}
+}
+button_get_pan :: proc(b: Button, w: i32) -> (pan: f64) {
+	if g_input.enable_pan {
+		bb := button_get_bbox(b)
+		pan_x: i32 = bb.pos.x + bb.size.x / 2 - w / 2
+		pan = (f64(pan_x) / f64(w)) * 2
+	}
+	return
 }
 
 _button_print_fired :: proc(b: Button, i: int) {
