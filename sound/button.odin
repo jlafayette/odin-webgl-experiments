@@ -137,11 +137,11 @@ buttons_layout :: proc(buttons: ^[BUTTON_COUNT]Button, container: Container) {
 			buttons[i].container = cn_container
 			if buttons[i].fire_down_command {
 				rate := rand.float64() * 0.2 + 0.8
-				play_sound2(int(i - 4), rate)
+				play_sound(int(i - 4), rate)
 			}
 			if buttons[i].fire_up_command {
 				rate := rand.float64() * 0.2 + 1.0
-				play_sound2(int(i - 4), rate)
+				play_sound(int(i - 4), rate)
 			}
 		}
 	}

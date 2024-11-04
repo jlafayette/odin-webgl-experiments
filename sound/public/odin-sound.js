@@ -1,32 +1,33 @@
 let audioContext = null;
-const oscList = [];
 let mainGainNode = null;
 let compressorNode = null;
 
-// global vars for constructing waveforms
-let noteFreq = null;
-let customWaveform = null;
-let sineTerms = null;
-let cosineTerms = null;
-
-
-const attackTime = 0.03;
-const decayTimeConstant = 0.01;
-const releaseTimeConstant = 0.05;
-
+const soundLookup = {
+	pause: "./sounds/pause.mp3",
+	unpause: "./sounds/unpause.mp3",
+	pop: "./sounds/pop.mp3",
+	thud: "./sounds/thud.mp3",
+};
+const indexToSound = {
+	0: "pause",
+	1: "unpause",
+	2: "pop",
+	3: "thud",
+}
 
 // TODO: try buffer -> multiple buffer sources to play
 // https://developer.mozilla.org/en-US/docs/Web/API/AudioBufferSourceNode
-const qs2 = []
-function setupQueues2() {
-	console.log("starting setupQueues2");
-	qs2.push(createSoundQueue2(soundLookup["pause"], 3));
-	qs2.push(createSoundQueue2(soundLookup["unpause"], 3));
-	qs2.push(createSoundQueue2(soundLookup["pop"], 3));
-	qs2.push(createSoundQueue2(soundLookup["thud"], 3));
-	console.log("done setupQueues2");
+const qs = []
+function setupQueues() {
+	console.log("starting setupQueues");
+	qs.push(createSoundQueue(soundLookup["pause"], 3));
+	qs.push(createSoundQueue(soundLookup["unpause"], 3));
+	qs.push(createSoundQueue(soundLookup["pop"], 3));
+	qs.push(createSoundQueue(soundLookup["thud"], 3));
+	console.log("done setupQueues");
 }
-function addToQ2(q) {
+
+function addToQ(q) {
 	const element = new Audio(q.url);
 	const source = audioContext.createMediaElementSource(element);
 	element.playbackRate = 1.0;
@@ -52,22 +53,24 @@ function addToQ2(q) {
 	player.source.connect(mainGainNode);
 	q.players.push(player);
 }
-function createSoundQueue2(url, count) {
+
+function createSoundQueue(url, count) {
 	let q = {
 		players: [],
 		url: url,
 		maxCount: count,
 	};
-	addToQ2(q);
+	addToQ(q);
 	return q;
 }
-function qPlay2(index, rate) {
-	if (qs2.length <= index) {
+
+function qPlay(index, rate) {
+	if (qs.length <= index) {
 		console.log(`No sounds queue for index ${index}`);
 		return;
 	}
 	let played = false;
-	const q = qs2[index];
+	const q = qs[index];
 	for (let i = 0; i < q.players.length; i++) {
 		const player = q.players[i];
 		if (player.canPlay && !player.isPlaying) {
@@ -82,7 +85,7 @@ function qPlay2(index, rate) {
 		console.log(`Failed to play sound, have ${q.players.length} of max ${q.maxCount}`);
 	}
 	if (q.players.length < q.maxCount) {
-		addToQ2(q);
+		addToQ(q);
 	}
 }
 
@@ -110,134 +113,8 @@ function setup() {
 	compressorNode.connect(audioContext.destination);
 
 	mainGainNode.gain.value = 0.5;
-	sineTerms = new Float32Array([0, 0, 1, 0, 1]);
-	cosineTerms = new Float32Array(sineTerms.length);
-	customWaveform = audioContext.createPeriodicWave(cosineTerms, sineTerms);
 
-	setupQueues2();
-}
-
-function play2(index, rate) {
-	qPlay2(index, rate);
-}
-
-const qs = [];
-const soundLookup = {
-	pause: "./sounds/pause.mp3",
-	unpause: "./sounds/unpause.mp3",
-	pop: "./sounds/pop.mp3",
-	thud: "./sounds/thud.mp3",
-};
-const indexToSound = {
-	0: "pause",
-	1: "unpause",
-	2: "pop",
-	3: "thud",
-}
-
-function setupQueues() {
-	console.log("starting setupQueues");
-	qs.push(createSoundQueue(soundLookup["pause"], 3));
-	qs.push(createSoundQueue(soundLookup["unpause"], 3));
-	qs.push(createSoundQueue(soundLookup["pop"], 3));
-	console.log("done setupQueues");
-}
-
-function createSoundQueue(url, count) {
-	let q = {};
-	q.players = [];
-	for (let i = 0; i < count; i++) {
-		const element = new Audio(url);
-		element.playbackRate = 1.0;
-		element.preservesPitch = false;
-		const player = {
-			element,
-			canPlay: false,
-			isPlaying: false,
-		};
-		element.addEventListener("canplaythrough", (event) => {
-			console.log("canplaythrough");
-			player.canPlay = true;
-		});
-		element.addEventListener("ended", (event) => {
-			// console.log("ended");
-			player.isPlaying = false;
-		});
-		element.addEventListener("play", (event) => {
-			// console.log("play");
-			player.isPlaying = true;
-		});
-		q.players.push(player);
-	}
-	return q;
-}
-
-function qPlay(index, rate) {
-	if (qs.length <= index) {
-		console.log(`No sounds queue for index ${index}`);
-		return;
-	}
-	const q = qs[index];
-	for (let i = 0; i < q.players.length; i++) {
-		const player = q.players[i];
-		if (player.canPlay && !player.isPlaying) {
-			console.log(`sound[${index}] playing player ${i}`);
-			player.element.playbackRate = rate;
-			player.element.play();
-			break;
-		}
-	}
-}
-
-function playSound(index, rate) {
-	qPlay(index, rate);
-}
-
-function playTone(index, freq) {
-	let ampInitialGain = 0.0;
-	let osc = null;
-	let amp = null;
-
-	if (oscList[index] == undefined) {
-		oscList[index] = {};
-		oscList[index].osc = audioContext.createOscillator();
-		oscList[index].amp = audioContext.createGain();
-		oscList[index].pressed = true;
-		osc = oscList[index].osc;
-		amp = oscList[index].amp;
-		osc.connect(amp);
-		amp.connect(mainGainNode);
-		const type = "sine";
-		if (type === "custom") {
-			osc.setPeriodicWave(customWaveform);
-		} else {
-			osc.type = type;
-		}
-		osc.frequency.value = freq;
-		osc.start();
-	} else {
-		ampInitialGain = oscList[index].amp.gain.value;
-		osc = oscList[index].osc;
-		amp = oscList[index].amp;
-	}
-	const time = audioContext.currentTime;
-	amp.gain.cancelScheduledValues(time);
-	amp.gain.setValueAtTime(ampInitialGain, time);
-	amp.gain.linearRampToValueAtTime(1, time + attackTime);
-	amp.gain.setTargetAtTime(0.5, time + attackTime, decayTimeConstant);
-}
-
-function release(index) {
-	if (oscList[index] == undefined) {
-		return;
-	}
-	const amp = oscList[index].amp;
-	const time = audioContext.currentTime;
-	const ampInitialGain = amp.gain.value;
-	amp.gain.cancelScheduledValues(time);
-	amp.gain.setValueAtTime(ampInitialGain, time);
-	amp.gain.setTargetAtTime(0, time, releaseTimeConstant);
-	oscList[index].pressed = false;
+	setupQueues();
 }
 
 function setupImports(wasmMemoryInterface, consoleElement, memory) {
@@ -249,32 +126,14 @@ function setupImports(wasmMemoryInterface, consoleElement, memory) {
 		env,
 		"odin_sound": {
 			play_sound: (index, rate) => {
-				playSound(index, rate);
-			},
-			play_sound2: (index, rate) => {
 				if (!audioContext) {
 					setup();
 				}
-				play2(index, rate);
+				qPlay(index, rate);
 			},
-			note_pressed: (index, freq) => {
-				// console.log(`note_pressed(index: ${index}, freq: ${freq})`);
-				if (!audioContext) {
-					setup();
-				}
-				playTone(index, freq);
-			},
-			note_released: (index) => {
-				// console.log(`note_released(index: ${index})`);
-				if (!audioContext) {
-					setup();
-				}
-				release(index);
-			}
 		},
 	};
 }
 window.odinSound = {
 	setupImports: setupImports,
-	setup: setupQueues,
 }

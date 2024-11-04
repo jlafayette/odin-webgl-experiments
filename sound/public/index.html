@@ -46,7 +46,6 @@
 				...window.odinSound.setupImports(wasmMemoryInterface),
 			};
 			odin.runWasm("./_main.wasm", undefined, custom_imports, wasmMemoryInterface);
-			requestIdleCallback(window.odinSound.setup);
 		});
 	</script>
 </body>
