@@ -33,10 +33,10 @@ init_input :: proc(input: ^Input, number_of_keys: int) {
 	input.pointer = .Hover
 }
 
-update_input :: proc(input: ^Input, buttons: []Button, dt: f32, dpr: f32) {
+update_input :: proc(input: ^Input, ui: ^Ui, dt: f32, dpr: f32) {
 	input.mouse_pos *= dpr
 	new_i := -1
-	for &btn, i in buttons {
+	for &btn, i in ui.buttons {
 		btn.pointer = .None
 		btn.fire_down_command = false
 		btn.fire_up_command = false
@@ -44,12 +44,26 @@ update_input :: proc(input: ^Input, buttons: []Button, dt: f32, dpr: f32) {
 			btn.pointer = input.pointer
 		}
 	}
+	ui.slider.pointer = .None
+	if slider_contains_pos(ui.slider, i_(input.mouse_pos)) {
+		ui.slider.pointer = input.pointer
+		if input.pointer == .Down {
+			ui.slider.drag = true
+		}
+	}
+	if input.pointer == .Down {
+		if ui.slider.drag {
+			slider_drag_to(&ui.slider, i_(input.mouse_pos))
+		}
+	} else {
+		ui.slider.drag = false
+	}
 	for me, i in input.click_events {
 		if i >= input.click_event_i {
 			break
 		}
 		pos: [2]i32 = i_(me.pos * dpr)
-		for &btn in buttons {
+		for &btn in ui.buttons {
 			if button_contains_pos(btn, pos) {
 				switch me.type {
 				case .DOWN:

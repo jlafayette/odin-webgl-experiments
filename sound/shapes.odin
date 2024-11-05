@@ -303,6 +303,18 @@ shapes_draw :: proc(s: ^Shapes, ui: Ui, projection_matrix: glm.mat4) {
 		// p2: [2]i32 = {bbox.pos.x + bbox.size.x, bbox.pos.y}
 		// add_line(s, {p1, p2, 2, {1, 1, 1, 1}})
 	}
+	for slider_shape in slider_get_shapes(ui.slider) {
+		switch shape in slider_shape {
+		case Rectangle:
+			{
+				add_rectangle(s, shape)
+			}
+		case Circle:
+			{
+				add_circle(s, shape)
+			}
+		}
+	}
 
 	mi: int = 0
 	for rect, i in s.rectangles {

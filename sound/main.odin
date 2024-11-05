@@ -107,16 +107,30 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 				fmt.eprintln("Failed to render text for button:", button)
 			}
 		}
+
+		{
+			slider := state.ui.slider
+			slider_text: string = fmt.tprintf("%d", slider.value)
+			text_w: i32 = text.debug_get_width(slider_text)
+			pos := slider.pos
+			pos.x += slider.size.x + 10
+			pos.y += slider.size.y / 2
+			pos.y -= text_h / 2
+			_, ok = text.debug(pos, slider_text, flip_y = false)
+			if !ok {
+				fmt.eprintln("Failed to render text for slider")
+			}
+		}
+
 	}
 	return true
 }
-
 
 update :: proc(state: ^State, input: ^Input, dt: f32) {
 	state.time_elapsed += f64(dt)
 	update_handle_resize(&state.layout)
 	l := state.layout
-	update_input(&g_input, state.ui.buttons[:], dt, l.dpr)
+	update_input(&g_input, &state.ui, dt, l.dpr)
 	ui_layout(&state.ui, {{0, 0}, {l.w, l.h}})
 	shapes_update(&state.shapes, l.w, l.h, dt, state.time_elapsed)
 }
