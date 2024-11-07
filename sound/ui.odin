@@ -9,14 +9,14 @@ Ui :: struct {
 }
 
 Slider :: struct {
-	pos:     [2]i32,
-	size:    [2]i32,
-	pointer: PointerState,
-	drag:    bool,
-	min:     int,
-	max:     int,
-	step:    int,
-	value:   int,
+	pos:        [2]i32,
+	size:       [2]i32,
+	pointer:    PointerState,
+	drag:       bool,
+	min:        int,
+	max:        int,
+	value:      int,
+	prev_value: int,
 }
 
 @(private = "file")
@@ -32,10 +32,15 @@ ui_layout :: proc(ui: ^Ui, container: Container) {
 	ui.slider.size = size
 	ui.slider.min = 0
 	ui.slider.max = 100
-	ui.slider.step = 1
+
 	if _ui_first {
 		ui.slider.value = 50
+		ui.slider.prev_value = 50
 	}
+	if ui.slider.prev_value != ui.slider.value {
+		set_volume(ui.slider.value)
+	}
+	ui.slider.prev_value = ui.slider.value
 
 	_ui_first = false
 }

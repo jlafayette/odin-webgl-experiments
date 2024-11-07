@@ -20,10 +20,10 @@ const indexToSound = {
 const qs = []
 function setupQueues() {
 	console.log("starting setupQueues");
-	qs.push(createSoundQueue(soundLookup["pause"], 3));
-	qs.push(createSoundQueue(soundLookup["unpause"], 3));
-	qs.push(createSoundQueue(soundLookup["pop"], 3));
-	qs.push(createSoundQueue(soundLookup["thud"], 3));
+	qs.push(createSoundQueue(soundLookup["pause"], 20));
+	qs.push(createSoundQueue(soundLookup["unpause"], 20));
+	qs.push(createSoundQueue(soundLookup["pop"], 20));
+	qs.push(createSoundQueue(soundLookup["thud"], 20));
 	console.log("done setupQueues");
 }
 
@@ -134,6 +134,13 @@ function setupImports(wasmMemoryInterface, consoleElement, memory) {
 				}
 				qPlay(index, rate, pan);
 			},
+			set_volume: (level) => {
+				if (!audioContext) {
+					setup();
+				}
+				console.log(`level: ${level}`);
+				mainGainNode.gain.value = level * 1;
+			}
 		},
 	};
 }

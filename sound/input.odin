@@ -116,12 +116,12 @@ on_key_down :: proc(e: js.Event) {
 	}
 	// fmt.println(e.key.code)
 	if e.key.code == "ControlLeft" {
-		g_input.enable_pan = true
+		g_input.enable_pan = false
 	}
 }
 on_key_up :: proc(e: js.Event) {
 	if e.key.code == "ControlLeft" {
-		g_input.enable_pan = false
+		g_input.enable_pan = true
 	}
 }
 
