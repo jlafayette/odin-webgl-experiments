@@ -26,6 +26,7 @@ def main(args: Args):
 		"shapes",
 		"wfc",
 		"synth_keyboard",
+		"sound",
 	]
 	for project in projects:
 		build_args = build.Args(project=project, go=False, odin=True, optimized=True, run=False)
