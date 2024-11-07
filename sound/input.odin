@@ -34,22 +34,31 @@ init_input :: proc(input: ^Input, number_of_keys: int) {
 }
 
 update_input :: proc(input: ^Input, ui: ^Ui, dt: f32, dpr: f32) {
+
+	// TODO: change cursor when hovering over some ui elements
+	//       https://stackoverflow.com/questions/31495344/change-cursor-depending-on-section-of-canvas	
+
 	input.mouse_pos *= dpr
+	mouse_pos: [2]i32 = i_(input.mouse_pos)
 	new_i := -1
 	for &btn, i in ui.buttons {
 		btn.pointer = .None
 		btn.fire_down_command = false
 		btn.fire_up_command = false
-		if button_contains_pos(btn, i_(input.mouse_pos)) {
+		if button_contains_pos(btn, mouse_pos) {
 			btn.pointer = input.pointer
 		}
 	}
 	ui.slider.pointer = .None
-	if slider_contains_pos(ui.slider, i_(input.mouse_pos)) {
+	if slider_contains_pos(ui.slider, mouse_pos) {
 		ui.slider.pointer = input.pointer
 		if input.pointer == .Down {
 			ui.slider.drag = true
 		}
+	}
+	ui.checkbox.pointer = .None
+	if checkbox_contains_pos(ui.checkbox, mouse_pos) {
+		ui.checkbox.pointer = input.pointer
 	}
 	if input.pointer == .Down {
 		if ui.slider.drag {
@@ -72,6 +81,12 @@ update_input :: proc(input: ^Input, ui: ^Ui, dt: f32, dpr: f32) {
 					btn.fire_up_command = true
 				}
 				break
+			}
+		}
+		if checkbox_contains_pos(ui.checkbox, pos) {
+			#partial switch me.type {
+			case .DOWN:
+				ui.checkbox.value = !ui.checkbox.value
 			}
 		}
 	}
@@ -115,14 +130,8 @@ on_key_down :: proc(e: js.Event) {
 		return
 	}
 	// fmt.println(e.key.code)
-	if e.key.code == "ControlLeft" {
-		g_input.enable_pan = false
-	}
 }
 on_key_up :: proc(e: js.Event) {
-	if e.key.code == "ControlLeft" {
-		g_input.enable_pan = true
-	}
 }
 
 on_blur :: proc(e: js.Event) {

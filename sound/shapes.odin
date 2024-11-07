@@ -315,6 +315,18 @@ shapes_draw :: proc(s: ^Shapes, ui: Ui, projection_matrix: glm.mat4) {
 			}
 		}
 	}
+	for cb_shape in checkbox_get_shapes(ui.checkbox) {
+		switch shape in cb_shape {
+		case Rectangle:
+			{
+				add_rectangle(s, shape)
+			}
+		case Line:
+			{
+				add_line(s, shape)
+			}
+		}
+	}
 
 	mi: int = 0
 	for rect, i in s.rectangles {

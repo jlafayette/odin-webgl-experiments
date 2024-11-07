@@ -107,7 +107,6 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 				fmt.eprintln("Failed to render text for button:", button)
 			}
 		}
-
 		{
 			slider := state.ui.slider
 			slider_text: string = fmt.tprintf("%d", slider.value)
@@ -120,6 +119,17 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 			if !ok {
 				fmt.eprintln("Failed to render text for slider")
 			}
+		}
+		{
+			cb := state.ui.checkbox
+			text_w: i32 = text.debug_get_width(cb.label)
+			pos := cb.pos + {cb.size.y, 0} + {12, 0}
+			pos.y += cb.size.y / 2 - text_h / 2
+			_, ok = text.debug(pos, cb.label, flip_y = false)
+			if !ok {
+				fmt.eprintln("Failed to render text for slider")
+			}
+
 		}
 
 	}

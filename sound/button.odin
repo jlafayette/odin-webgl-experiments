@@ -156,10 +156,8 @@ _itos :: proc(i: i32) -> string {
 	}
 }
 button_get_pan :: proc(b: Button, w: i32) -> (pan: f64) {
-	if g_input.enable_pan {
-		pan_x: i32 = b.pos.x + b.size.x / 2 - w / 2
-		pan = (f64(pan_x) / f64(w)) * 2
-	}
+	pan_x: i32 = b.pos.x + b.size.x / 2 - w / 2
+	pan = (f64(pan_x) / f64(w)) * 2
 	return
 }
 
