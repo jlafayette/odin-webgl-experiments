@@ -8,7 +8,9 @@
 *.exe
 assets/crispy_font/art/reference
 assets/crispy_font/debug
-dist/*/*.*
+dist/**/*.*
 */public/odin-resize.js
 */public/odin-gamepad.js
 __pycache__/
+_bk/
+t/

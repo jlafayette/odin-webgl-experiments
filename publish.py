@@ -40,13 +40,18 @@ def main(args: Args):
 		filenames = ["index.html", "_main.wasm", "style.css"]
 		files = [src_public / f for f in filenames]
 		files.extend(src_public.glob("*.js"))
+		if (src_public / "sounds").is_dir():
+			files.extend((src_public/"sounds").glob("*.mp3"))
 		print(src_public)
 		dst_path = dist / src_public.parent.name
 		build.clean(dst_path)
 		dst_path.mkdir(exist_ok=False)
 		for src in files:
 			if src.is_file():
-				dst = dst_path / src.name
+				dst = dst_path / src.relative_to(src_public)
+				if not dst.parent.exists():
+					dst.parent.mkdir(exist_ok=True)
+				# dst = dst_path / src.name
 				print("   ", src, "->", dst)
 				build.clean(dst)
 				shutil.copy(src, dst)
