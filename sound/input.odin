@@ -15,7 +15,7 @@ ClickEvent :: struct {
 }
 Input :: struct {
 	pointer:       PointerState,
-	mouse_pos:     [2]f32,
+	pointer_pos:   [2]f32,
 	click_events:  [4]ClickEvent,
 	click_event_i: int,
 	enable_pan:    bool,
@@ -26,9 +26,9 @@ g_input := Input{}
 init_input :: proc(input: ^Input, number_of_keys: int) {
 	js.add_window_event_listener(.Key_Down, {}, on_key_down)
 	js.add_window_event_listener(.Key_Up, {}, on_key_up)
-	js.add_window_event_listener(.Mouse_Move, {}, on_mouse_move)
-	js.add_window_event_listener(.Mouse_Down, {}, on_mouse_down)
-	js.add_window_event_listener(.Mouse_Up, {}, on_mouse_up)
+	js.add_window_event_listener(.Pointer_Move, {}, on_pointer_move)
+	js.add_window_event_listener(.Pointer_Down, {}, on_pointer_down)
+	js.add_window_event_listener(.Pointer_Up, {}, on_pointer_up)
 	js.add_window_event_listener(.Blur, {}, on_blur)
 	input.pointer = .Hover
 }
@@ -38,31 +38,31 @@ update_input :: proc(input: ^Input, ui: ^Ui, dt: f32, dpr: f32) {
 	// TODO: change cursor when hovering over some ui elements
 	//       https://stackoverflow.com/questions/31495344/change-cursor-depending-on-section-of-canvas	
 
-	input.mouse_pos *= dpr
-	mouse_pos: [2]i32 = i_(input.mouse_pos)
+	input.pointer_pos *= dpr
+	pointer_pos: [2]i32 = i_(input.pointer_pos)
 	new_i := -1
 	for &btn, i in ui.buttons {
 		btn.pointer = .None
 		btn.fire_down_command = false
 		btn.fire_up_command = false
-		if button_contains_pos(btn, mouse_pos) {
+		if button_contains_pos(btn, pointer_pos) {
 			btn.pointer = input.pointer
 		}
 	}
 	ui.slider.pointer = .None
-	if slider_contains_pos(ui.slider, mouse_pos) {
+	if slider_contains_pos(ui.slider, pointer_pos) {
 		ui.slider.pointer = input.pointer
 		if input.pointer == .Down {
 			ui.slider.drag = true
 		}
 	}
 	ui.checkbox.pointer = .None
-	if checkbox_contains_pos(ui.checkbox, mouse_pos) {
+	if checkbox_contains_pos(ui.checkbox, pointer_pos) {
 		ui.checkbox.pointer = input.pointer
 	}
 	if input.pointer == .Down {
 		if ui.slider.drag {
-			slider_drag_to(&ui.slider, i_(input.mouse_pos))
+			slider_drag_to(&ui.slider, pointer_pos)
 		}
 	} else {
 		ui.slider.drag = false
@@ -96,11 +96,11 @@ update_input :: proc(input: ^Input, ui: ^Ui, dt: f32, dpr: f32) {
 	input.click_event_i = 0
 }
 
-on_mouse_move :: proc(e: js.Event) {
-	g_input.mouse_pos = {f32(e.mouse.client.x), f32(e.mouse.client.y)}
+on_pointer_move :: proc(e: js.Event) {
+	g_input.pointer_pos = {f32(e.pointer.client.x), f32(e.pointer.client.y)}
 }
 
-_record_mouse_click :: proc(pos: [2]f32, type: ClickType) {
+_record_pointer_click :: proc(pos: [2]f32, type: ClickType) {
 	i := g_input.click_event_i
 	if i < len(g_input.click_events) {
 		g_input.click_events[i] = ClickEvent({pos, type})
@@ -108,21 +108,20 @@ _record_mouse_click :: proc(pos: [2]f32, type: ClickType) {
 	}
 }
 
-on_mouse_down :: proc(e: js.Event) {
-	// fmt.println("click:", e.mouse.button)
-	if e.mouse.button != 0 {
+on_pointer_down :: proc(e: js.Event) {
+	if !e.pointer.is_primary {
 		return
 	}
 	g_input.pointer = .Down
-	_record_mouse_click({f32(e.mouse.client.x), f32(e.mouse.client.y)}, .DOWN)
+	_record_pointer_click({f32(e.pointer.client.x), f32(e.pointer.client.y)}, .DOWN)
 }
-on_mouse_up :: proc(e: js.Event) {
+on_pointer_up :: proc(e: js.Event) {
 	// fmt.println("unclick:", e.mouse.button)
-	if e.mouse.button != 0 {
+	if !e.pointer.is_primary {
 		return
 	}
 	g_input.pointer = .Up
-	_record_mouse_click({f32(e.mouse.client.x), f32(e.mouse.client.y)}, .UP)
+	_record_pointer_click({f32(e.pointer.client.x), f32(e.pointer.client.y)}, .UP)
 }
 
 on_key_down :: proc(e: js.Event) {
