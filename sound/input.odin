@@ -38,8 +38,7 @@ update_input :: proc(input: ^Input, ui: ^Ui, dt: f32, dpr: f32) {
 	// TODO: change cursor when hovering over some ui elements
 	//       https://stackoverflow.com/questions/31495344/change-cursor-depending-on-section-of-canvas	
 
-	input.pointer_pos *= dpr
-	pointer_pos: [2]i32 = i_(input.pointer_pos)
+	pointer_pos: [2]i32 = i_(input.pointer_pos * dpr)
 	new_i := -1
 	for &btn, i in ui.buttons {
 		btn.pointer = .None
