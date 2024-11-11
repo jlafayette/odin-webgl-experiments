@@ -81,7 +81,7 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 	shapes_draw(&state.shapes, state.ui, view_projection_matrix)
 
 	{
-		scale: i32 = 1 // math.max(1, i32(math.round(state.layout.dpr)))
+		scale: i32 = state.ui.scale
 		spacing: i32 = 2 * scale
 		text.batch_start(
 			&state.text_batch,
@@ -112,7 +112,7 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 			slider_text: string = fmt.tprintf("%d", slider.value)
 			text_w: i32 = text.debug_get_width(slider_text)
 			pos := slider.pos
-			pos.x += slider.size.x + 10
+			pos.x += slider.size.x + 10 * scale
 			pos.y += slider.size.y / 2
 			pos.y -= text_h / 2
 			_, ok = text.debug(pos, slider_text, flip_y = false)
@@ -123,7 +123,7 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 		{
 			cb := state.ui.checkbox
 			text_w: i32 = text.debug_get_width(cb.label)
-			pos := cb.pos + {cb.size.y, 0} + {12, 0}
+			pos := cb.pos + {cb.size.y, 0} + {12, 0} * scale
 			pos.y += cb.size.y / 2 - text_h / 2
 			_, ok = text.debug(pos, cb.label, flip_y = false)
 			if !ok {
@@ -141,7 +141,7 @@ update :: proc(state: ^State, input: ^Input, dt: f32) {
 	update_handle_resize(&state.layout)
 	l := state.layout
 	update_input(&g_input, &state.ui, dt, l.dpr)
-	ui_layout(&state.ui, {{0, 0}, {l.w, l.h}})
+	ui_layout(&state.ui, {{0, 0}, {l.w, l.h}}, l.dpr)
 	shapes_update(&state.shapes, l.w, l.h, dt, state.time_elapsed)
 }
 

@@ -286,7 +286,7 @@ shapes_draw :: proc(s: ^Shapes, ui: Ui, projection_matrix: glm.mat4) {
 		s.line_count = retained_line_count
 	}
 	for btn in ui.buttons {
-		btn_shape := button_get_shape(btn)
+		btn_shape := button_get_shape(btn, ui.scale)
 		switch shape in btn_shape {
 		case Rectangle:
 			{
@@ -303,7 +303,7 @@ shapes_draw :: proc(s: ^Shapes, ui: Ui, projection_matrix: glm.mat4) {
 		// p2: [2]i32 = {bbox.pos.x + bbox.size.x, bbox.pos.y}
 		// add_line(s, {p1, p2, 2, {1, 1, 1, 1}})
 	}
-	for slider_shape in slider_get_shapes(ui.slider) {
+	for slider_shape in slider_get_shapes(ui.slider, ui.scale) {
 		switch shape in slider_shape {
 		case Rectangle:
 			{
@@ -315,7 +315,7 @@ shapes_draw :: proc(s: ^Shapes, ui: Ui, projection_matrix: glm.mat4) {
 			}
 		}
 	}
-	for cb_shape in checkbox_get_shapes(ui.checkbox) {
+	for cb_shape in checkbox_get_shapes(ui.checkbox, ui.scale) {
 		switch shape in cb_shape {
 		case Rectangle:
 			{

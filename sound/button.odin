@@ -48,27 +48,28 @@ button_hover_color: [4]f32 = {0, 0.8, 0.8, 1}
 BUTTON_COUNT :: 8
 
 
-buttons_layout :: proc(buttons: ^[BUTTON_COUNT]Button, container: Container) {
+buttons_layout :: proc(buttons: ^[BUTTON_COUNT]Button, container: Container, scale: i32) {
 	w := container.size.x
 	h := container.size.y
-	size: [2]i32 = {200, 40}
-	buttons[0].pos = _button_calc_pos({8, 8}, size, .Left, .Top, container)
+	size: [2]i32 = {200, 40} * scale
+	offset: [2]i32 = {8, 8} * scale
+	buttons[0].pos = _button_calc_pos(offset, size, .Left, .Top, container)
 	buttons[0].size = size
 	buttons[0].shape = .Rectangle
 	buttons[0].label = "button 0"
 
-	buttons[1].pos = _button_calc_pos({8, 8}, size, .Right, .Bottom, container)
+	buttons[1].pos = _button_calc_pos(offset, size, .Right, .Bottom, container)
 	buttons[1].size = size
 	buttons[1].shape = .Rectangle
 	buttons[1].label = "button 1"
 
-	size = {80, 80}
-	buttons[2].pos = _button_calc_pos({8, 8}, size, .Right, .Top, container)
+	size = {80, 80} * scale
+	buttons[2].pos = _button_calc_pos(offset, size, .Right, .Top, container)
 	buttons[2].size = size
 	buttons[2].shape = .Circle
 	buttons[2].label = "2"
 
-	buttons[3].pos = _button_calc_pos({8, 8}, size, .Left, .Bottom, container)
+	buttons[3].pos = _button_calc_pos(offset, size, .Left, .Bottom, container)
 	buttons[3].size = size
 	buttons[3].shape = .Circle
 	buttons[3].label = "3"
@@ -104,8 +105,8 @@ buttons_layout :: proc(buttons: ^[BUTTON_COUNT]Button, container: Container) {
 	}
 
 	{
-		size: [2]i32 = {60, 60}
-		gap: i32 = 10
+		size: [2]i32 = {60, 60} * scale
+		gap: i32 = 10 * scale
 		cn_size: [2]i32 = {size.x * 4 + gap * 3, size.y}
 		cn_container: Container = {{w / 2 - cn_size.x / 2, h / 2 - cn_size.y / 2}, cn_size}
 		x: i32 = 0
@@ -209,7 +210,7 @@ _button_calc_pos :: proc(
 	return pos + container.pos
 }
 
-button_get_shape :: proc(b: Button) -> Shape {
+button_get_shape :: proc(b: Button, scale: i32) -> Shape {
 	color: [4]f32 = button_color
 	size_offset: [2]i32 = {0, 0}
 	pos_offset: [2]i32 = {0, 0}
@@ -219,8 +220,8 @@ button_get_shape :: proc(b: Button) -> Shape {
 		color = button_color
 	case .Hover:
 		color = button_hover_color
-		size_offset = {2, 2}
-		radius_offset = 1
+		size_offset = {2, 2} * scale
+		radius_offset = 1 * scale
 	case .Down:
 		color = button_hover_color
 		size_offset = {0, 0}
@@ -228,8 +229,8 @@ button_get_shape :: proc(b: Button) -> Shape {
 		pos_offset = {0, 0}
 	case .Up:
 		color = button_hover_color
-		size_offset = {2, 2}
-		radius_offset = 1
+		size_offset = {2, 2} * scale
+		radius_offset = 1 * scale
 	}
 	pos := b.pos
 	size := b.size
