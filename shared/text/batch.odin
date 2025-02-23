@@ -1,6 +1,7 @@
 package text
 
 import "core:fmt"
+import "core:math"
 import glm "core:math/linalg/glsl"
 import "core:strings"
 import gl "vendor:wasm/WebGL"
@@ -20,6 +21,37 @@ Batch :: struct {
 
 _current_batch: ^Batch
 
+batch_reload :: proc(b: ^Batch, new_capacity: uint) -> (ok: bool) {
+	if !b._loaded {
+		// fmt.println("batch is not loaded yet, skipping reload")
+		return true
+	}
+	if new_capacity <= b.capacity {
+		// fmt.printf("no reloaded needed !(%d <= %d)", new_capacity, b.capacity)
+		return true
+	}
+
+	fmt.println("reloading buffers...", b.capacity, "->", new_capacity)
+	b.capacity = new_capacity
+	// load buffers
+	pos_data, err1 := make([][2]f32, b.capacity * 4, allocator = context.temp_allocator)
+	tex_data, err2 := make([][2]f32, b.capacity * 4, allocator = context.temp_allocator)
+	indices_data, err3 := make([][6]u16, b.capacity, allocator = context.temp_allocator)
+	if err1 != nil || err2 != nil || err3 != nil {
+		fmt.eprintln("ERROR: temp allocation failed for webgl buffers")
+		return false
+	}
+	buffer_destroy(&b.buffers.pos)
+	buffer_init(&b.buffers.pos, pos_data)
+
+	buffer_destroy(&b.buffers.tex)
+	buffer_init(&b.buffers.tex, tex_data)
+
+	ea_buffer_destroy(&b.buffers.indices)
+	ea_buffer_init(&b.buffers.indices, indices_data)
+	return true
+}
+
 @(deferred_out = batch_end)
 batch_start :: proc(
 	b: ^Batch,
@@ -27,36 +59,34 @@ batch_start :: proc(
 	color: glm.vec3,
 	projection: glm.mat4,
 	capacity: uint,
-	spacing: i32 = -1,
-	scale: i32 = 1,
-) -> (
-	^Batch,
-	bool,
-) {
-	ok: bool
+	spacing: int = -1,
+	scale: int = 1,
+) -> ^Batch {
 	b.size = size
 	b.color = color
 	b.projection = projection
-	b.capacity = capacity
-	b.scale = scale
-	b.atlas = &g_atlases[size]
-	ok = init(b.atlas, size)
+	b.capacity = math.max(capacity, b.capacity)
+	b.scale = i32(scale)
+	b.atlas = atlas_get(size)
 
 	if spacing == -1 {
-		b.spacing = scale * (b.atlas.h / 10)
+		b.spacing = i32(scale) * (b.atlas.h / 10)
 	} else {
-		b.spacing = spacing
+		b.spacing = i32(spacing)
 	}
-	if !ok {return b, ok}
 
 	if !b._loaded {
 		// load buffers
-		ok = shader_init(&b.shader)
-		if !ok {return b, ok}
+		ok := shader_init(&b.shader)
+		assert(ok, "text shader init failed")
 
-		pos_data := make([][2]f32, b.capacity * 4, allocator = context.temp_allocator)
-		tex_data := make([][2]f32, b.capacity * 4, allocator = context.temp_allocator)
-		indices_data := make([][6]u16, b.capacity, allocator = context.temp_allocator)
+		pos_data, err1 := make([][2]f32, b.capacity * 4, allocator = context.temp_allocator)
+		tex_data, err2 := make([][2]f32, b.capacity * 4, allocator = context.temp_allocator)
+		indices_data, err3 := make([][6]u16, b.capacity, allocator = context.temp_allocator)
+		assert(
+			err1 == nil && err2 == nil && err3 == nil,
+			"ERROR: temp allocation failed for webgl buffers",
+		)
 		b.buffers.pos = {
 			size   = 2,
 			type   = gl.FLOAT,
@@ -82,11 +112,11 @@ batch_start :: proc(
 	}
 	b.buffers.offset = 0
 	_current_batch = b
-	return b, ok // for batch_end
+	return b // for batch_end
 }
-batch_end :: proc(b: ^Batch, ok: bool) {
+batch_end :: proc(b: ^Batch) {
 	// fmt.println("running batch_end")
-	if !ok {return}
+	// if !ok {return}
 	// draw everything
 	shader_use(
 		b.shader,
@@ -106,45 +136,55 @@ batch_end :: proc(b: ^Batch, ok: bool) {
 	_current_batch = nil
 }
 
-debug_get_height :: proc() -> i32 {
+@(private)
+_debug_get_height :: proc(atlas: ^Atlas, scale: i32) -> int {
+	return int(atlas.h * scale)
+}
+debug_get_height :: proc() -> int {
 	if _current_batch == nil {
+		fmt.eprintf("current batch not set, run text.batch_start first")
 		return -1
 	}
 	b := _current_batch
-	return b.atlas.h * b.scale
+	return _debug_get_height(b.atlas, b.scale)
 }
-debug_get_width :: proc(str: string) -> i32 {
-	if _current_batch == nil {
-		fmt.eprintf("current batch not set, run text.batch_start first")
-		return 0
-	}
-	b := _current_batch
+@(private)
+_debug_get_width :: proc(atlas: ^Atlas, spacing: i32, scale: i32, str: string) -> int {
 	width: i32 = 0
 	x: i32 = 0
-	char_h: i32 = b.atlas.h * b.scale
+	char_h: i32 = atlas.h * scale
 	for rune_ in str {
 		if rune_ == ' ' {
-			x += _get_batch_space(b.atlas, b.spacing, b.scale)
+			x += _get_batch_space(atlas, spacing, scale)
 			continue
 		}
 		if rune_ < '!' || rune_ > '~' {
 			continue
 		}
 		char_i: i32 = i32(rune_) - 33
-		ch: Char = b.atlas.chars[char_i]
-		char_w := i32(ch.w) * b.scale
-		x += char_w + b.spacing
+		ch: Char = atlas.chars[char_i]
+		char_w := i32(ch.w) * scale
+		x += char_w + spacing
 	}
-	width = x - b.spacing
+	width = x - spacing
 
-	return width
+	return cast(int)width
+}
+debug_get_width :: proc(str: string) -> int {
+	if _current_batch == nil {
+		fmt.eprintf("current batch not set, run text.batch_start first")
+		return 0
+	}
+	b := _current_batch
+	return _debug_get_width(b.atlas, b.spacing, b.scale, str)
 }
 
 _get_batch_space :: #force_inline proc(atlas: ^Atlas, spacing: i32, scale: i32) -> i32 {
 	char_w := i32(atlas.chars[30].w)
 	return (char_w * scale) + spacing
 }
-debug :: proc(pos: [2]i32, str: string, flip_y: bool = false) -> (width: i32, ok: bool) {
+debug :: proc(pos_: [2]int, str: string, flip_y: bool = false) -> (width: i32, ok: bool) {
+	pos: [2]i32 = {i32(pos_.x), i32(pos_.y)}
 	if _current_batch == nil {
 		fmt.eprintf("current batch not set, run text.batch_start first")
 		return 0, false

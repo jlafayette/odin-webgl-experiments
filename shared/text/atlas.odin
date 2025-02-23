@@ -23,7 +23,6 @@ Atlas :: struct {
 	texture_info: TextureInfo,
 	_loaded:      bool,
 }
-Atlases :: [AtlasSize]Atlas
 AtlasSize :: enum {
 	A12,
 	A16,
@@ -32,20 +31,34 @@ AtlasSize :: enum {
 	A30,
 	A40,
 }
+Atlases :: [AtlasSize]Atlas
 TextureInfo :: struct {
 	id:   gl.Texture,
 	unit: gl.Enum,
 }
 
+@(private = "file")
 g_atlases: Atlases
+@(private = "file")
 g_initialized: bool = false
 
 
+atlas_get :: proc(size: AtlasSize) -> (atlas: ^Atlas) {
+	atlas = &g_atlases[size]
+	assert(atlas_init(atlas, size))
+	return
+}
+
+
 @(private)
-init :: proc(a: ^Atlas, size: AtlasSize) -> (ok: bool) {
+atlas_init :: proc(a: ^Atlas, size: AtlasSize) -> (ok: bool) {
 	if a._loaded {
 		return true
 	}
+	// testing failure asserts
+	// if a.w == 0 {
+	// 	return false
+	// }
 	atlas_data: []byte
 	switch size {
 	case .A12:
@@ -66,10 +79,10 @@ init :: proc(a: ^Atlas, size: AtlasSize) -> (ok: bool) {
 	pixels: [dynamic][1]u8
 	header, chars, pixels, ok = decode(atlas_data, 1)
 	if !ok {
-		fmt.println("ok:", ok)
+		fmt.eprintln("Failed to init atlas for size:", size)
 		return ok
 	}
-	fmt.println(header)
+	fmt.println(size, header)
 	defer delete(pixels)
 	a.w = header.w
 	a.h = header.h
@@ -87,11 +100,10 @@ init_all :: proc(atlases: ^Atlases) -> (ok: bool) {
 		return true
 	}
 	for &a, size in g_atlases {
-		init(&a, size) or_return
+		atlas_init(&a, size) or_return
 	}
 	g_initialized = true
 	return ok
-
 }
 
 @(private = "file")

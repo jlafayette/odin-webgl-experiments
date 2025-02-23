@@ -50,6 +50,14 @@ ea_buffer_draw :: proc(b: EaBuffer, instance_count: int = 0) {
 		gl.DrawElements(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, b.offset)
 	}
 }
+buffer_destroy :: proc(b: ^Buffer) {
+	gl.DeleteBuffer(b.id)
+	b.id = 0
+}
+ea_buffer_destroy :: proc(b: ^EaBuffer) {
+	gl.DeleteBuffer(b.id)
+	b.id = 0
+}
 
 
 Writer :: struct {
@@ -103,8 +111,7 @@ writer_destroy :: proc(w: ^Writer) {
 	delete(w.buf)
 }
 writer_set_size :: proc(w: ^Writer, atlas_size: AtlasSize, spacing: i32 = -1) {
-	w.atlas = &g_atlases[atlas_size]
-	init(w.atlas, atlas_size)
+	w.atlas = atlas_get(atlas_size)
 	if spacing == -1 {
 		w.spacing = w.atlas.h / 10
 	} else {
