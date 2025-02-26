@@ -11,10 +11,13 @@ ON_COLOR: Color = .C4
 CURSOR_MIN :: 1
 CURSOR_MAX :: 5
 
+
 Vert :: bool
+Vertexes :: [SQ_LEN]Vert
+CompressedVertexes :: [SQ_LEN / 8]byte
+
 Patch :: struct {
-	vertexes:          [SQ_LEN]Vert,
-	vertexes2:         [SQ_LEN]Vert,
+	vertexes:          Vertexes,
 	mouse_pos:         ScreenPixelPos,
 	mouse_button_down: bool,
 	draw_mode:         DrawMode,
@@ -37,7 +40,7 @@ patch_init :: proc(patch: ^Patch) {
 			patch.vertexes[i] = v
 		}
 	}
-	patch.vertexes2 = patch.vertexes
+
 	patch.draw_mode = .ADD
 	patch.mouse_pos = {-100, -100}
 
@@ -47,7 +50,52 @@ patch_init :: proc(patch: ^Patch) {
 	patch.texture_data = make([][4]u8, w * h)
 	patch.texture_info = patch_init_texture(patch.texture_data)
 	fmt.println("patch size: ", size_of(Patch))
-	fmt.println("vertexes size:", size_of([SQ_LEN]Vert))
+	fmt.println("vertexes size:", size_of(Vertexes))
+	fmt.println("required size:", size_of(CompressedVertexes))
+}
+
+patch_compress :: proc(vertexes: Vertexes) -> CompressedVertexes {
+	buffer: CompressedVertexes
+
+	// write values to b
+	b: byte
+	// c holds place within byte where we are writing to
+	c: uint
+	// i holds index of out buffer to write to next
+	i: int = 0
+
+	for v in vertexes {
+		if c == 8 {
+			c = 0
+			buffer[i] = b
+			i += 1
+			b = 0
+		}
+		if v {
+			b = b | (1 << c)
+		}
+	}
+	if c > 0 {
+		buffer[i] = b
+	}
+	return buffer
+}
+patch_uncompress :: proc(buffer: CompressedVertexes) -> Vertexes {
+	vertexes: Vertexes
+
+	// next index in vertexes to write to
+	i: int = 0
+
+	for b in buffer {
+		// b is current byte being decoded
+		for c in 0 ..< 8 {
+			// c is place within byte being read from
+			v: u8 = 1 & (b >> uint(c))
+			vertexes[i] = cast(bool)v
+			i += 1
+		}
+	}
+	return vertexes
 }
 
 patch_handle_pointer_move :: proc(patch: ^Patch, e: EventPointerMove, ui_handled_move: bool) {
@@ -68,17 +116,10 @@ patch_update :: proc(patch: ^Patch, screen_dim: [2]int, draw_mode: DrawMode, cur
 	size := _size(screen_dim)
 	half := size / 2
 
-	// handle resetting random values
-	// patch.rand_reset_counter += 1
-	// if patch.rand_reset_counter > patch.rand_reset_max {
-	// 	patch.rand_reset_counter = 0
-	// 	patch.rand_reset_max = cast(int)math.round(rand.float32_range(1, 10))
-	// 	_ = rand.read(patch.r_values[:])
-	// }
-
 	// game of life, read from vertexes, write to vertexes2
+	vertexes2: Vertexes
 	defer {
-		patch.vertexes = patch.vertexes2
+		patch.vertexes = vertexes2
 	}
 	#no_bounds_check for y := 0; y < h; y += 1 {
 		for x := 0; x < w; x += 1 {
@@ -120,7 +161,7 @@ patch_update :: proc(patch: ^Patch, screen_dim: [2]int, draw_mode: DrawMode, cur
 				}
 			}
 			i: int = y * w + x
-			patch.vertexes2[i] = new_value
+			vertexes2[i] = new_value
 		}
 	}
 
@@ -141,7 +182,7 @@ patch_update :: proc(patch: ^Patch, screen_dim: [2]int, draw_mode: DrawMode, cur
 				v = false
 			}
 			i := y * w + x
-			patch.vertexes2[i] = v
+			vertexes2[i] = v
 		}
 	}
 }
