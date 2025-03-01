@@ -38,6 +38,7 @@ State :: struct {
 	camera_pos:        [2]f32,
 	camera_zoom:       f32,
 	camera_mouse_mode: bool,
+	camera_vel:        [2]f32,
 }
 @(private = "file")
 state: State = {}
@@ -129,6 +130,8 @@ update :: proc(state: ^State, dt: f32) {
 	update_handle_resize(&state.layout)
 	l := state.layout
 	update_input(l.dpr)
+	update_camera(dt, &state.camera_vel, &state.camera_pos, state.input.key_down)
+
 	_ = handle_events(state)
 	if state.game_mode == .Play {
 		patch_update(

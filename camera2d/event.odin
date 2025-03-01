@@ -28,6 +28,10 @@ EventCameraMove :: struct {
 EventCameraMouseMode :: struct {
 	on: bool,
 }
+EventInputKey :: struct {
+	key:  Key,
+	down: bool,
+}
 EventResetDebugFirst :: struct {}
 EventFocusGained :: struct {}
 EventFocusLost :: struct {}
@@ -37,8 +41,8 @@ Event :: union {
 	EventGameModeChange,
 	EventPointerMove,
 	EventPointerClick,
-	EventCameraMove,
-	EventCameraMouseMode,
+	// EventCameraMove,
+	EventInputKey,
 	EventResetDebugFirst,
 	EventFocusGained,
 	EventFocusLost,
@@ -98,15 +102,18 @@ handle_events :: proc(state: ^State) -> bool {
 				handled: bool = false
 				patch_handle_pointer_click(&state.patch, e, handled)
 			}
-		case EventCameraMove:
+		// case EventCameraMove:
+		// 	{
+		// 		state.camera_pos += e.dir
+		// 		// TODO: handle key held down moving camera
+		// 		//       each frame
+		// 	}
+		case EventInputKey:
 			{
-				state.camera_pos += e.dir
-				// TODO: handle key held down moving camera
-				//       each frame
-			}
-		case EventCameraMouseMode:
-			{
-				state.camera_mouse_mode = e.on
+				if e.key == .CAMERA_MODE_TOGGLE {
+					state.camera_mouse_mode = e.down
+				}
+				state.input.key_down[e.key] = e.down
 			}
 		case EventResetDebugFirst:
 			{
@@ -116,6 +123,10 @@ handle_events :: proc(state: ^State) -> bool {
 		case EventFocusLost:
 			{
 				state.input.primary_down = false
+				for k in Key {
+					state.input.key_down[k] = false
+				}
+				state.camera_mouse_mode = false
 			}
 		}
 	}
