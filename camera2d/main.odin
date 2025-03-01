@@ -25,16 +25,19 @@ GameMode :: enum {
 	Win,
 }
 State :: struct {
-	game_mode:      GameMode,
-	switch_to_mode: GameMode,
-	started:        bool,
-	layout:         Layout,
-	text_batch:     text.Batch,
-	shapes:         Shapes,
-	time_elapsed:   f64,
-	square_size:    [2]int,
-	patch:          Patch,
-	input:          Input,
+	game_mode:         GameMode,
+	switch_to_mode:    GameMode,
+	started:           bool,
+	layout:            Layout,
+	text_batch:        text.Batch,
+	shapes:            Shapes,
+	time_elapsed:      f64,
+	square_size:       [2]int,
+	patch:             Patch,
+	input:             Input,
+	camera_pos:        [2]f32,
+	camera_zoom:       f32,
+	camera_mouse_mode: bool,
 }
 @(private = "file")
 state: State = {}
@@ -47,6 +50,8 @@ temp_arena_allocator := mem.arena_allocator(&temp_arena)
 
 start :: proc() -> (ok: bool) {
 	state.started = true
+	state.camera_pos = {0, 0}
+	state.camera_zoom = 1
 
 	if ok = gl.SetCurrentContextById("canvas-1"); !ok {
 		fmt.eprintln("Failed to set current context to 'canvas-1'")
@@ -89,14 +94,29 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 
 	gl.Viewport(0, 0, i32(w), i32(h))
 
-	view_projection_matrix := glm.mat4Ortho3d(0, f32(w), f32(h), 0, -100, 100)
-	patch_draw(&state.patch, view_projection_matrix, w, h)
+
+	zoom: f32 = state.camera_zoom
+	camera_pos: [2]f32 = state.camera_pos
+
+	left: f32 = camera_pos.x
+	right: f32 = (f32(w) * zoom) + camera_pos.x
+	bottom: f32 = (f32(h) * zoom) + camera_pos.y
+	top: f32 = camera_pos.y
+	view := glm.mat4Ortho3d(left, right, bottom, top, -100, 100)
+
+	// (left, right, bottom, top, near, far: f32)
+	// view := glm.mat4Ortho3d(0 + pos.x, f32(w) + pos.x, f32(h) + pos.y, 0 + pos.y, -100, 100)
+	// camera_pos: glm.vec3 = {0, 0, -3}
+	// camera_front: glm.vec3 = {0, 0, 1}
+	// camera_up: glm.vec3 = {0, 1, 0}
+	// view := glm.mat4LookAt(camera_pos, camera_pos + camera_front, camera_up)
+	patch_draw(&state.patch, view, w, h)
 	shapes := make_dynamic_array([dynamic]Shape, allocator = context.temp_allocator)
 	square_size: [2]int
 	if state.game_mode == .Play {
 		patch_get_shapes(&state.patch, {w, h}, &shapes)
 	}
-	shapes_draw(&state.shapes, shapes[:], view_projection_matrix)
+	shapes_draw(&state.shapes, shapes[:], view)
 	return true
 }
 

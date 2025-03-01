@@ -22,11 +22,9 @@ DrawMode :: enum {
 }
 Input :: struct {
 	pointer_pos:  PixelPos,
-	enable_pan:   bool,
 	primary_down: bool,
 	draw_mode:    DrawMode,
 	cursor_size:  int,
-	ui_blocks:    bool,
 }
 
 init_input :: proc(input: ^Input) {
@@ -45,8 +43,6 @@ _dpr: f32 = 1
 
 update_input :: proc(dpr: f32) {
 	_dpr = dpr
-	// TODO: change cursor when hovering over some ui elements
-	//       https://stackoverflow.com/questions/31495344/change-cursor-depending-on-section-of-canvas	
 }
 
 on_pointer_move :: proc(e: js.Event) {
@@ -78,18 +74,38 @@ on_wheel :: proc(e: js.Event) {
 	}
 }
 
+_move_dir :: proc(code: string) -> (dir: [2]f32, ok: bool) {
+
+	if code == "KeyA" || code == "ArrowLeft" {
+		return {-1, 0}, true
+	} else if code == "KeyD" || code == "ArrowRight" {
+		return {1, 0}, true
+	} else if code == "KeyW" || code == "ArrowUp" {
+		return {0, -1}, true
+	} else if code == "KeyS" || code == "ArrowDown" {
+		return {0, 1}, true
+	}
+
+	return
+}
+
 on_key_down :: proc(e: js.Event) {
 	if e.key.repeat {
 		return
 	}
 	if e.key.code == "Space" {
 		event_add(EventResetDebugFirst{})
+		event_add(EventCameraMouseMode{true})
 	} else if e.key.code == "ControlLeft" {
 		event_add(EventDrawModeChange{.REMOVE})
 	} else if e.key.code == "Equal" || e.key.code == "BracketRight" {
 		event_add(EventCursorSizeChange{1})
 	} else if e.key.code == "Minus" || e.key.code == "BracketLeft" {
 		event_add(EventCursorSizeChange{-1})
+	}
+	dir, ok := _move_dir(e.key.code)
+	if ok {
+		event_add(EventCameraMove{dir, .DOWN})
 	}
 	fmt.println(e.key.code, "down")
 }
@@ -99,6 +115,12 @@ on_key_up :: proc(e: js.Event) {
 	}
 	if e.key.code == "ControlLeft" {
 		event_add(EventDrawModeChange{.ADD})
+	} else if e.key.code == "Space" {
+		event_add(EventCameraMouseMode{false})
+	}
+	dir, ok := _move_dir(e.key.code)
+	if ok {
+		event_add(EventCameraMove{dir, .UP})
 	}
 }
 
