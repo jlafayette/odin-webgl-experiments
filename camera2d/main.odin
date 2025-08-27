@@ -34,6 +34,8 @@ State :: struct {
 	time_elapsed:      f64,
 	square_size:       [2]int,
 	patch:             Patch,
+	// patch2:            Patch,
+	cursor:            Cursor,
 	input:             Input,
 	camera_pos:        [2]f32,
 	camera_zoom:       f32,
@@ -62,6 +64,8 @@ start :: proc() -> (ok: bool) {
 	update_handle_resize(&state.layout)
 
 	patch_init(&state.patch)
+	// patch_init(&state.patch2)
+	cursor_init(&state.cursor)
 	init_input(&state.input)
 	shapes_init(&state.shapes)
 
@@ -115,10 +119,12 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 	// camera_up: glm.vec3 = {0, 1, 0}
 	// view := glm.mat4LookAt(camera_pos, camera_pos + camera_front, camera_up)
 	patch_draw(&state.patch, view, w, h)
+	// patch_draw(&state.patch2, view, w, h)
 	shapes := make_dynamic_array([dynamic]Shape, allocator = context.temp_allocator)
 	square_size: [2]int
 	if state.game_mode == .Play {
-		patch_get_shapes(&state.patch, {w, h}, &shapes)
+		cursor_get_shapes(state.cursor, {w, h}, &shapes)
+		// patch_get_shapes(&state.patch2, {w, h}, &shapes)
 	}
 	shapes_draw(&state.shapes, shapes[:], view)
 	return true
@@ -139,13 +145,15 @@ update :: proc(state: ^State, dt: f32) {
 	}
 	update_camera(dt, &state.camera_vel, &state.camera_pos, state.input.key_down)
 
+	cursor_update(&state.cursor, state.input.draw_mode, state.input.cursor_size)
 	if state.game_mode == .Play {
-		patch_update(
-			&state.patch,
-			{state.layout.w, state.layout.h},
-			state.input.draw_mode,
-			state.input.cursor_size,
-		)
+		patch_update(&state.patch, {state.layout.w, state.layout.h}, state.cursor)
+		// patch_update(
+		// 	&state.patch2,
+		// 	{state.layout.w, state.layout.h},
+		// 	state.input.draw_mode,
+		// 	state.input.cursor_size,
+		// )
 	}
 }
 
