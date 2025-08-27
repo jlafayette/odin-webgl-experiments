@@ -98,12 +98,22 @@ patch_uncompress :: proc(buffer: CompressedVertexes) -> Vertexes {
 	return vertexes
 }
 
-patch_handle_pointer_move :: proc(patch: ^Patch, e: EventPointerMove, ui_handled_move: bool) {
-	patch.mouse_pos = e.pos
+patch_handle_pointer_move :: proc(
+	patch: ^Patch,
+	e: EventPointerMove,
+	camera_pos: [2]f32,
+	ui_handled_move: bool,
+) {
+	patch.mouse_pos = e.pos + i_int_round(camera_pos)
 	patch.input_blocked = ui_handled_move
 }
-patch_handle_pointer_click :: proc(patch: ^Patch, e: EventPointerClick, ui_handled_click: bool) {
-	patch.mouse_pos = e.pos
+patch_handle_pointer_click :: proc(
+	patch: ^Patch,
+	e: EventPointerClick,
+	camera_pos: [2]f32,
+	ui_handled_click: bool,
+) {
+	patch.mouse_pos = e.pos + i_int_round(camera_pos)
 	patch.mouse_button_down = e.type == .DOWN && !ui_handled_click
 	patch.input_blocked = ui_handled_click
 }

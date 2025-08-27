@@ -114,21 +114,6 @@ update_camera :: proc(dt: f32, vel: ^[2]f32, pos: ^[2]f32, key_state: [Key]bool)
 	// fmt.println(pos^, vel^, acc)
 }
 
-_move_dir :: proc(code: string, down: bool) -> (dir: [2]f32, ok: bool) {
-
-	if code == "KeyA" || code == "ArrowLeft" {
-		return {-1, 0}, true
-	} else if code == "KeyD" || code == "ArrowRight" {
-		return {1, 0}, true
-	} else if code == "KeyW" || code == "ArrowUp" {
-		return {0, -1}, true
-	} else if code == "KeyS" || code == "ArrowDown" {
-		return {0, 1}, true
-	}
-
-	return
-}
-
 on_key_down :: proc(e: js.Event) {
 	if e.key.repeat {
 		return
@@ -159,10 +144,6 @@ on_key_down :: proc(e: js.Event) {
 	} else if e.key.code == "ArrowDown" {
 		event_add(EventInputKey{.DN_2, true})
 	}
-	// dir, ok := _move_dir(e.key.code, true)
-	// if ok {
-	// 	event_add(EventCameraMove{dir, .DOWN})
-	// }
 	fmt.println(e.key.code, "down")
 }
 on_key_up :: proc(e: js.Event) {
@@ -190,10 +171,6 @@ on_key_up :: proc(e: js.Event) {
 	} else if e.key.code == "ArrowDown" {
 		event_add(EventInputKey{.DN_2, false})
 	}
-	// dir, ok := _move_dir(e.key.code, false)
-	// if ok {
-	// 	event_add(EventCameraMove{dir, .UP})
-	// }
 }
 
 on_blur :: proc(e: js.Event) {

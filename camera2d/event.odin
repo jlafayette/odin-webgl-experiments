@@ -89,7 +89,7 @@ handle_events :: proc(state: ^State) -> bool {
 						state.camera_pos += f_(change)
 					}
 				}
-				patch_handle_pointer_move(&state.patch, e, handled)
+				patch_handle_pointer_move(&state.patch, e, state.camera_pos, handled)
 			}
 		case EventPointerClick:
 			{
@@ -100,14 +100,8 @@ handle_events :: proc(state: ^State) -> bool {
 					state.input.primary_down = false
 				}
 				handled: bool = false
-				patch_handle_pointer_click(&state.patch, e, handled)
+				patch_handle_pointer_click(&state.patch, e, state.camera_pos, handled)
 			}
-		// case EventCameraMove:
-		// 	{
-		// 		state.camera_pos += e.dir
-		// 		// TODO: handle key held down moving camera
-		// 		//       each frame
-		// 	}
 		case EventInputKey:
 			{
 				if e.key == .CAMERA_MODE_TOGGLE {
@@ -120,6 +114,9 @@ handle_events :: proc(state: ^State) -> bool {
 				_first = true
 			}
 		case EventFocusGained:
+			{
+				state.has_focus = true
+			}
 		case EventFocusLost:
 			{
 				state.input.primary_down = false
@@ -127,6 +124,7 @@ handle_events :: proc(state: ^State) -> bool {
 					state.input.key_down[k] = false
 				}
 				state.camera_mouse_mode = false
+				state.has_focus = false
 			}
 		}
 	}

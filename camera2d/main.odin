@@ -39,6 +39,7 @@ State :: struct {
 	camera_zoom:       f32,
 	camera_mouse_mode: bool,
 	camera_vel:        [2]f32,
+	has_focus:         bool,
 }
 @(private = "file")
 state: State = {}
@@ -66,6 +67,8 @@ start :: proc() -> (ok: bool) {
 
 	// for faster debug
 	state.switch_to_mode = .Play
+
+	state.has_focus = true
 
 	return check_gl_error()
 }
@@ -130,9 +133,12 @@ update :: proc(state: ^State, dt: f32) {
 	update_handle_resize(&state.layout)
 	l := state.layout
 	update_input(l.dpr)
+	_ = handle_events(state)
+	if !state.has_focus {
+		return
+	}
 	update_camera(dt, &state.camera_vel, &state.camera_pos, state.input.key_down)
 
-	_ = handle_events(state)
 	if state.game_mode == .Play {
 		patch_update(
 			&state.patch,
@@ -168,6 +174,9 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 	}
 
 	update(&state, dt)
+	if !state.has_focus {
+		return true
+	}
 
 	ok = draw_scene(dt)
 	if !ok {
