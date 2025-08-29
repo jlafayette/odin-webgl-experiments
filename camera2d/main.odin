@@ -143,9 +143,12 @@ update :: proc(state: ^State, dt: f32) {
 	if !state.has_focus {
 		return
 	}
-	update_camera(dt, &state.camera_vel, &state.camera_pos, state.input.key_down)
+	// Calculate smooth camera movement based on move keys that are held down
+	mv := update_camera(dt, &state.camera_vel, &state.camera_pos, state.input.key_down)
+	// Update the cursor position (add camera movement so it stays at expected screen
+	// position when camera is moving)
+	cursor_update(&state.cursor, state.input.draw_mode, state.input.cursor_size, mv)
 
-	cursor_update(&state.cursor, state.input.draw_mode, state.input.cursor_size)
 	if state.game_mode == .Play {
 		patch_update(&state.patch, {state.layout.w, state.layout.h}, state.cursor)
 		// patch_update(

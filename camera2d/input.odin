@@ -87,7 +87,7 @@ on_wheel :: proc(e: js.Event) {
 	}
 }
 
-update_camera :: proc(dt: f32, vel: ^[2]f32, pos: ^[2]f32, key_state: [Key]bool) {
+update_camera :: proc(dt: f32, vel: ^[2]f32, pos: ^[2]f32, key_state: [Key]bool) -> [2]f32 {
 	acc: [2]f32
 	acc_change: f32 = 120 * dt
 	if key_state[.LF_1] || key_state[.LF_2] {
@@ -110,8 +110,9 @@ update_camera :: proc(dt: f32, vel: ^[2]f32, pos: ^[2]f32, key_state: [Key]bool)
 	if glm.length(vel^) < 0.01 {
 		vel^ = {0, 0}
 	}
+	orig_pos: [2]f32 = pos^
 	pos^ += vel^
-	// fmt.println(pos^, vel^, acc)
+	return orig_pos - pos^
 }
 
 on_key_down :: proc(e: js.Event) {

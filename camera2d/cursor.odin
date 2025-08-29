@@ -6,6 +6,7 @@ Cursor :: struct {
 	draw_mode:         DrawMode,
 	size:              int,
 	mouse_pos:         ScreenPixelPos,
+	camera_mv:         [2]f32, // movement since last move/click update
 	mouse_button_down: bool,
 	input_blocked:     bool,
 }
@@ -21,6 +22,7 @@ cursor_handle_pointer_move :: proc(
 	camera_pos: [2]f32,
 	ui_handled_move: bool,
 ) {
+	cursor.camera_mv = 0
 	cursor.mouse_pos = e.pos + i_int_round(camera_pos)
 	cursor.input_blocked = ui_handled_move
 }
@@ -30,12 +32,14 @@ cursor_handle_pointer_click :: proc(
 	camera_pos: [2]f32,
 	ui_handled_click: bool,
 ) {
+	cursor.camera_mv = 0
 	cursor.mouse_pos = e.pos + i_int_round(camera_pos)
 	cursor.mouse_button_down = e.type == .DOWN && !ui_handled_click
 	cursor.input_blocked = ui_handled_click
 }
 
-cursor_update :: proc(cursor: ^Cursor, mode: DrawMode, size: int) {
+cursor_update :: proc(cursor: ^Cursor, mode: DrawMode, size: int, mv: [2]f32) {
+	cursor.camera_mv += mv
 	cursor.draw_mode = mode
 	cursor.size = size
 }
@@ -110,7 +114,10 @@ cursor_slice :: proc(cursor: Cursor, screen_dim: [2]int) -> (slice: [][2]int, cn
 	case 5:
 		slice = _cursor_5[:];offcenter = true
 	}
-	pos := cursor.mouse_pos
+
+	// Offset by the camera movement since last position/click update
+	pos := cursor.mouse_pos - i_int_round(cursor.camera_mv)
+
 	if offcenter {
 		cn = (pos - size / 2) / size
 	} else {
