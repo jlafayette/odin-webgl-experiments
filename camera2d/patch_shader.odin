@@ -1,6 +1,8 @@
 package game
 
+
 import "core:fmt"
+import "core:math"
 import glm "core:math/linalg/glsl"
 import gl "vendor:wasm/WebGL"
 
@@ -46,12 +48,14 @@ PatchShader :: struct {
 	u_color:             i32,
 	u_dim:               i32,
 	u_tile_size:         i32,
+	u_pos_offset:        i32,
 	u_projection_matrix: i32,
 }
 PatchUniforms :: struct {
 	projection_matrix: glm.mat4,
 	dim:               glm.vec2,
 	tile_size:         glm.vec2,
+	pos_offset:        glm.vec2,
 	color:             glm.vec3,
 }
 
@@ -70,6 +74,7 @@ patch_shader_init :: proc(s: ^PatchShader) -> (ok: bool) {
 	s.u_sampler = gl.GetUniformLocation(program, "uSampler")
 	s.u_dim = gl.GetUniformLocation(program, "uDim")
 	s.u_tile_size = gl.GetUniformLocation(program, "uTileSize")
+	s.u_pos_offset = gl.GetUniformLocation(program, "uPosOffset")
 
 	s.u_color = gl.GetUniformLocation(program, "uColor")
 
@@ -89,6 +94,7 @@ patch_shader_use :: proc(
 	gl.UniformMatrix4fv(s.u_projection_matrix, u.projection_matrix)
 	gl.Uniform2fv(s.u_dim, u.dim)
 	gl.Uniform2fv(s.u_tile_size, u.tile_size)
+	gl.Uniform2fv(s.u_pos_offset, u.pos_offset)
 	gl.Uniform3fv(s.u_color, u.color)
 
 	// set texture
@@ -157,11 +163,17 @@ patch_draw :: proc(patch: ^Patch, projection_matrix: glm.mat4, w, h: int) {
 
 	m := projection_matrix
 	uniforms.projection_matrix = m
-	size := _size({w, h})
+
+	// size := _size({w, h})
+	x := w / SQUARES.x
+	y := h / SQUARES.y
+	size := math.min(x, y)
+
 	dim := f_(size * SQUARES)
 	tile_size := dim / f_(SQUARES)
 	uniforms.tile_size = tile_size
 	uniforms.dim = dim
+	uniforms.pos_offset = f_int(patch.offset)
 
 	// fmt.println(uniforms.dim, uniforms.tile_size)
 

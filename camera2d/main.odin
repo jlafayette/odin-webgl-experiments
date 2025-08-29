@@ -33,8 +33,7 @@ State :: struct {
 	shapes:            Shapes,
 	time_elapsed:      f64,
 	square_size:       [2]int,
-	patch:             Patch,
-	// patch2:            Patch,
+	patches:           [5]Patch,
 	cursor:            Cursor,
 	input:             Input,
 	camera_pos:        [2]f32,
@@ -63,8 +62,11 @@ start :: proc() -> (ok: bool) {
 	}
 	update_handle_resize(&state.layout)
 
-	patch_init(&state.patch)
-	// patch_init(&state.patch2)
+	patch_init(&state.patches[0], {0, 0})
+	patch_init(&state.patches[1], {1, 0})
+	patch_init(&state.patches[2], {0, 1})
+	patch_init(&state.patches[3], {-1, 0})
+	patch_init(&state.patches[4], {0, -1})
 	cursor_init(&state.cursor)
 	init_input(&state.input)
 	shapes_init(&state.shapes)
@@ -112,19 +114,13 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 	top: f32 = camera_pos.y
 	view := glm.mat4Ortho3d(left, right, bottom, top, -100, 100)
 
-	// (left, right, bottom, top, near, far: f32)
-	// view := glm.mat4Ortho3d(0 + pos.x, f32(w) + pos.x, f32(h) + pos.y, 0 + pos.y, -100, 100)
-	// camera_pos: glm.vec3 = {0, 0, -3}
-	// camera_front: glm.vec3 = {0, 0, 1}
-	// camera_up: glm.vec3 = {0, 1, 0}
-	// view := glm.mat4LookAt(camera_pos, camera_pos + camera_front, camera_up)
-	patch_draw(&state.patch, view, w, h)
-	// patch_draw(&state.patch2, view, w, h)
+	for &patch in state.patches {
+		patch_draw(&patch, view, w, h)
+	}
 	shapes := make_dynamic_array([dynamic]Shape, allocator = context.temp_allocator)
 	square_size: [2]int
 	if state.game_mode == .Play {
 		cursor_get_shapes(state.cursor, {w, h}, &shapes)
-		// patch_get_shapes(&state.patch2, {w, h}, &shapes)
 	}
 	shapes_draw(&state.shapes, shapes[:], view)
 	return true
@@ -150,13 +146,9 @@ update :: proc(state: ^State, dt: f32) {
 	cursor_update(&state.cursor, state.input.draw_mode, state.input.cursor_size, mv)
 
 	if state.game_mode == .Play {
-		patch_update(&state.patch, {state.layout.w, state.layout.h}, state.cursor)
-		// patch_update(
-		// 	&state.patch2,
-		// 	{state.layout.w, state.layout.h},
-		// 	state.input.draw_mode,
-		// 	state.input.cursor_size,
-		// )
+		for &patch in state.patches {
+			patch_update(&patch, {state.layout.w, state.layout.h}, state.cursor)
+		}
 	}
 }
 

@@ -17,6 +17,7 @@ Vertexes :: [SQ_LEN]Vert
 CompressedVertexes :: [SQ_LEN / 8]byte
 
 Patch :: struct {
+	offset:       [2]int,
 	vertexes:     Vertexes,
 	shader:       PatchShader,
 	buffers:      PatchBuffers,
@@ -24,14 +25,15 @@ Patch :: struct {
 	texture_data: [][4]u8,
 }
 
-patch_init :: proc(patch: ^Patch) {
+patch_init :: proc(patch: ^Patch, offset: [2]int) {
+	patch.offset = offset
 	w := SQUARES.x
 	h := SQUARES.y
 	#no_bounds_check for y := 0; y < h; y += 1 {
 		for x := 0; x < w; x += 1 {
 			i := y * w + x
-			threshold: int = h / 2
-			v: Vert = y > threshold
+			threshold: int = w / 2
+			v: Vert = x > threshold
 			patch.vertexes[i] = v
 		}
 	}
@@ -150,8 +152,8 @@ patch_update :: proc(patch: ^Patch, screen_dim: [2]int, cursor: Cursor) {
 	if cursor.mouse_button_down && !cursor.input_blocked {
 		slice, cn := cursor_slice(cursor, screen_dim)
 		for offset in slice {
-			y := cn.y + offset.y
-			x := cn.x + offset.x
+			y := cn.y + offset.y - (patch.offset.y * h)
+			x := cn.x + offset.x - (patch.offset.x * w)
 			if x < 0 || x >= w || y < 0 || y >= h {
 				continue
 			}
@@ -170,7 +172,7 @@ patch_update :: proc(patch: ^Patch, screen_dim: [2]int, cursor: Cursor) {
 
 _patch_get :: #force_inline proc(patch: ^Patch, x, y, w, h: int) -> Vert {
 	if x <= 0 || x >= w || y <= 0 || y >= h {
-		return true
+		return false
 	}
 	i := y * w + x
 	return patch.vertexes[i]
