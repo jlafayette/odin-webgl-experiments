@@ -33,7 +33,7 @@ State :: struct {
 	shapes:            Shapes,
 	time_elapsed:      f64,
 	square_size:       [2]int,
-	patches:           [5]Patch,
+	patches:           [25]Patch,
 	cursor:            Cursor,
 	input:             Input,
 	camera_pos:        [2]f32,
@@ -62,11 +62,11 @@ start :: proc() -> (ok: bool) {
 	}
 	update_handle_resize(&state.layout)
 
-	patch_init(&state.patches[0], {0, 0})
-	patch_init(&state.patches[1], {1, 0})
-	patch_init(&state.patches[2], {0, 1})
-	patch_init(&state.patches[3], {-1, 0})
-	patch_init(&state.patches[4], {0, -1})
+	for _, i in state.patches {
+		x := i % 5
+		y := i / 5
+		patch_init(&state.patches[i], {x - 2, y - 2})
+	}
 	cursor_init(&state.cursor)
 	init_input(&state.input)
 	shapes_init(&state.shapes)
