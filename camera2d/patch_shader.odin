@@ -156,7 +156,7 @@ _patch_update_texture :: proc(patch: ^Patch) {
 	)
 }
 
-patch_draw :: proc(patch: ^Patch, projection_matrix: glm.mat4, w, h: int) {
+patch_draw :: proc(patch: ^Patch, projection_matrix: glm.mat4, w, h: int, shader: PatchShader) {
 	_patch_update_texture(patch)
 
 	uniforms: PatchUniforms
@@ -178,7 +178,7 @@ patch_draw :: proc(patch: ^Patch, projection_matrix: glm.mat4, w, h: int) {
 	// fmt.println(uniforms.dim, uniforms.tile_size)
 
 	uniforms.color = COLOR_2.rgb
-	patch_shader_use(patch.shader, uniforms, patch.buffers, patch.texture_info)
+	patch_shader_use(shader, uniforms, patch.buffers, patch.texture_info)
 	ea_buffer_draw(patch.buffers.indices)
 }
 

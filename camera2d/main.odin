@@ -33,7 +33,7 @@ State :: struct {
 	shapes:            Shapes,
 	time_elapsed:      f64,
 	square_size:       [2]int,
-	patches:           [25]Patch,
+	simulation:        Simulation,
 	cursor:            Cursor,
 	input:             Input,
 	camera_pos:        [2]f32,
@@ -62,11 +62,7 @@ start :: proc() -> (ok: bool) {
 	}
 	update_handle_resize(&state.layout)
 
-	for _, i in state.patches {
-		x := i % 5
-		y := i / 5
-		patch_init(&state.patches[i], {x - 2, y - 2})
-	}
+	simulation_init(&state.simulation)
 	cursor_init(&state.cursor)
 	init_input(&state.input)
 	shapes_init(&state.shapes)
@@ -114,9 +110,7 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 	top: f32 = camera_pos.y
 	view := glm.mat4Ortho3d(left, right, bottom, top, -100, 100)
 
-	for &patch in state.patches {
-		patch_draw(&patch, view, w, h)
-	}
+	simulation_draw(&state.simulation, view, w, h)
 	shapes := make_dynamic_array([dynamic]Shape, allocator = context.temp_allocator)
 	square_size: [2]int
 	if state.game_mode == .Play {
@@ -146,9 +140,7 @@ update :: proc(state: ^State, dt: f32) {
 	cursor_update(&state.cursor, state.input.draw_mode, state.input.cursor_size, mv)
 
 	if state.game_mode == .Play {
-		for &patch in state.patches {
-			patch_update(&patch, {state.layout.w, state.layout.h}, state.cursor)
-		}
+		simulation_update(&state.simulation, {state.layout.w, state.layout.h}, state.cursor)
 	}
 }
 

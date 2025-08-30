@@ -19,7 +19,6 @@ CompressedVertexes :: [SQ_LEN / 8]byte
 Patch :: struct {
 	offset:       [2]int,
 	vertexes:     Vertexes,
-	shader:       PatchShader,
 	buffers:      PatchBuffers,
 	texture_info: TextureInfo,
 	texture_data: [][4]u8,
@@ -37,9 +36,6 @@ patch_init :: proc(patch: ^Patch, offset: [2]int) {
 			patch.vertexes[i] = v
 		}
 	}
-
-	ok := patch_shader_init(&patch.shader)
-	assert(ok, "Patch shader init failed")
 	patch_buffers_init(&patch.buffers)
 	patch.texture_data = make([][4]u8, w * h)
 	patch.texture_info = patch_init_texture(patch.texture_data)
