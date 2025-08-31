@@ -1,6 +1,7 @@
 package game
 
 import glm "core:math/linalg/glsl"
+import "core:math/rand"
 
 PATCHES_W :: 2
 Simulation :: struct {
@@ -8,67 +9,27 @@ Simulation :: struct {
 	shader:  PatchShader,
 }
 
-_COLORS: [4][3]f32 = {{1, 1, 1}, {0, 1, 1}, {1, 0, 1}, {1, 1, 0}}
-
 simulation_init :: proc(sim: ^Simulation) {
 	for _, i in sim.patches {
 		x := i % PATCHES_W
 		y := i / PATCHES_W
 		patch_init(&sim.patches[i], {x, y})
-		sim.patches[i].color = _COLORS[i]
+		c: [3]f32 = {rand.float32(), rand.float32(), rand.float32()}
+		sim.patches[i].color = c
 	}
 	for _, i in sim.patches {
 		cx := i % PATCHES_W
 		cy := i / PATCHES_W
-		for nx := -1; nx < 2; nx += 1 {
-			for ny := -1; ny < 2; ny += 1 {
-				if nx == 0 && ny == 0 {
-					continue
-				}
-				x := cx + nx
-				y := cy + ny
-				if x < 0 || x >= PATCHES_W || y < 0 || y >= PATCHES_W {
-					continue
-				}
-				ni := (y * PATCHES_W) + x
-				assert(ni >= 0 && ni < len(sim.patches))
-				switch nx {
-				case -1:
-					{
-						switch ny {
-						case -1:
-							sim.patches[i].neighbors[.LfUp] = &sim.patches[ni]
-						case 0:
-							sim.patches[i].neighbors[.Lf] = &sim.patches[ni]
-						case 1:
-							sim.patches[i].neighbors[.LfDn] = &sim.patches[ni]
-						}
-					}
-				case 0:
-					{
-						switch ny {
-						case -1:
-							sim.patches[i].neighbors[.Up] = &sim.patches[ni]
-						case 0:
-						case 1:
-							sim.patches[i].neighbors[.Dn] = &sim.patches[ni]
-						}
-					}
-				case 1:
-					{
-						switch ny {
-						case -1:
-							sim.patches[i].neighbors[.RtUp] = &sim.patches[ni]
-						case 0:
-							sim.patches[i].neighbors[.Rt] = &sim.patches[ni]
-						case 1:
-							sim.patches[i].neighbors[.RtDn] = &sim.patches[ni]
-						}
-					}
-				}
+		for neighbor in IterNeighbors {
+			x := cx + neighbor.x
+			y := cy + neighbor.y
+			if x < 0 || x >= PATCHES_W || y < 0 || y >= PATCHES_W {
+				continue
 			}
+			ni := (y * PATCHES_W) + x
+			assert(ni >= 0 && ni < len(sim.patches))
+			sim.patches[i].neighbors[neighbor.dir] = &sim.patches[ni]
 		}
-		// patch_init(&sim.patches[i], {x, y})
 	}
 	ok := patch_shader_init(&sim.shader)
 	assert(ok, "Patch shader init failed")

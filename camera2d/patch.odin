@@ -24,6 +24,21 @@ NeighborDir :: enum {
 	Dn,
 	LfDn,
 }
+Neighbor :: struct {
+	dir: NeighborDir,
+	x:   int,
+	y:   int,
+}
+IterNeighbors: [8]Neighbor = {
+	{.Lf, -1, 0},
+	{.LfUp, -1, -1},
+	{.Up, 0, -1},
+	{.RtUp, 1, -1},
+	{.Rt, 1, 0},
+	{.RtDn, 1, 1},
+	{.Dn, 0, 1},
+	{.LfDn, -1, 1},
+}
 
 Patch :: struct {
 	neighbors:    [NeighborDir]Maybe(^Patch),
@@ -100,6 +115,132 @@ patch_uncompress :: proc(buffer: CompressedVertexes) -> Vertexes {
 	return vertexes
 }
 
+_NeighborLookup :: struct {
+	other_patch: bool,
+	dir:         NeighborDir,
+	new_x:       int,
+	new_y:       int,
+}
+_find_neighbor_lookup :: proc(n: Neighbor, x, y: int) -> _NeighborLookup {
+	w := SQUARES.x
+	h := SQUARES.y
+	lookup: _NeighborLookup
+
+	// Final (f) version of coordinates
+	fx := x + n.x
+	fy := y + n.y
+
+	// Check if this final coordinates is out of bounds for
+	// current patch and in which direction
+
+	// Neighbor(n) patch(p) coordinates (x,y)
+	npx, npy: int = 0, 0
+
+	switch fx {
+	case -1:
+		{
+			fx = w - 1
+			npx = -1
+		}
+	case w:
+		{
+			fx = 0
+			npx = 1
+		}
+	}
+	switch fy {
+	case -1:
+		{
+			fy = h - 1
+			npy = -1
+		}
+	case h:
+		{
+			fy = 0
+			npy = 1
+		}
+	}
+
+	/*
+	asociate nx and ny with Dir
+	
+	start with -1..=1 range, but add +1 so
+	all indexes will be in the range of 0..=8
+
+	{.LfUp, 0, 0},
+	{  .Up, 1, 0},
+	{.RtUp, 2, 0},
+	{.Lf,   0, 1},
+	{.Rt,   2, 1},
+	{.LfDn, 0, 2},
+	{  .Dn, 1, 2},
+	{.RtDn, 2, 2},
+
+	y * 3 + x (and sorted)
+	
+	0 {.LfUp, 0, 0},
+	1 {  .Up, 1, 0},
+	2 {.RtUp, 2, 0},
+	3 {.Lf,   0, 1},
+	4 {.--,   1, 1}
+	5 {.Rt,   2, 1},
+	6 {.LfDn, 0, 2},
+	7 {  .Dn, 1, 2},
+	8 {.RtDn, 2, 2},
+
+	*/
+
+	// Neighbor(n) patch(p) index(i)
+	npi := ((npy + 1) * 3) + (npx + 1)
+
+	switch npi {
+	case 0:
+		lookup.dir = .LfUp
+		lookup.other_patch = true
+	case 1:
+		lookup.dir = .Up
+		lookup.other_patch = true
+	case 2:
+		lookup.dir = .RtUp
+		lookup.other_patch = true
+	case 3:
+		lookup.dir = .Lf
+		lookup.other_patch = true
+	case 4:
+		lookup.other_patch = false
+	case 5:
+		lookup.dir = .Rt
+		lookup.other_patch = true
+	case 6:
+		lookup.dir = .LfDn
+		lookup.other_patch = true
+	case 7:
+		lookup.dir = .Dn
+		lookup.other_patch = true
+	case 8:
+		lookup.dir = .RtDn
+		lookup.other_patch = true
+	}
+
+	// _coords_to_dir: [9]NeighborDir = {
+	// 	.LfUp, // 0 {.LfUp, 0, 0},
+	// 	.Up, // 1 {.Up, 1, 0},
+	// 	.RtUp, // 2 {.RtUp, 2, 0},
+	// 	.Lf, // 3 {.Lf, 0, 1},
+	// 	.Lf, // 4 {.--, 1, 1}
+	// 	.Rt, // 5 {.Rt, 2, 1},
+	// 	.LfDn, // 6 {.LfDn, 0, 2},
+	// 	.Dn, // 7 {.Dn, 1, 2},
+	// 	.RtDn, // 8 {.RtDn, 2, 2},
+	// }
+	// return _NeighborCoordsToDir[i]
+
+	lookup.new_x = fx
+	lookup.new_y = fy
+
+	return lookup
+}
+
 
 patch_update :: proc(patch: ^Patch, screen_dim: [2]int, cursor: Cursor) {
 	w := SQUARES.x
@@ -111,80 +252,19 @@ patch_update :: proc(patch: ^Patch, screen_dim: [2]int, cursor: Cursor) {
 	#no_bounds_check for y := 0; y < h; y += 1 {
 		for x := 0; x < w; x += 1 {
 			alive_count: int = 0
-			for nx := -1; nx < 2; nx += 1 {
-				for ny := -1; ny < 2; ny += 1 {
-					if nx == 0 && ny == 0 {
-						continue
-					}
-					p: ^Patch = patch
-					p_ok: bool = true
-					fx := x + nx
-					fy := y + ny
-
-					neighbor_lf: bool = false
-					neighbor_rt: bool = false
-					switch fx {
-					case -1:
-						{
-							fx = w - 1
-							neighbor_lf = true
-						}
-					case w:
-						{
-							fx = 0
-							neighbor_rt = true
-						}
-					}
-					neighbor_up: bool = false
-					neighbor_dn: bool = false
-					switch fy {
-					case -1:
-						{
-							fy = h - 1
-							neighbor_up = true
-						}
-					case h:
-						{
-							fy = 0
-							neighbor_dn = true
-						}
-					}
-					if neighbor_lf {
-						if neighbor_up {
-							p, p_ok = patch.neighbors[.LfUp].?
-						}
-						if neighbor_dn {
-							p, p_ok = patch.neighbors[.LfDn].?
-
-						} else {
-							p, p_ok = patch.neighbors[.Lf].?
-						}
-					}
-					if neighbor_rt {
-						if neighbor_up {
-							p, p_ok = patch.neighbors[.RtUp].?
-						}
-						if neighbor_dn {
-							p, p_ok = patch.neighbors[.RtDn].?
-
-						} else {
-							p, p_ok = patch.neighbors[.Rt].?
-						}
-					}
-					if neighbor_up {
-						p, p_ok = patch.neighbors[.Up].?
-					}
-					if neighbor_dn {
-						p, p_ok = patch.neighbors[.Dn].?
-					}
-
-					v: bool = false
-					if p_ok {
-						v = _patch_get(p, fx, fy, w, h)
-					}
-					if v {
-						alive_count += 1
-					}
+			for neighbor in IterNeighbors {
+				p: ^Patch = patch
+				p_ok: bool = true
+				lookup := _find_neighbor_lookup(neighbor, x, y)
+				if lookup.other_patch {
+					p, p_ok = patch.neighbors[lookup.dir].?
+				}
+				v: bool = false
+				if p_ok {
+					v = _patch_get(p, lookup.new_x, lookup.new_y, w, h)
+				}
+				if v {
+					alive_count += 1
 				}
 			}
 			v := _patch_get(patch, x, y, w, h)
