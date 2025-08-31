@@ -6,8 +6,6 @@ import "core:time"
 
 SQUARES: [2]int : {64, 64}
 SQ_LEN :: SQUARES.x * SQUARES.y
-OFF_COLOR: Color = .C2
-ON_COLOR: Color = .C4
 CURSOR_MIN :: 1
 CURSOR_MAX :: 5
 
@@ -16,12 +14,26 @@ Vert :: bool
 Vertexes :: [SQ_LEN]Vert
 CompressedVertexes :: [SQ_LEN / 8]byte
 
+NeighborDir :: enum {
+	Lf,
+	LfUp,
+	Up,
+	RtUp,
+	Rt,
+	RtDn,
+	Dn,
+	LfDn,
+}
+
 Patch :: struct {
+	neighbors:    [NeighborDir]Maybe(^Patch),
 	offset:       [2]int,
 	vertexes:     Vertexes,
+	vertexes2:    Vertexes,
 	buffers:      PatchBuffers,
 	texture_info: TextureInfo,
 	texture_data: [][4]u8,
+	color:        [3]f32,
 }
 
 patch_init :: proc(patch: ^Patch, offset: [2]int) {
@@ -96,10 +108,6 @@ patch_update :: proc(patch: ^Patch, screen_dim: [2]int, cursor: Cursor) {
 	half := size / 2
 
 	// game of life, read from vertexes, write to vertexes2
-	vertexes2: Vertexes
-	defer {
-		patch.vertexes = vertexes2
-	}
 	#no_bounds_check for y := 0; y < h; y += 1 {
 		for x := 0; x < w; x += 1 {
 			alive_count: int = 0
@@ -108,7 +116,72 @@ patch_update :: proc(patch: ^Patch, screen_dim: [2]int, cursor: Cursor) {
 					if nx == 0 && ny == 0 {
 						continue
 					}
-					v := _patch_get(patch, x + nx, y + ny, w, h)
+					p: ^Patch = patch
+					p_ok: bool = true
+					fx := x + nx
+					fy := y + ny
+
+					neighbor_lf: bool = false
+					neighbor_rt: bool = false
+					switch fx {
+					case -1:
+						{
+							fx = w - 1
+							neighbor_lf = true
+						}
+					case w:
+						{
+							fx = 0
+							neighbor_rt = true
+						}
+					}
+					neighbor_up: bool = false
+					neighbor_dn: bool = false
+					switch fy {
+					case -1:
+						{
+							fy = h - 1
+							neighbor_up = true
+						}
+					case h:
+						{
+							fy = 0
+							neighbor_dn = true
+						}
+					}
+					if neighbor_lf {
+						if neighbor_up {
+							p, p_ok = patch.neighbors[.LfUp].?
+						}
+						if neighbor_dn {
+							p, p_ok = patch.neighbors[.LfDn].?
+
+						} else {
+							p, p_ok = patch.neighbors[.Lf].?
+						}
+					}
+					if neighbor_rt {
+						if neighbor_up {
+							p, p_ok = patch.neighbors[.RtUp].?
+						}
+						if neighbor_dn {
+							p, p_ok = patch.neighbors[.RtDn].?
+
+						} else {
+							p, p_ok = patch.neighbors[.Rt].?
+						}
+					}
+					if neighbor_up {
+						p, p_ok = patch.neighbors[.Up].?
+					}
+					if neighbor_dn {
+						p, p_ok = patch.neighbors[.Dn].?
+					}
+
+					v: bool = false
+					if p_ok {
+						v = _patch_get(p, fx, fy, w, h)
+					}
 					if v {
 						alive_count += 1
 					}
@@ -140,7 +213,7 @@ patch_update :: proc(patch: ^Patch, screen_dim: [2]int, cursor: Cursor) {
 				}
 			}
 			i: int = y * w + x
-			vertexes2[i] = new_value
+			patch.vertexes2[i] = new_value
 		}
 	}
 
@@ -161,13 +234,52 @@ patch_update :: proc(patch: ^Patch, screen_dim: [2]int, cursor: Cursor) {
 				v = false
 			}
 			i := y * w + x
-			vertexes2[i] = v
+			patch.vertexes2[i] = v
 		}
 	}
 }
 
+_patch_neighbor_get :: #force_inline proc(
+	patch: ^Patch,
+	maybe_lf, maybe_up, maybe_rt, maybe_dn: Maybe(Patch),
+	x, y, w, h: int,
+) -> Vert {
+	switch x {
+	case -1:
+		{
+			lf, ok := maybe_lf.?
+			if !ok {return false}
+			i := y * w + (w - 1)
+			return lf.vertexes[i]
+		}
+	case w:
+	case 0 ..< w:
+		{
+			switch y {
+			case -1:
+			case h:
+			case 0 ..< h:
+				{
+					i := y * w + x
+					return patch.vertexes[i]
+				}
+			case:
+				{return false}
+
+			}
+		}
+	case:
+		{return false}
+	}
+	if x < -1 || x > w || y < -1 || y > h {
+		return false
+	}
+	i := y * w + x
+	return patch.vertexes[i]
+}
+
 _patch_get :: #force_inline proc(patch: ^Patch, x, y, w, h: int) -> Vert {
-	if x <= 0 || x >= w || y <= 0 || y >= h {
+	if x < 0 || x >= w || y < 0 || y >= h {
 		return false
 	}
 	i := y * w + x

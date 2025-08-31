@@ -89,7 +89,7 @@ on_wheel :: proc(e: js.Event) {
 
 update_camera :: proc(dt: f32, vel: ^[2]f32, pos: ^[2]f32, key_state: [Key]bool) -> [2]f32 {
 	acc: [2]f32
-	acc_change: f32 = 120 * dt
+	acc_change: f32 = 240 * dt
 	if key_state[.LF_1] || key_state[.LF_2] {
 		acc.x -= acc_change
 	}
@@ -103,8 +103,8 @@ update_camera :: proc(dt: f32, vel: ^[2]f32, pos: ^[2]f32, key_state: [Key]bool)
 		acc.y += acc_change
 	}
 	vel^ += acc
-	vel^ *= {0.6, 0.6}
-	max_speed: f32 = 1200 * dt
+	vel^ *= {0.9, 0.9}
+	max_speed: f32 = 2000 * dt
 	vel.x = math.min(max_speed, vel.x)
 	vel.y = math.min(max_speed, vel.y)
 	if glm.length(vel^) < 0.01 {

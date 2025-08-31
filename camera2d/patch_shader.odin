@@ -177,7 +177,7 @@ patch_draw :: proc(patch: ^Patch, projection_matrix: glm.mat4, w, h: int, shader
 
 	// fmt.println(uniforms.dim, uniforms.tile_size)
 
-	uniforms.color = COLOR_2.rgb
+	uniforms.color = patch.color
 	patch_shader_use(shader, uniforms, patch.buffers, patch.texture_info)
 	ea_buffer_draw(patch.buffers.indices)
 }
