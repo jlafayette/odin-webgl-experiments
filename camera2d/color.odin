@@ -1,9 +1,35 @@
 package game
 
+import "core:math"
+import "core:math/rand"
+
 // #222031
 // #5a3f73
 // #ca3636
 // #f3ecd7  
+
+@(private = "file")
+_diff :: proc(c: [3]f32, tgt: f32) -> f32 {
+	total := c.x + c.y + c.z
+	diff := (tgt * 3) - total
+	return diff
+}
+
+color_random_rgb :: proc(luminance: f32) -> [3]f32 {
+	// TODO: use CIELAB or other colorspace
+	lum: f32 = math.clamp(luminance, 0, 1)
+	c: [3]f32 = {rand.float32(), rand.float32(), rand.float32()}
+	outer: for _ in 0 ..< 10 {
+		for _, i in c {
+			c[i] += _diff(c, lum) / 3.0
+			c[i] = math.clamp(c[i], 0, 1)
+			if math.abs(_diff(c, lum)) < 0.01 {
+				break outer
+			}
+		}
+	}
+	return c
+}
 
 @(private = "file")
 _rgb :: proc(r: int, g: int, b: int) -> [4]f32 {

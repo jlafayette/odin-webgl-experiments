@@ -1,9 +1,10 @@
 package game
 
+import "core:math"
 import glm "core:math/linalg/glsl"
 import "core:math/rand"
 
-PATCHES_W :: 2
+PATCHES_W :: 5
 Simulation :: struct {
 	patches: [PATCHES_W * PATCHES_W]Patch,
 	shader:  PatchShader,
@@ -14,8 +15,7 @@ simulation_init :: proc(sim: ^Simulation) {
 		x := i % PATCHES_W
 		y := i / PATCHES_W
 		patch_init(&sim.patches[i], {x, y})
-		c: [3]f32 = {rand.float32(), rand.float32(), rand.float32()}
-		sim.patches[i].color = c
+		sim.patches[i].color = color_random_rgb(0.65)
 	}
 	for _, i in sim.patches {
 		cx := i % PATCHES_W

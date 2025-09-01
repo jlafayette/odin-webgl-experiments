@@ -1,6 +1,5 @@
 package game
 
-import "core:fmt"
 import "core:math"
 import "core:time"
 
@@ -66,9 +65,6 @@ patch_init :: proc(patch: ^Patch, offset: [2]int) {
 	patch_buffers_init(&patch.buffers)
 	patch.texture_data = make([][4]u8, w * h)
 	patch.texture_info = patch_init_texture(patch.texture_data)
-	fmt.println("patch size: ", size_of(Patch))
-	fmt.println("vertexes size:", size_of(Vertexes))
-	fmt.println("required size:", size_of(CompressedVertexes))
 }
 
 patch_compress :: proc(vertexes: Vertexes) -> CompressedVertexes {
@@ -121,7 +117,7 @@ _NeighborLookup :: struct {
 	new_x:       int,
 	new_y:       int,
 }
-_find_neighbor_lookup :: proc(n: Neighbor, x, y: int) -> _NeighborLookup {
+_find_neighbor_lookup :: #force_inline proc(n: Neighbor, x, y: int) -> _NeighborLookup {
 	w := SQUARES.x
 	h := SQUARES.y
 	lookup: _NeighborLookup
@@ -241,6 +237,79 @@ _find_neighbor_lookup :: proc(n: Neighbor, x, y: int) -> _NeighborLookup {
 	return lookup
 }
 
+cell_update :: #force_inline proc(v: bool, alive_count: int) -> bool {
+	new_value: bool = false
+	if v {
+		if alive_count < 2 {
+			// Any live cell with fewer than two live neighbours dies,
+			// as if by underpopulation.
+			new_value = false
+		} else if alive_count < 4 {
+			// Any live cell with two or three live neighbours lives
+			// on to the next generation.
+			new_value = true
+		} else {
+			// Any live cell with more than three live neighbours dies,
+			// as if by overpopulation.
+			new_value = false
+		}
+	} else {
+		// Any dead cell with exactly three live neighbours becomes
+		// a live cell, as if by reproduction.
+		if alive_count == 3 {
+			new_value = true
+		} else {
+			new_value = false
+		}
+	}
+	return new_value
+}
+
+_get_alive_count :: #force_inline proc(patch: ^Patch, x, y, w, h: int) -> int {
+	alive_count: int = 0
+	for neighbor in IterNeighbors {
+		v := _patch_get_unsafe(patch, x + neighbor.x, y + neighbor.y, w, h)
+		if v {
+			alive_count += 1
+		}
+	}
+	return alive_count
+}
+
+_get_alive_count_edges :: #force_inline proc(patch: ^Patch, x, y, w, h: int) -> int {
+	alive_count: int = 0
+	for neighbor in IterNeighbors {
+		p: ^Patch = patch
+		p_ok: bool = true
+		lookup := _find_neighbor_lookup(neighbor, x, y)
+		if lookup.other_patch {
+			p, p_ok = patch.neighbors[lookup.dir].?
+		}
+		v: bool = false
+		if p_ok {
+			v = _patch_get_edge(p, lookup.new_x, lookup.new_y, w, h)
+		}
+		if v {
+			alive_count += 1
+		}
+	}
+	return alive_count
+}
+
+_patch_update_cell :: #force_inline proc(patch: ^Patch, x, y, w, h: int) {
+	alive_count := _get_alive_count(patch, x, y, w, h)
+	v := _patch_get_unsafe(patch, x, y, w, h)
+	new_value := cell_update(v, alive_count)
+	i: int = y * w + x
+	patch.vertexes2[i] = new_value
+}
+_patch_update_edge_cell :: #force_inline proc(patch: ^Patch, x, y, w, h: int) {
+	alive_count := _get_alive_count_edges(patch, x, y, w, h)
+	v := _patch_get_unsafe(patch, x, y, w, h)
+	new_value := cell_update(v, alive_count)
+	i: int = y * w + x
+	patch.vertexes2[i] = new_value
+}
 
 patch_update :: proc(patch: ^Patch, screen_dim: [2]int, cursor: Cursor) {
 	w := SQUARES.x
@@ -249,52 +318,31 @@ patch_update :: proc(patch: ^Patch, screen_dim: [2]int, cursor: Cursor) {
 	half := size / 2
 
 	// game of life, read from vertexes, write to vertexes2
-	#no_bounds_check for y := 0; y < h; y += 1 {
-		for x := 0; x < w; x += 1 {
-			alive_count: int = 0
-			for neighbor in IterNeighbors {
-				p: ^Patch = patch
-				p_ok: bool = true
-				lookup := _find_neighbor_lookup(neighbor, x, y)
-				if lookup.other_patch {
-					p, p_ok = patch.neighbors[lookup.dir].?
-				}
-				v: bool = false
-				if p_ok {
-					v = _patch_get(p, lookup.new_x, lookup.new_y, w, h)
-				}
-				if v {
-					alive_count += 1
-				}
-			}
-			v := _patch_get(patch, x, y, w, h)
-			new_value: bool = false
-			if v {
-				if alive_count < 2 {
-					// Any live cell with fewer than two live neighbours dies,
-					// as if by underpopulation.
-					new_value = false
-				} else if alive_count < 4 {
-					// Any live cell with two or three live neighbours lives
-					// on to the next generation.
-					new_value = true
-				} else {
-					// Any live cell with more than three live neighbours dies,
-					// as if by overpopulation.
-					new_value = false
-				}
-			} else {
-				// Any dead cell with exactly three live neighbours becomes
-				// a live cell, as if by reproduction.
-				if alive_count == 3 {
-					new_value = true
-				} else {
-					new_value = false
-				}
-			}
-			i: int = y * w + x
-			patch.vertexes2[i] = new_value
+	// rules are in cell_update procedure
+	#no_bounds_check for y := 1; y < h - 1; y += 1 {
+		for x := 1; x < w - 1; x += 1 {
+			_patch_update_cell(patch, x, y, w, h)
 		}
+	}
+	// top edge
+	y := 0
+	for x := 0; x < w; x += 1 {
+		_patch_update_edge_cell(patch, x, y, w, h)
+	}
+	// bottom edge
+	y = h - 1
+	for x := 0; x < w; x += 1 {
+		_patch_update_edge_cell(patch, x, y, w, h)
+	}
+	// left edge
+	x := 0
+	for y := 1; y < h - 1; y += 1 {
+		_patch_update_edge_cell(patch, x, y, w, h)
+	}
+	// right edge
+	x = w - 1
+	for y := 1; y < h - 1; y += 1 {
+		_patch_update_edge_cell(patch, x, y, w, h)
 	}
 
 	// find vert where mouse is nearest
@@ -319,46 +367,12 @@ patch_update :: proc(patch: ^Patch, screen_dim: [2]int, cursor: Cursor) {
 	}
 }
 
-_patch_neighbor_get :: #force_inline proc(
-	patch: ^Patch,
-	maybe_lf, maybe_up, maybe_rt, maybe_dn: Maybe(Patch),
-	x, y, w, h: int,
-) -> Vert {
-	switch x {
-	case -1:
-		{
-			lf, ok := maybe_lf.?
-			if !ok {return false}
-			i := y * w + (w - 1)
-			return lf.vertexes[i]
-		}
-	case w:
-	case 0 ..< w:
-		{
-			switch y {
-			case -1:
-			case h:
-			case 0 ..< h:
-				{
-					i := y * w + x
-					return patch.vertexes[i]
-				}
-			case:
-				{return false}
-
-			}
-		}
-	case:
-		{return false}
-	}
-	if x < -1 || x > w || y < -1 || y > h {
-		return false
-	}
+_patch_get_unsafe :: #force_inline proc(patch: ^Patch, x, y, w, h: int) -> Vert {
+	// assert(x >= 0 && x < w && y >= 0 && y < h)
 	i := y * w + x
 	return patch.vertexes[i]
 }
-
-_patch_get :: #force_inline proc(patch: ^Patch, x, y, w, h: int) -> Vert {
+_patch_get_edge :: #force_inline proc(patch: ^Patch, x, y, w, h: int) -> Vert {
 	if x < 0 || x >= w || y < 0 || y >= h {
 		return false
 	}
