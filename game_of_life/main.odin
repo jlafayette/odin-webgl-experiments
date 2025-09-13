@@ -55,7 +55,7 @@ start :: proc() -> (ok: bool) {
 	state.started = true
 	state.camera_pos = {0, 0}
 	state.camera_zoom = 1
-	state.square_size = 6
+	state.square_size = 2
 
 	if ok = gl.SetCurrentContextById("canvas-1"); !ok {
 		fmt.eprintln("Failed to set current context to 'canvas-1'")
@@ -116,6 +116,7 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 	if state.game_mode == .Play {
 		cursor_get_shapes(state.cursor, state.square_size, &shapes)
 	}
+	simulation_get_shapes(&state.simulation, &shapes, state.square_size, state.camera_pos)
 	shapes_draw(&state.shapes, shapes[:], view)
 	return true
 }

@@ -67,6 +67,11 @@ patch_init :: proc(patch: ^Patch, offset: [2]int) {
 	patch.texture_info = patch_init_texture(patch.texture_data)
 }
 
+patch_load_from_compressed :: proc(patch: ^Patch, offset: [2]int, compressed: CompressedVertexes) {
+	patch.offset = offset
+	patch.vertexes = patch_uncompress(compressed)
+}
+
 patch_compress :: proc(vertexes: Vertexes) -> CompressedVertexes {
 	buffer: CompressedVertexes
 
@@ -77,7 +82,7 @@ patch_compress :: proc(vertexes: Vertexes) -> CompressedVertexes {
 	// i holds index of out buffer to write to next
 	i: int = 0
 
-	for v in vertexes {
+	#no_bounds_check for v in vertexes {
 		if c == 8 {
 			c = 0
 			buffer[i] = b
@@ -87,10 +92,10 @@ patch_compress :: proc(vertexes: Vertexes) -> CompressedVertexes {
 		if v {
 			b = b | (1 << c)
 		}
+		c += 1
 	}
-	if c > 0 {
-		buffer[i] = b
-	}
+	assert(c == 8)
+	buffer[i] = b
 	return buffer
 }
 patch_uncompress :: proc(buffer: CompressedVertexes) -> Vertexes {
@@ -99,7 +104,7 @@ patch_uncompress :: proc(buffer: CompressedVertexes) -> Vertexes {
 	// next index in vertexes to write to
 	i: int = 0
 
-	for b in buffer {
+	#no_bounds_check for b in buffer {
 		// b is current byte being decoded
 		for c in 0 ..< 8 {
 			// c is place within byte being read from

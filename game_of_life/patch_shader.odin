@@ -133,7 +133,7 @@ _patch_update_texture :: proc(patch: ^Patch) {
 	w := SQUARES.x
 	h := SQUARES.y
 	pixels := patch.texture_data
-	for v, i in patch.vertexes {
+	#no_bounds_check for v, i in patch.vertexes {
 		tv: [4]u8
 		if v {
 			tv = {255, 255, 255, 0}
