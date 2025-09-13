@@ -61,11 +61,11 @@ start :: proc() -> (ok: bool) {
 		fmt.eprintln("Failed to set current context to 'canvas-1'")
 		return false
 	}
-	update_handle_resize(&state.layout)
+	handle_resize(&state.layout)
 
 	simulation_init(&state.simulation)
 	cursor_init(&state.cursor)
-	init_input(&state.input)
+	input_init(&state.input)
 	shapes_init(&state.shapes)
 
 	// for faster debug
@@ -126,15 +126,15 @@ update :: proc(state: ^State, dt: f32) {
 	}
 	state.game_mode = state.switch_to_mode
 	state.time_elapsed += f64(dt)
-	update_handle_resize(&state.layout)
+	handle_resize(&state.layout)
 	l := state.layout
-	update_input(l.dpr)
+	input_update(l.dpr)
 	_ = handle_events(state)
 	if !state.has_focus {
 		return
 	}
 	// Calculate smooth camera movement based on move keys that are held down
-	mv := update_camera(dt, &state.camera_vel, &state.camera_pos, state.input.key_down)
+	mv := camera_update(dt, &state.camera_vel, &state.camera_pos, state.input.key_down)
 	// Update the cursor position (add camera movement so it stays at expected screen
 	// position when camera is moving)
 	cursor_update(&state.cursor, state.input.draw_mode, state.input.cursor_size, mv)
@@ -144,7 +144,7 @@ update :: proc(state: ^State, dt: f32) {
 	}
 }
 
-update_handle_resize :: proc(layout: ^Layout) {
+handle_resize :: proc(layout: ^Layout) {
 	r: resize.ResizeState
 	resize.resize(&r)
 	layout.w = cast(int)r.canvas_res.x

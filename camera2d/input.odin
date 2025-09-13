@@ -40,7 +40,7 @@ Key :: enum {
 	CAMERA_MODE_TOGGLE,
 }
 
-init_input :: proc(input: ^Input) {
+input_init :: proc(input: ^Input) {
 	js.add_window_event_listener(.Key_Down, {}, on_key_down)
 	js.add_window_event_listener(.Key_Up, {}, on_key_up)
 	js.add_window_event_listener(.Pointer_Move, {}, on_pointer_move)
@@ -54,7 +54,7 @@ init_input :: proc(input: ^Input) {
 }
 _dpr: f32 = 1
 
-update_input :: proc(dpr: f32) {
+input_update :: proc(dpr: f32) {
 	_dpr = dpr
 }
 
@@ -87,7 +87,7 @@ on_wheel :: proc(e: js.Event) {
 	}
 }
 
-update_camera :: proc(dt: f32, vel: ^[2]f32, pos: ^[2]f32, key_state: [Key]bool) -> [2]f32 {
+camera_update :: proc(dt: f32, vel: ^[2]f32, pos: ^[2]f32, key_state: [Key]bool) -> [2]f32 {
 	acc: [2]f32
 	acc_change: f32 = 240 * dt
 	if key_state[.LF_1] || key_state[.LF_2] {
