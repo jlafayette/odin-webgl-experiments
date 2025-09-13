@@ -1,8 +1,6 @@
 package game
 
-import "core:math"
 import glm "core:math/linalg/glsl"
-import "core:math/rand"
 
 PATCHES_W :: 5
 Simulation :: struct {
@@ -35,18 +33,18 @@ simulation_init :: proc(sim: ^Simulation) {
 	assert(ok, "Patch shader init failed")
 }
 
-simulation_update :: proc(sim: ^Simulation, screen_dim: [2]int, cursor: Cursor) {
+simulation_update :: proc(sim: ^Simulation, size: int, cursor: Cursor) {
 	for &patch in sim.patches {
-		patch_update(&patch, screen_dim, cursor)
+		patch_update(&patch, size, cursor)
 	}
 	for &patch in sim.patches {
 		patch.vertexes = patch.vertexes2
 	}
 }
 
-simulation_draw :: proc(sim: ^Simulation, view: glm.mat4, w: int, h: int) {
+simulation_draw :: proc(sim: ^Simulation, view: glm.mat4, size: int) {
 	for &patch in sim.patches {
-		patch_draw(&patch, view, w, h, sim.shader)
+		patch_draw(&patch, view, size, sim.shader)
 	}
 }
 

@@ -32,7 +32,7 @@ State :: struct {
 	text_batch:        text.Batch,
 	shapes:            Shapes,
 	time_elapsed:      f64,
-	square_size:       [2]int,
+	square_size:       int,
 	simulation:        Simulation,
 	cursor:            Cursor,
 	input:             Input,
@@ -55,6 +55,7 @@ start :: proc() -> (ok: bool) {
 	state.started = true
 	state.camera_pos = {0, 0}
 	state.camera_zoom = 1
+	state.square_size = 6
 
 	if ok = gl.SetCurrentContextById("canvas-1"); !ok {
 		fmt.eprintln("Failed to set current context to 'canvas-1'")
@@ -110,11 +111,10 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 	top: f32 = camera_pos.y
 	view := glm.mat4Ortho3d(left, right, bottom, top, -100, 100)
 
-	simulation_draw(&state.simulation, view, w, h)
+	simulation_draw(&state.simulation, view, state.square_size)
 	shapes := make_dynamic_array([dynamic]Shape, allocator = context.temp_allocator)
-	square_size: [2]int
 	if state.game_mode == .Play {
-		cursor_get_shapes(state.cursor, {w, h}, &shapes)
+		cursor_get_shapes(state.cursor, state.square_size, &shapes)
 	}
 	shapes_draw(&state.shapes, shapes[:], view)
 	return true
@@ -140,7 +140,7 @@ update :: proc(state: ^State, dt: f32) {
 	cursor_update(&state.cursor, state.input.draw_mode, state.input.cursor_size, mv)
 
 	if state.game_mode == .Play {
-		simulation_update(&state.simulation, {state.layout.w, state.layout.h}, state.cursor)
+		simulation_update(&state.simulation, state.square_size, state.cursor)
 	}
 }
 

@@ -311,11 +311,9 @@ _patch_update_edge_cell :: #force_inline proc(patch: ^Patch, x, y, w, h: int) {
 	patch.vertexes2[i] = new_value
 }
 
-patch_update :: proc(patch: ^Patch, screen_dim: [2]int, cursor: Cursor) {
+patch_update :: proc(patch: ^Patch, size: int, cursor: Cursor) {
 	w := SQUARES.x
 	h := SQUARES.y
-	size := _size(screen_dim)
-	half := size / 2
 
 	// game of life, read from vertexes, write to vertexes2
 	// rules are in cell_update procedure
@@ -347,7 +345,7 @@ patch_update :: proc(patch: ^Patch, screen_dim: [2]int, cursor: Cursor) {
 
 	// find vert where mouse is nearest
 	if cursor.mouse_button_down && !cursor.input_blocked {
-		slice, cn := cursor_slice(cursor, screen_dim)
+		slice, cn := cursor_slice(cursor, size)
 		for offset in slice {
 			y := cn.y + offset.y - (patch.offset.y * h)
 			x := cn.x + offset.x - (patch.offset.x * w)

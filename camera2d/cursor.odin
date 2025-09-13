@@ -44,16 +44,11 @@ cursor_update :: proc(cursor: ^Cursor, mode: DrawMode, size: int, mv: [2]f32) {
 	cursor.size = size
 }
 
-cursor_get_shapes :: proc(cursor: Cursor, screen_dim: [2]int, shapes: ^[dynamic]Shape) {
-	w := SQUARES.x
-	h := SQUARES.y
-	size := _size(screen_dim)
-	half := size / 2
-
+cursor_get_shapes :: proc(cursor: Cursor, size: int, shapes: ^[dynamic]Shape) {
 	// Main shape drawing is done in the shader
 
 	// Draw mouse cursor
-	slice, cn := cursor_slice(cursor, screen_dim)
+	slice, cn := cursor_slice(cursor, size)
 	r: Rectangle
 	r.color = .C3_5
 	r.size = size
@@ -92,15 +87,10 @@ _cursor_5: [12][2]int = {
 	{0, 2},
 	{1, 2},
 }
-@(private)
-_size :: proc(screen_dim: [2]int) -> int {
-	x := screen_dim.x / SQUARES.x
-	y := screen_dim.y / SQUARES.y
-	return math.min(x, y)
-}
 
-cursor_slice :: proc(cursor: Cursor, screen_dim: [2]int) -> (slice: [][2]int, cn: [2]int) {
-	size := math.max(1, _size(screen_dim))
+cursor_slice :: proc(cursor: Cursor, size: int) -> (slice: [][2]int, cn: [2]int) {
+	assert(size >= 1)
+
 	offcenter := false
 	switch cursor.size {
 	case 1:
