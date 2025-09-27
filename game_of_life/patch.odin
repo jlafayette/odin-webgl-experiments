@@ -66,6 +66,24 @@ patch_init :: proc(patch: ^Patch, offset: [2]int) {
 	patch.texture_data = make([][4]u8, w * h)
 	patch.texture_info = patch_init_texture(patch.texture_data)
 }
+patch_load_new :: proc(patch: ^Patch, offset: [2]int) {
+	patch.offset = offset
+	w := SQUARES.x
+	h := SQUARES.y
+	#no_bounds_check for y := 0; y < h; y += 1 {
+		for x := 0; x < w; x += 1 {
+			i := y * w + x
+			threshold: int = w / 2
+			v: Vert = x > threshold
+			patch.vertexes[i] = v
+		}
+	}
+}
+patch_set_empty :: proc(patch: ^Patch, offset: [2]int) {
+	patch.offset = offset
+	patch.vertexes = false
+	patch.vertexes2 = false
+}
 
 patch_load_from_compressed :: proc(patch: ^Patch, offset: [2]int, compressed: CompressedVertexes) {
 	patch.offset = offset

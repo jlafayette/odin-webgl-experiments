@@ -116,7 +116,8 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 	if state.game_mode == .Play {
 		cursor_get_shapes(state.cursor, state.square_size, &shapes)
 	}
-	simulation_get_shapes(&state.simulation, &shapes, state.square_size, state.camera_pos)
+	simulation_get_shapes(&state.simulation, &shapes, state.square_size, {w, h}, state.camera_pos)
+
 	shapes_draw(&state.shapes, shapes[:], view)
 	return true
 }
@@ -141,7 +142,14 @@ update :: proc(state: ^State, dt: f32) {
 	cursor_update(&state.cursor, state.input.draw_mode, state.input.cursor_size, mv)
 
 	if state.game_mode == .Play {
-		simulation_update(&state.simulation, state.square_size, state.cursor)
+		screen_size: [2]int = {state.layout.w, state.layout.w}
+		simulation_update(
+			&state.simulation,
+			state.square_size,
+			screen_size,
+			state.camera_pos,
+			state.cursor,
+		)
 	}
 }
 
