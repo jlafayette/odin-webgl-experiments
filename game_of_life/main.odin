@@ -40,6 +40,7 @@ State :: struct {
 	camera_zoom:       f32,
 	camera_mouse_mode: bool,
 	camera_vel:        [2]f32,
+	view_offset:       [2]f32,
 	has_focus:         bool,
 }
 @(private = "file")
@@ -85,6 +86,28 @@ check_gl_error :: proc() -> (ok: bool) {
 	return true
 }
 
+_remainder_toward_zero :: proc(pos: [2]f32) -> [2]f32 {
+
+	/*
+	
+	return {int(math.floor(pos.x)), int(math.floor(pos.y))}
+	
+	*/
+
+	x := pos.x
+	y := pos.y
+	if x >= 0 {
+		x = x - math.floor(x)
+	} else {
+		x = x - math.ceil(x)
+	}
+	if y >= 0 {
+		y = y - math.floor(y)
+	} else {
+		y = y - math.ceil(y)
+	}
+	return {x, y}
+}
 draw_scene :: proc(dt: f32) -> (ok: bool) {
 	bg := COLOR_1
 	gl.ClearColor(bg.r, bg.g, bg.b, 1)
@@ -105,18 +128,44 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 	zoom: f32 = state.camera_zoom
 	camera_pos: [2]f32 = state.camera_pos
 
-	left: f32 = camera_pos.x
-	right: f32 = (f32(w) * zoom) + camera_pos.x
-	bottom: f32 = (f32(h) * zoom) + camera_pos.y
-	top: f32 = camera_pos.y
+	// left: f32 = camera_pos.x
+	// right: f32 = (f32(w) * zoom) + camera_pos.x
+	// bottom: f32 = (f32(h) * zoom) + camera_pos.y
+	// top: f32 = camera_pos.y
+	c_pos: [2]f32
+	{
+		// offset := i_int_round(camera_pos) / (SQUARES * state.square_size)
+		sq := f_(SQUARES * state.square_size)
+		pos := camera_pos
+		pos = (pos / sq)
+		// pos = pos - f_(i_int_floor(pos))
+		pos = _remainder_toward_zero(pos)
+		// pos = pos + {1, 1}
+		c_pos = (pos * sq) //+ (sq * 0.5)
+	}
+	state.view_offset = c_pos
+	// c_pos = 0
+
+	left: f32 = c_pos.x
+	right: f32 = (f32(w) * zoom) + c_pos.x
+	bottom: f32 = (f32(h) * zoom) + c_pos.y
+	top: f32 = c_pos.y
 	view := glm.mat4Ortho3d(left, right, bottom, top, -100, 100)
+
+	if _first {
+		fmt.println()
+		fmt.println(" camera_pos:", camera_pos)
+		fmt.println("      c_pos:", c_pos)
+		fmt.println("    SQUARES:", SQUARES)
+		fmt.println("square size:", state.square_size)
+	}
 
 	simulation_draw(&state.simulation, view, state.square_size)
 	shapes := make_dynamic_array([dynamic]Shape, allocator = context.temp_allocator)
 	if state.game_mode == .Play {
 		cursor_get_shapes(state.cursor, state.square_size, &shapes)
 	}
-	simulation_get_shapes(&state.simulation, &shapes, state.square_size, {w, h}, state.camera_pos)
+	// simulation_get_shapes(&state.simulation, &shapes, state.square_size, {w, h}, state.camera_pos)
 
 	shapes_draw(&state.shapes, shapes[:], view)
 	return true
@@ -137,6 +186,17 @@ update :: proc(state: ^State, dt: f32) {
 	}
 	// Calculate smooth camera movement based on move keys that are held down
 	mv := camera_update(dt, &state.camera_vel, &state.camera_pos, state.input.key_down)
+
+	{
+		c_pos: [2]f32
+		sq := f_(SQUARES * state.square_size)
+		pos := state.camera_pos
+		pos = (pos / sq)
+		pos = _remainder_toward_zero(pos)
+		c_pos = (pos * sq)
+		state.view_offset = c_pos
+	}
+
 	// Update the cursor position (add camera movement so it stays at expected screen
 	// position when camera is moving)
 	cursor_update(&state.cursor, state.input.draw_mode, state.input.cursor_size, mv)

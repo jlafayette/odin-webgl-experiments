@@ -20,20 +20,22 @@ cursor_handle_pointer_move :: proc(
 	cursor: ^Cursor,
 	e: EventPointerMove,
 	camera_pos: [2]f32,
+	view_offset: [2]f32,
 	ui_handled_move: bool,
 ) {
 	cursor.camera_mv = 0
-	cursor.mouse_pos = e.pos + i_int_round(camera_pos)
+	cursor.mouse_pos = e.pos + i_int_round(view_offset)
 	cursor.input_blocked = ui_handled_move
 }
 cursor_handle_pointer_click :: proc(
 	cursor: ^Cursor,
 	e: EventPointerClick,
 	camera_pos: [2]f32,
+	view_offset: [2]f32,
 	ui_handled_click: bool,
 ) {
 	cursor.camera_mv = 0
-	cursor.mouse_pos = e.pos + i_int_round(camera_pos)
+	cursor.mouse_pos = e.pos + i_int_round(view_offset)
 	cursor.mouse_button_down = e.type == .DOWN && !ui_handled_click
 	cursor.input_blocked = ui_handled_click
 }

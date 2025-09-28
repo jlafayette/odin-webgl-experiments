@@ -12,6 +12,10 @@ CURSOR_MAX :: 5
 Vert :: bool
 Vertexes :: [SQ_LEN]Vert
 CompressedVertexes :: [SQ_LEN / 8]byte
+CompressedPatch :: struct {
+	color: [3]f32,
+	verts: CompressedVertexes,
+}
 
 NeighborDir :: enum {
 	Lf,
@@ -62,6 +66,7 @@ patch_init :: proc(patch: ^Patch, offset: [2]int) {
 			patch.vertexes[i] = v
 		}
 	}
+	patch.color = color_random_rgb(0.65)
 	patch_buffers_init(&patch.buffers)
 	patch.texture_data = make([][4]u8, w * h)
 	patch.texture_info = patch_init_texture(patch.texture_data)
@@ -78,6 +83,7 @@ patch_load_new :: proc(patch: ^Patch, offset: [2]int) {
 			patch.vertexes[i] = v
 		}
 	}
+	patch.color = color_random_rgb(0.65)
 }
 patch_set_empty :: proc(patch: ^Patch, offset: [2]int) {
 	patch.offset = offset
@@ -85,12 +91,14 @@ patch_set_empty :: proc(patch: ^Patch, offset: [2]int) {
 	patch.vertexes2 = false
 }
 
-patch_load_from_compressed :: proc(patch: ^Patch, offset: [2]int, compressed: CompressedVertexes) {
+patch_load_from_compressed :: proc(patch: ^Patch, offset: [2]int, compressed: CompressedPatch) {
 	patch.offset = offset
-	patch.vertexes = patch_uncompress(compressed)
+	patch.color = compressed.color
+	patch.vertexes = patch_uncompress(compressed.verts)
 }
 
-patch_compress :: proc(vertexes: Vertexes) -> CompressedVertexes {
+patch_compress :: proc(patch: Patch) -> CompressedPatch {
+	vertexes: Vertexes = patch.vertexes
 	buffer: CompressedVertexes
 
 	// write values to b
@@ -114,7 +122,7 @@ patch_compress :: proc(vertexes: Vertexes) -> CompressedVertexes {
 	}
 	assert(c == 8)
 	buffer[i] = b
-	return buffer
+	return {patch.color, buffer}
 }
 patch_uncompress :: proc(buffer: CompressedVertexes) -> Vertexes {
 	vertexes: Vertexes

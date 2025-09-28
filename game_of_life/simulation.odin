@@ -8,10 +8,10 @@ Simulation :: struct {
 	patches:    [PATCHES_W * PATCHES_W]Patch,
 	shader:     PatchShader,
 	center:     [2]int,
-	lts:        [dynamic]CompressedVertexes,
+	lts:        [dynamic]CompressedPatch,
 	lts_lookup: map[int]int,
 }
-// LTS_DIM :: 65536
+// LTS_DIM :: 1024
 LTS_DIM :: 16
 LTS_OFFSET :: LTS_DIM / 2
 lts_lookup_get :: proc(
@@ -54,7 +54,7 @@ simulation_init :: proc(sim: ^Simulation) {
 		x := i % PATCHES_W
 		y := i / PATCHES_W
 		patch_init(&sim.patches[i], {x, y})
-		sim.patches[i].color = color_random_rgb(0.65)
+		// sim.patches[i].color = color_random_rgb(0.65)
 	}
 	for _, i in sim.patches {
 		cx := i % PATCHES_W
@@ -81,19 +81,19 @@ simulation_update :: proc(
 	camera_pos: [2]f32,
 	cursor: Cursor,
 ) {
-	if _first {
-		fmt.println("size of simulation:", size_of(Simulation))
-		fmt.println("size of Patch:", size_of(Patch))
-		fmt.println("size of CompressedVertexes:", size_of(CompressedVertexes))
-		fmt.println("len lts:", len(sim.lts))
-		fmt.println("lookup:", sim.lts_lookup)
-		fmt.println("camera_pos:", camera_pos)
-	}
+	// if _first {
+	// 	fmt.println("size of simulation:", size_of(Simulation))
+	// 	fmt.println("size of Patch:", size_of(Patch))
+	// 	fmt.println("size of CompressedVertexes:", size_of(CompressedVertexes))
+	// 	fmt.println("len lts:", len(sim.lts))
+	// 	fmt.println("lookup:", sim.lts_lookup)
+	// 	fmt.println("camera_pos:", camera_pos)
+	// }
 
 	offset := i_int_round(camera_pos) / (SQUARES * square_size)
-	if _first {
-		fmt.println("camera offset:", offset)
-	}
+	// if _first {
+	// 	fmt.println("camera offset:", offset)
+	// }
 	if len(sim.lts) > 0 {
 		for &patch in sim.patches {
 			patch.vertexes = false
@@ -107,11 +107,10 @@ simulation_update :: proc(
 			// camera pos is [0, 0] at start
 			// x, y of [0, 0] -> [-2, -2]
 			// x, y of [4, 4] -> [ 2,  2]
+
 			coords: [2]int = offset + {x, y} + {-2, -2}
 			index, found, out_of_bounds := lts_lookup_get(&sim.lts_lookup, coords)
-			// TODO: handle out of bounds
 			if out_of_bounds {
-				// patch_set_empty
 				patch_set_empty(&sim.patches[i], {x, y})
 				continue
 			}
@@ -141,7 +140,7 @@ simulation_update :: proc(
 		if out_of_bounds {
 			continue
 		}
-		compressed := patch_compress(patch.vertexes)
+		compressed := patch_compress(patch)
 		if found {
 			sim.lts[idx] = compressed
 		} else {
