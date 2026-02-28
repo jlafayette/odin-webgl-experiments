@@ -33,11 +33,12 @@ cursor_handle_pointer_click :: proc(
 	camera_pos: [2]f32,
 	view_offset: [2]f32,
 	ui_handled_click: bool,
+	drag_mode_active: bool,
 ) {
 	cursor.camera_mv = 0
 	cursor.mouse_pos = e.pos + i_int_round(view_offset)
-	cursor.mouse_button_down = e.type == .DOWN && !ui_handled_click
-	cursor.input_blocked = ui_handled_click
+	cursor.mouse_button_down = e.type == .DOWN && !ui_handled_click && !drag_mode_active
+	cursor.input_blocked = ui_handled_click || drag_mode_active
 }
 
 cursor_update :: proc(cursor: ^Cursor, mode: DrawMode, size: int, mv: [2]f32) {

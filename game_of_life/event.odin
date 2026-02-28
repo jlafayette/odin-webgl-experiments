@@ -112,6 +112,7 @@ handle_events :: proc(state: ^State) -> bool {
 					state.camera_pos,
 					state.view_offset,
 					handled,
+					state.camera_mouse_mode,
 				)
 			}
 		case EventInputKey:
