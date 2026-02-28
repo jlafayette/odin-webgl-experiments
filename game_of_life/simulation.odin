@@ -90,7 +90,7 @@ simulation_update :: proc(
 	// 	fmt.println("camera_pos:", camera_pos)
 	// }
 
-	offset := i_int_round(camera_pos) / (SQUARES * square_size)
+	offset := _camera_square_offset(camera_pos, square_size)
 	// if _first {
 	// 	fmt.println("camera offset:", offset)
 	// }
@@ -171,7 +171,8 @@ simulation_get_shapes :: proc(
 	r.color = .C3_5
 	r.size = SQUARES * square_size
 
-	offset := i_int_round(camera_pos) / (SQUARES * square_size)
+	// offset := i_int_round(camera_pos) / (SQUARES * square_size)
+	offset := _camera_square_offset(camera_pos, square_size)
 
 	// Offset to center of screen
 	offset += (screen / 2) / (SQUARES * square_size)
