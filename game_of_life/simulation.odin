@@ -3,7 +3,7 @@ package game
 import "core:fmt"
 import glm "core:math/linalg/glsl"
 
-PATCHES_W :: 5
+PATCHES_W :: 6
 Simulation :: struct {
 	patches:    [PATCHES_W * PATCHES_W]Patch,
 	shader:     PatchShader,
@@ -11,9 +11,12 @@ Simulation :: struct {
 	lts:        [dynamic]CompressedPatch,
 	lts_lookup: map[int]int,
 }
+
+// max possible number of patches stored in lts array is LTS_DIM * LTS_DIM
 LTS_DIM :: 512
-// LTS_DIM :: 16
+
 LTS_OFFSET :: LTS_DIM / 2
+
 lts_lookup_get :: proc(
 	lookup: ^map[int]int,
 	coords: [2]int,
