@@ -17,12 +17,8 @@ Layout :: struct {
 	resized:        bool,
 }
 GameMode :: enum {
-	Start,
-	MainMenu,
 	Play,
 	Pause,
-	GameOver,
-	Win,
 }
 State :: struct {
 	game_mode:         GameMode,
@@ -54,9 +50,9 @@ temp_arena_allocator := mem.arena_allocator(&temp_arena)
 
 start :: proc() -> (ok: bool) {
 	state.started = true
-	state.camera_pos = {0, 0}
 	state.camera_zoom = 1
-	state.square_size = 2
+	state.square_size = 8
+	state.camera_pos = {0, 0}
 
 	if ok = gl.SetCurrentContextById("canvas-1"); !ok {
 		fmt.eprintln("Failed to set current context to 'canvas-1'")
@@ -150,12 +146,21 @@ update :: proc(state: ^State, dt: f32) {
 	if !state.has_focus {
 		return
 	}
+	screen_size: [2]int = {state.layout.w, state.layout.h}
 	// Calculate smooth camera movement based on move keys that are held down
 	mv := camera_update(dt, &state.camera_vel, &state.camera_pos, state.input.key_down)
 	{
-		sq := f_(SQUARES * state.square_size)
+		sq_i := SQUARES * state.square_size
+		sq := f_(sq_i)
+
+		// Offset to center patches on screen.  If square size is large enough,
+		// new squares popping in should happen offscreen in all directions
+		patch_cn: [2]int = (PATCHES_W * sq_i) / 2
+		screen_cn: [2]int = screen_size / 2
+		off: [2]int = screen_cn - patch_cn
+
 		offset := _camera_square_offset(state.camera_pos, state.square_size)
-		state.view_offset = state.camera_pos - (f_(offset) * sq)
+		state.view_offset = state.camera_pos - (f_(offset) * sq) - f_(off)
 	}
 
 	// Update the cursor position (add camera movement so it stays at expected screen
@@ -163,7 +168,6 @@ update :: proc(state: ^State, dt: f32) {
 	cursor_update(&state.cursor, state.input.draw_mode, state.input.cursor_size, mv)
 
 	if state.game_mode == .Play {
-		screen_size: [2]int = {state.layout.w, state.layout.w}
 		simulation_update(
 			&state.simulation,
 			state.square_size,

@@ -11,8 +11,8 @@ Simulation :: struct {
 	lts:        [dynamic]CompressedPatch,
 	lts_lookup: map[int]int,
 }
-// LTS_DIM :: 1024
-LTS_DIM :: 16
+LTS_DIM :: 512
+// LTS_DIM :: 16
 LTS_OFFSET :: LTS_DIM / 2
 lts_lookup_get :: proc(
 	lookup: ^map[int]int,
@@ -86,7 +86,9 @@ simulation_update :: proc(
 	// 	fmt.println("size of Patch:", size_of(Patch))
 	// 	fmt.println("size of CompressedVertexes:", size_of(CompressedVertexes))
 	// 	fmt.println("len lts:", len(sim.lts))
-	// 	fmt.println("lookup:", sim.lts_lookup)
+	// 	fmt.println("size of lts:", size_of(CompressedPatch) * len(sim.lts))
+	// 	fmt.println("max size of lts:", size_of(CompressedPatch) * LTS_DIM * LTS_DIM)
+	// 	fmt.println("len lookup:", len(sim.lts_lookup))
 	// 	fmt.println("camera_pos:", camera_pos)
 	// }
 
