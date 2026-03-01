@@ -31,7 +31,6 @@ State :: struct {
 	square_size:       int,
 	simulation:        Simulation,
 	cursor:            Cursor,
-	js_cursor:         JsCursor,
 	input:             Input,
 	camera_pos:        [2]f32,
 	camera_zoom:       f32,
@@ -65,7 +64,6 @@ start :: proc() -> (ok: bool) {
 	cursor_init(&state.cursor)
 	input_init(&state.input)
 	shapes_init(&state.shapes)
-	jscursor_init(&state.js_cursor)
 
 	// for faster debug
 	state.switch_to_mode = .Play

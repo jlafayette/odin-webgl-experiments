@@ -1,7 +1,13 @@
 package game
 
+import jscursor "../shared/cursor"
 import "core:math"
 
+JsCursor :: struct {
+	c:          jscursor.Cursor,
+	drag_mode:  bool,
+	mouse_down: bool,
+}
 Cursor :: struct {
 	draw_mode:         DrawMode,
 	size:              int,
@@ -9,11 +15,13 @@ Cursor :: struct {
 	camera_mv:         [2]f32, // movement since last move/click update
 	mouse_button_down: bool,
 	input_blocked:     bool,
+	js:                JsCursor,
 }
 
 cursor_init :: proc(cursor: ^Cursor) {
 	cursor.draw_mode = .ADD
 	cursor.mouse_pos = {-100, -100}
+	cursor.js.c = .default
 }
 
 cursor_handle_pointer_move :: proc(
@@ -39,6 +47,49 @@ cursor_handle_pointer_click :: proc(
 	cursor.mouse_pos = e.pos + i_int_round(view_offset)
 	cursor.mouse_button_down = e.type == .DOWN && !ui_handled_click && !drag_mode_active
 	cursor.input_blocked = ui_handled_click || drag_mode_active
+
+	{
+		new_c: jscursor.Cursor = cursor.js.c
+		primary_down: bool = e.type == .DOWN
+
+		if cursor.js.mouse_down != primary_down && cursor.js.drag_mode {
+			if primary_down {
+				new_c = .grabbing
+			} else {
+				new_c = .grab
+			}
+		}
+		cursor.js.mouse_down = primary_down
+
+		if new_c != cursor.js.c {
+			cursor.js.c = new_c
+			jscursor.set(new_c)
+		}
+	}
+}
+cursor_handle_camera_mode_toggled :: proc(cursor: ^Cursor, drag_mode: bool) {
+	new_c: jscursor.Cursor = cursor.js.c
+
+	if drag_mode {
+		if cursor.js.mouse_down {
+			new_c = .grabbing
+		} else {
+			new_c = .grab
+		}
+	} else {
+		new_c = .default
+	}
+	cursor.js.drag_mode = drag_mode
+
+	if new_c != cursor.js.c {
+		cursor.js.c = new_c
+		jscursor.set(new_c)
+	}
+}
+cursor_handle_focus_lost :: proc(cursor: ^Cursor) {
+	cursor.js.c = .default
+	cursor.js.drag_mode = false
+	cursor.js.mouse_down = false
 }
 
 cursor_update :: proc(cursor: ^Cursor, mode: DrawMode, size: int, mv: [2]f32) {

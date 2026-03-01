@@ -11,6 +11,7 @@ assets/crispy_font/debug
 dist/**/*.*
 */public/odin-resize.js
 */public/odin-gamepad.js
+*/public/odin-cursor.js
 __pycache__/
 _bk/
 t/
