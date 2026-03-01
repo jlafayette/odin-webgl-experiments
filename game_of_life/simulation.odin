@@ -3,9 +3,10 @@ package game
 import "core:fmt"
 import glm "core:math/linalg/glsl"
 
-PATCHES_W :: 6
+PATCHES_W :: 7
+PATCHES_H :: 4
 Simulation :: struct {
-	patches:    [PATCHES_W * PATCHES_W]Patch,
+	patches:    [PATCHES_W * PATCHES_H]Patch,
 	shader:     PatchShader,
 	center:     [2]int,
 	lts:        [dynamic]CompressedPatch,
@@ -65,7 +66,7 @@ simulation_init :: proc(sim: ^Simulation) {
 		for neighbor in IterNeighbors {
 			x := cx + neighbor.x
 			y := cy + neighbor.y
-			if x < 0 || x >= PATCHES_W || y < 0 || y >= PATCHES_W {
+			if x < 0 || x >= PATCHES_W || y < 0 || y >= PATCHES_H {
 				continue
 			}
 			ni := (y * PATCHES_W) + x

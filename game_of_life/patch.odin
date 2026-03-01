@@ -79,7 +79,7 @@ patch_set_empty :: proc(patch: ^Patch, offset: [2]int) {
 patch_set_random :: proc(patch: ^Patch, threshold: u8) {
 	random_values: [SQ_LEN]byte
 	written := rand.read(random_values[:])
-	fmt.println("wrote:", written, "random bytes")
+	// fmt.println("wrote:", written, "random bytes")
 	for v, i in random_values {
 		patch.vertexes[i] = v > threshold
 	}

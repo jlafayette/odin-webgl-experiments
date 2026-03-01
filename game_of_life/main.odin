@@ -155,7 +155,7 @@ update :: proc(state: ^State, dt: f32) {
 
 		// Offset to center patches on screen.  If square size is large enough,
 		// new squares popping in should happen offscreen in all directions
-		patch_cn: [2]int = (PATCHES_W * sq_i) / 2
+		patch_cn: [2]int = ([2]int{PATCHES_W, PATCHES_H} * sq_i) / 2
 		screen_cn: [2]int = screen_size / 2
 		off: [2]int = screen_cn - patch_cn
 
