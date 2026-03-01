@@ -114,11 +114,13 @@ handle_events :: proc(state: ^State) -> bool {
 					handled,
 					state.camera_mouse_mode,
 				)
+				jscursor_handle_pointer_click(&state.js_cursor, state.input.primary_down)
 			}
 		case EventInputKey:
 			{
 				if e.key == .CAMERA_MODE_TOGGLE {
 					state.camera_mouse_mode = e.down
+					jscursor_handle_camera_mode_toggled(&state.js_cursor, e.down)
 				}
 				state.input.key_down[e.key] = e.down
 			}
@@ -138,6 +140,7 @@ handle_events :: proc(state: ^State) -> bool {
 				}
 				state.camera_mouse_mode = false
 				state.has_focus = false
+				jscursor_handle_focus_lost(&state.js_cursor)
 			}
 		}
 	}

@@ -53,6 +53,9 @@ def main(args: Args) -> Path:
 	gamepad_js_dst = public_dst / "odin-gamepad.js"
 	clean(gamepad_js_dst)
 	shutil.copy(root_dir / "shared/gamepad/odin-gamepad.js", gamepad_js_dst)
+	cursor_js_dst = public_dst / "odin-cursor.js"
+	clean(cursor_js_dst)
+	shutil.copy(root_dir / "shared/cursor/odin-cursor.js", cursor_js_dst)
 
 	if args.run:
 		os.chdir(public_dst)

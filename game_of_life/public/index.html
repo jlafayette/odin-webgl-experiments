@@ -31,6 +31,7 @@
 	<canvas id="canvas-1" width="640" height="480"></canvas>
 	<script type="module" src="./odin.js"></script>
 	<script type="module" src="./odin-resize.js"></script>
+	<script type="module" src="./odin-cursor.js"></script>
 	<script type="text/javascript">
 		let canvas = document.getElementById("canvas-1");
 		canvas.width = window.innerWidth;
@@ -42,6 +43,7 @@
 			wasmMemoryInterface.setIntSize(4);
 			let custom_imports = {
 				...window.odinResize.setupImports(wasmMemoryInterface),
+				...window.odinCursor.setupImports(wasmMemoryInterface),
 			};
 			odin.runWasm("./_main.wasm", undefined, custom_imports, wasmMemoryInterface);
 		});
