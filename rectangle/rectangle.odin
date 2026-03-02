@@ -202,8 +202,8 @@ draw_scene :: proc(state: ^State) {
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	{
 		text_projection := glm.mat4Ortho3d(0, f32(state.w), f32(state.h), 0, -1, 1)
-		spacing: i32 = 4
-		scale: i32 = math.max(1, cast(i32)math.round(state.dpr))
+		spacing: int = 4
+		scale: int = math.max(1, cast(int)math.round(state.dpr))
 		text.batch_start(
 			&state.debug_text,
 			.A30,
@@ -213,25 +213,25 @@ draw_scene :: proc(state: ^State) {
 			spacing = spacing,
 			scale = scale,
 		)
-		h: i32 = text.debug_get_height()
-		line_gap: i32 = h / 2
-		total_h: i32 = h * 3 + line_gap * 2
+		h: int = text.debug_get_height()
+		line_gap: int = h / 2
+		total_h: int = h * 3 + line_gap * 2
 
 		str: string = fmt.tprintf("canvas: %d x %d", state.canvas_w, state.canvas_h)
-		w: i32 = text.debug_get_width(str)
-		x: i32 = state.w / 2 - w / 2
-		y: i32 = state.h / 2 - total_h / 2
+		w: int = text.debug_get_width(str)
+		x: int = int(state.w) / 2 - w / 2
+		y: int = int(state.h) / 2 - total_h / 2
 		text.debug({x, y}, str)
 
 		str = fmt.tprintf("dpr: %.2f", state.dpr)
 		w = text.debug_get_width(str)
-		x = state.w / 2 - w / 2
+		x = int(state.w) / 2 - w / 2
 		y += h + line_gap
 		text.debug({x, y}, str)
 
 		str = fmt.tprintf("window: %d x %d", state.window_w, state.window_h)
 		w = text.debug_get_width(str)
-		x = state.w / 2 - w / 2
+		x = int(state.w) / 2 - w / 2
 		y += h + line_gap
 		text.debug({x, y}, str)
 	}
