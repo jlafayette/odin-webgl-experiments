@@ -103,8 +103,8 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 
 	_, paused := state.game.mode.(ModePause)
 	if paused {
-		scale: i32 = math.max(1, i32(math.round(state.dpr)))
-		spacing: i32 = 5 * scale
+		scale: int = math.max(1, int(math.round(state.dpr)))
+		spacing: int = 5 * scale
 		text.batch_start(
 			&state.debug_text,
 			.A40,
@@ -114,11 +114,11 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 			spacing = spacing,
 			scale = scale,
 		)
-		h: i32 = text.debug_get_height()
+		h: int = text.debug_get_height()
 		text_0 := "Click to Start"
-		w: i32 = text.debug_get_width(text_0)
-		x: i32 = state.w / 2 - w / 2
-		y: i32 = state.h / 2 - h
+		w: int = text.debug_get_width(text_0)
+		x: int = int(state.w) / 2 - w / 2
+		y: int = int(state.h) / 2 - h
 		_ = text.debug({x, y}, text_0) or_return
 	}
 	return true
