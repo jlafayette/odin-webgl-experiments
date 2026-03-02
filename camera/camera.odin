@@ -116,8 +116,8 @@ draw_scene :: proc() -> (ok: bool) {
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	text_projection := glm.mat4Ortho3d(0, f32(state.w), f32(state.h), 0, -1, 1)
-	spacing: i32 = 2
-	scale: i32 = math.max(1, i32(math.round(state.dpr)))
+	spacing: int = 2
+	scale: int = math.max(1, int(math.round(state.dpr)))
 	{
 		text.batch_start(
 			&state.debug_text,
@@ -145,10 +145,10 @@ draw_scene :: proc() -> (ok: bool) {
 				text_2 = "Change FOV [triggers]"
 			}
 		}
-		h: i32 = text.debug_get_height()
-		line_gap: i32 = 8 * scale
-		x: i32 = 16 * scale
-		y: i32 = 16 * scale
+		h: int = text.debug_get_height()
+		line_gap: int = 8 * scale
+		x: int = 16 * scale
+		y: int = 16 * scale
 		_, _ = text.debug({x, y}, text_0)
 		y += h + line_gap
 		_, _ = text.debug({x, y}, text_1)
@@ -156,14 +156,14 @@ draw_scene :: proc() -> (ok: bool) {
 		_, _ = text.debug({x, y}, text_2)
 
 		fps_text: string = fmt.tprintf("FPS (avg, low): %d, %d", get_fps_average(), get_fps_low())
-		fps_w: i32 = text.debug_get_width(fps_text)
-		x = state.w - fps_w - 16 * scale
+		fps_w: int = text.debug_get_width(fps_text)
+		x = int(state.w) - fps_w - 16 * scale
 		y = 16 * scale
 		_, _ = text.debug({x, y}, fps_text)
 
 		fov_text: string = fmt.tprintf("FOV: %.2f", glm.degrees_f32(g_fov))
-		fov_w: i32 = text.debug_get_width(fov_text)
-		x = state.w - fov_w - 16 * scale
+		fov_w: int = text.debug_get_width(fov_text)
+		x = int(state.w) - fov_w - 16 * scale
 		y += h + line_gap
 		_, _ = text.debug({x, y}, fov_text)
 	}
