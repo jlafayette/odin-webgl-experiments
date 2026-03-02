@@ -40,6 +40,7 @@ func build(odin_exe string) {
 	cmd := exec.Command(
 		odin_exe, "build", "../", "-out:_main.wasm", "-target:js_wasm32",
 		"-o:minimal",
+		// "-o:speed", "-disable-assert", "-no-bounds-check",
 		// "-o:aggressive", "-disable-assert", "-no-bounds-check",
 	)
 	log.Println("Running command and waiting for it to finish...")
