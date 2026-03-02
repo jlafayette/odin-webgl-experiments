@@ -125,7 +125,7 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 	simulation_draw(&state.simulation, view, state.square_size)
 	shapes := make_dynamic_array([dynamic]Shape, allocator = context.temp_allocator)
 	if state.game_mode == .Play {
-		cursor_get_shapes(state.cursor, state.square_size, &shapes)
+		cursor_get_shapes(state.cursor, state.square_size, state.view_offset, &shapes)
 	}
 	// simulation_get_shapes(&state.simulation, &shapes, state.square_size, {w, h}, state.camera_pos)
 
@@ -165,7 +165,7 @@ update :: proc(state: ^State, dt: f32) {
 
 	// Update the cursor position (add camera movement so it stays at expected screen
 	// position when camera is moving)
-	cursor_update(&state.cursor, state.input.draw_mode, state.input.cursor_size, mv)
+	cursor_update(&state.cursor, state.input.draw_mode, state.input.cursor_size, state.view_offset)
 
 	if state.game_mode == .Play {
 		simulation_update(

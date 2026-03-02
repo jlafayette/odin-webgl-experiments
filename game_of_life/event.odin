@@ -87,7 +87,7 @@ handle_events :: proc(state: ^State) -> bool {
 						state.camera_pos += f_(change)
 					}
 				}
-				cursor_handle_pointer_move(&state.cursor, e, state.camera_pos, state.view_offset)
+				cursor_handle_pointer_move(&state.cursor, e)
 			}
 		case EventPointerClick:
 			{
@@ -97,13 +97,7 @@ handle_events :: proc(state: ^State) -> bool {
 				case .UP:
 					state.input.primary_down = false
 				}
-				cursor_handle_pointer_click(
-					&state.cursor,
-					e,
-					state.camera_pos,
-					state.view_offset,
-					state.camera_drag_mode,
-				)
+				cursor_handle_pointer_click(&state.cursor, e, state.camera_drag_mode)
 			}
 		case EventInputKey:
 			{

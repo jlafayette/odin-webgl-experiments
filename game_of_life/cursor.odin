@@ -12,7 +12,6 @@ Cursor :: struct {
 	draw_mode:  DrawMode,
 	size:       int,
 	mouse_pos:  ScreenPixelPos,
-	camera_mv:  [2]f32, // movement since last move/click update
 	is_drawing: bool,
 	js:         JsCursor,
 }
@@ -23,24 +22,15 @@ cursor_init :: proc(cursor: ^Cursor) {
 	cursor.js.c = .default
 }
 
-cursor_handle_pointer_move :: proc(
-	cursor: ^Cursor,
-	e: EventPointerMove,
-	camera_pos: [2]f32,
-	view_offset: [2]f32,
-) {
-	cursor.camera_mv = 0
-	cursor.mouse_pos = e.pos + i_int_round(view_offset)
+cursor_handle_pointer_move :: proc(cursor: ^Cursor, e: EventPointerMove) {
+	cursor.mouse_pos = e.pos
 }
 cursor_handle_pointer_click :: proc(
 	cursor: ^Cursor,
 	e: EventPointerClick,
-	camera_pos: [2]f32,
-	view_offset: [2]f32,
 	drag_mode_active: bool,
 ) {
-	cursor.camera_mv = 0
-	cursor.mouse_pos = e.pos + i_int_round(view_offset)
+	cursor.mouse_pos = e.pos
 	cursor.is_drawing = e.type == .DOWN && !drag_mode_active
 
 	{
@@ -87,21 +77,25 @@ cursor_handle_focus_lost :: proc(cursor: ^Cursor) {
 	cursor.js.mouse_down = false
 }
 
-cursor_update :: proc(cursor: ^Cursor, mode: DrawMode, size: int, mv: [2]f32) {
-	cursor.camera_mv += mv
+cursor_update :: proc(cursor: ^Cursor, mode: DrawMode, size: int, view_offset: [2]f32) {
 	cursor.draw_mode = mode
 	cursor.size = size
 	cursor.is_drawing = cursor.js.mouse_down && !cursor.js.drag_mode
 }
 
-cursor_get_shapes :: proc(cursor: Cursor, size: int, shapes: ^[dynamic]Shape) {
+cursor_get_shapes :: proc(
+	cursor: Cursor,
+	size: int,
+	view_offset: [2]f32,
+	shapes: ^[dynamic]Shape,
+) {
 	// Main shape drawing is done in the shader
 
 	if cursor.js.drag_mode {
 		return
 	}
 	// Draw mouse cursor
-	slice, cn := cursor_slice(cursor, size)
+	slice, cn := cursor_slice(cursor, size, view_offset)
 	r: Rectangle
 	r.color = .C3_5
 	r.size = size
@@ -141,7 +135,14 @@ _cursor_5: [12][2]int = {
 	{1, 2},
 }
 
-cursor_slice :: proc(cursor: Cursor, size: int) -> (slice: [][2]int, cn: [2]int) {
+cursor_slice :: proc(
+	cursor: Cursor,
+	size: int,
+	view_offset: [2]f32,
+) -> (
+	slice: [][2]int,
+	cn: [2]int,
+) {
 	assert(size >= 1)
 
 	offcenter := false
@@ -158,8 +159,7 @@ cursor_slice :: proc(cursor: Cursor, size: int) -> (slice: [][2]int, cn: [2]int)
 		slice = _cursor_5[:];offcenter = true
 	}
 
-	// Offset by the camera movement since last position/click update
-	pos := cursor.mouse_pos - i_int_round(cursor.camera_mv)
+	pos := cursor.mouse_pos + i_int_round(view_offset)
 
 	if offcenter {
 		cn = (pos - size / 2) / size
