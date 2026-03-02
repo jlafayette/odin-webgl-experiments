@@ -30,7 +30,7 @@ def main(args: Args):
 		"game_of_life",
 	]
 	for project in projects:
-		build_args = build.Args(project=project, go=False, odin=True, optimized=False, run=False)
+		build_args = build.Args(project=project, go=False, odin=True, optimized=True, run=False)
 		paths.append(build.main(build_args))
 	os.chdir(root_dir)
 

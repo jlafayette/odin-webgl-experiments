@@ -39,9 +39,13 @@ def main(args: Args) -> Path:
 			"odin", "build", project_dst, f"-out:{wasm_dst}", "-target:js_wasm32"
 		]
 		if args.optimized:
-			build_args.extend(["-o:speed", "-disable-assert", "-no-bounds-check"])
+			build_args.extend(["-o:speed"])
+			# -disable-assert and -no-bounds-check are causing some issues
+			# needs more investigcation
+			# build_args.extend(["-o:speed", "-disable-assert", "-no-bounds-check"])
 		else:
 			build_args.extend(["-o:minimal"])
+		print(build_args)
 		subprocess.run(build_args, check=True)
 	
 	odin_js_dst = public_dst / "odin.js"
@@ -92,7 +96,8 @@ def args():
 	build_go = "-g" in args
 	build_odin = "--odin" in args
 	optimize = "-o" in args or "--optimize" in args
-	return Args(args[0], build_go, build_odin, optimize, True)
+	run = "--no-run" not in args
+	return Args(args[0], build_go, build_odin, optimize, run)
 
 
 if __name__ == "__main__":
