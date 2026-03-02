@@ -58,8 +58,8 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	text_projection := glm.mat4Ortho3d(0, f32(state.w), f32(state.h), 0, -10, 10)
 	{
-		scale: i32 = math.max(1, i32(math.round(state.dpr)))
-		spacing: i32 = 2 * scale
+		scale: int = math.max(1, int(math.round(state.dpr)))
+		spacing: int = 2 * scale
 		text.batch_start(
 			&state.debug_text,
 			.A16,
@@ -72,10 +72,10 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 		// text_0 := "Rectangle [r]"
 		// text_1 := "Circle    [c]"
 		// text_2 := "Line      [l]"
-		h: i32 = text.debug_get_height()
-		line_gap: i32 = 5 * scale
-		x: i32 = 16 * scale
-		y: i32 = state.h - h - 120
+		h: int = text.debug_get_height()
+		line_gap: int = 5 * scale
+		x: int = 16 * scale
+		y: int = int(state.h) - h - 120
 		for dv, i in g_input.values {
 			text_buf: [16]byte
 			sb := strings.builder_from_bytes(text_buf[:])
