@@ -89,8 +89,8 @@ shader_set_instance_matrix_attribute :: proc(index: i32, b: Buffer) {
 }
 
 Button :: struct {
-	pos:        [2]i32,
-	size:       [2]i32,
+	pos:        [2]int,
+	size:       [2]int,
 	color:      [3]f32,
 	text:       string,
 	text_color: [3]f32,
@@ -115,7 +115,7 @@ ui_init :: proc(ui: ^Ui) -> (ok: bool) {
 		b.text = _ui_texts[i]
 		b.color = col
 		b.text_color = text_col
-		w, h: i32
+		w, h: int
 		{
 			// not drawing here, so no need to give real projection matrix
 			text.batch_start(&ui.debug_text, .A30, col, glm.mat4(1), 128, 5, 1)
@@ -137,8 +137,8 @@ ui_init :: proc(ui: ^Ui) -> (ok: bool) {
 ui_update :: proc(ui: ^Ui, w, h: i32) {
 	// Position buttons
 	ui.buttons[0].pos = {8, 8}
-	ui.buttons[1].pos = {w / 2 - ui.buttons[1].size.x / 2, 8}
-	ui.buttons[2].pos = {w - ui.buttons[2].size.x - 8, 8}
+	ui.buttons[1].pos = {int(w) / 2 - ui.buttons[1].size.x / 2, 8}
+	ui.buttons[2].pos = {int(w) - ui.buttons[2].size.x - 8, 8}
 
 	ui.show = _mouse_down
 
@@ -189,7 +189,7 @@ ui_draw :: proc(ui: ^Ui, projection_matrix: glm.mat4) {
 			spacing = 5,
 			scale = 1,
 		)
-		h: i32 = text.debug_get_height()
+		h: int = text.debug_get_height()
 		for btn in ui.buttons {
 			_, _ = text.debug(btn.pos + {20, 10}, btn.text)
 		}

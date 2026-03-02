@@ -157,8 +157,8 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	text_projection := glm.mat4Ortho3d(0, f32(state.w), 0, f32(state.h), -10, 10)
 	{
-		scale: i32 = math.max(1, i32(math.round(state.dpr)))
-		spacing: i32 = 2 * scale
+		scale: int = math.max(1, int(math.round(state.dpr)))
+		spacing: int = 2 * scale
 		text.batch_start(
 			&state.debug_text,
 			.A16,
@@ -171,10 +171,10 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 		text_0 := "Cycle Texture  [t]"
 		text_1 := "Cycle Geometry [g]"
 		text_2 := "Cycle Shader   [s]"
-		h: i32 = text.debug_get_height()
-		line_gap: i32 = 5 * scale
-		x: i32 = 16 * scale
-		y: i32 = state.h - h - 16
+		h: int = text.debug_get_height()
+		line_gap: int = 5 * scale
+		x: int = 16 * scale
+		y: int = int(state.h) - h - 16
 		_ = text.debug({x, y}, text_0) or_return
 		y -= h + line_gap
 		_ = text.debug({x, y}, text_1) or_return
@@ -182,8 +182,8 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 		_ = text.debug({x, y}, text_2) or_return
 	}
 	{
-		scale: i32 = math.max(1, i32(math.round(state.dpr)))
-		spacing: i32 = 2 * scale
+		scale: int = math.max(1, int(math.round(state.dpr)))
+		spacing: int = 2 * scale
 		text.batch_start(
 			&state.debug_text,
 			.A40,
@@ -193,15 +193,15 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 			spacing = spacing,
 			scale = scale,
 		)
-		h: i32 = text.debug_get_height()
-		line_gap: i32 = 15 * scale
-		total: i32 = 0
+		h: int = text.debug_get_height()
+		line_gap: int = 15 * scale
+		total: int = 0
 		for touch in g_input.touches {
 			if touch.id > -1 {total += 1}
 		}
-		total_h: i32 = (total * h) + ((total - 1) * line_gap)
-		x: i32
-		y: i32 = state.h / 2 + total_h / 2
+		total_h: int = (total * h) + ((total - 1) * line_gap)
+		x: int
+		y: int = int(state.h) / 2 + total_h / 2
 		for touch in g_input.touches {
 			if touch.id > -1 {
 				text_0 := fmt.tprintf(
@@ -211,7 +211,7 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 					touch.client_pos.y,
 				)
 				w := text.debug_get_width(text_0)
-				x = state.w / 2 - w / 2
+				x = int(state.w) / 2 - w / 2
 				_ = text.debug({x, y}, text_0) or_return
 				y -= h + line_gap
 			}
