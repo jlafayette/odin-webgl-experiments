@@ -84,6 +84,7 @@ simulation_update :: proc(
 	screen_size: [2]int,
 	camera_pos: [2]f32,
 	cursor: Cursor,
+	view_offset: [2]f32,
 ) {
 	// if _first {
 	// 	fmt.println("size of simulation:", size_of(Simulation))
@@ -132,7 +133,7 @@ simulation_update :: proc(
 	}
 
 	for &patch in sim.patches {
-		patch_update(&patch, square_size, cursor)
+		patch_update(&patch, square_size, cursor, view_offset)
 	}
 	for &patch in sim.patches {
 		patch.vertexes = patch.vertexes2

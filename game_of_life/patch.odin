@@ -348,7 +348,7 @@ _patch_update_edge_cell :: #force_inline proc(patch: ^Patch, x, y, w, h: int) {
 	patch.vertexes2[i] = new_value
 }
 
-patch_update :: proc(patch: ^Patch, size: int, cursor: Cursor) {
+patch_update :: proc(patch: ^Patch, size: int, cursor: Cursor, view_offset: [2]f32) {
 	w := SQUARES.x
 	h := SQUARES.y
 
@@ -382,7 +382,7 @@ patch_update :: proc(patch: ^Patch, size: int, cursor: Cursor) {
 
 	// find vert where mouse is nearest
 	if cursor.is_drawing {
-		slice, cn := cursor_slice(cursor, size)
+		slice, cn := cursor_slice(cursor, size, view_offset)
 		for offset in slice {
 			y := cn.y + offset.y - (patch.offset.y * h)
 			x := cn.x + offset.x - (patch.offset.x * w)

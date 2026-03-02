@@ -130,6 +130,38 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 	// simulation_get_shapes(&state.simulation, &shapes, state.square_size, {w, h}, state.camera_pos)
 
 	shapes_draw(&state.shapes, shapes[:], view)
+	// draw text
+	{
+		gl.Enable(gl.BLEND)
+		gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+		text_proj := glm.mat4Ortho3d(0, f32(w), f32(h), 0, -1, 1)
+		spacing: int = 2
+		scale: int = math.max(1, int(math.round(state.layout.dpr)))
+		text.batch_start(
+			&state.text_batch,
+			.A16,
+			{1, 1, 1},
+			text_proj,
+			128,
+			spacing = spacing * scale,
+			scale = scale,
+		)
+		text_0: string = "Move camera [wasd]"
+		text_1: string = "Draw [mouse left] Erase [left ctrl + mouse left]"
+		text_2: string = "Draw cursor size [mouse wheel]"
+		text_3: string = "Mouse drag camera mode [space]"
+		h: int = text.debug_get_height()
+		line_gap: int = 8 * scale
+		x: int = 16 * scale
+		y: int = 16 * scale
+		_, _ = text.debug({x, y}, text_0)
+		y += h + line_gap
+		_, _ = text.debug({x, y}, text_1)
+		y += h + line_gap
+		_, _ = text.debug({x, y}, text_2)
+		y += h + line_gap
+		_, _ = text.debug({x, y}, text_3)
+	}
 	return true
 }
 
@@ -174,6 +206,7 @@ update :: proc(state: ^State, dt: f32) {
 			screen_size,
 			state.camera_pos,
 			state.cursor,
+			state.view_offset,
 		)
 	}
 }
