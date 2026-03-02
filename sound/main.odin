@@ -89,20 +89,20 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 			{1, 1, 1},
 			view_projection_matrix,
 			128,
-			spacing = spacing,
-			scale = scale,
+			spacing = int(spacing),
+			scale = int(scale),
 		)
-		text_h := text.debug_get_height()
+		text_h: i32 = cast(i32)text.debug_get_height()
 		for button in state.ui.buttons {
 			if button.label == "" {
 				continue
 			}
-			text_w: i32 = text.debug_get_width(button.label)
+			text_w: i32 = cast(i32)text.debug_get_width(button.label)
 			pos := button.pos
 			size := button.size
 			pos.x += size.x / 2 - text_w / 2
 			pos.y += size.y / 2 - text_h / 2
-			_, ok = text.debug(pos, button.label, flip_y = false)
+			_, ok = text.debug({int(pos.x), int(pos.y)}, button.label, flip_y = false)
 			if !ok {
 				fmt.eprintln("Failed to render text for button:", button)
 			}
@@ -110,22 +110,22 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 		{
 			slider := state.ui.slider
 			slider_text: string = fmt.tprintf("%d", slider.value)
-			text_w: i32 = text.debug_get_width(slider_text)
+			text_w: i32 = cast(i32)text.debug_get_width(slider_text)
 			pos := slider.pos
 			pos.x += slider.size.x + 10 * scale
 			pos.y += slider.size.y / 2
 			pos.y -= text_h / 2
-			_, ok = text.debug(pos, slider_text, flip_y = false)
+			_, ok = text.debug({int(pos.x), int(pos.y)}, slider_text, flip_y = false)
 			if !ok {
 				fmt.eprintln("Failed to render text for slider")
 			}
 		}
 		{
 			cb := state.ui.checkbox
-			text_w: i32 = text.debug_get_width(cb.label)
+			text_w: i32 = cast(i32)text.debug_get_width(cb.label)
 			pos := cb.pos + {cb.size.y, 0} + {12, 0} * scale
 			pos.y += cb.size.y / 2 - text_h / 2
-			_, ok = text.debug(pos, cb.label, flip_y = false)
+			_, ok = text.debug({int(pos.x), int(pos.y)}, cb.label, flip_y = false)
 			if !ok {
 				fmt.eprintln("Failed to render text for slider")
 			}
