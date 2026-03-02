@@ -193,8 +193,8 @@ draw_scene :: proc(paused: bool) {
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	text_projection := glm.mat4Ortho3d(0, f32(state.w), f32(state.h), 0, -1, 1)
-	spacing: i32 = 2
-	scale: i32 = math.max(1, i32(math.round(state.dpr)))
+	spacing: int = 2
+	scale: int = math.max(1, int(math.round(state.dpr)))
 	{
 		text.batch_start(
 			&state.debug_text,
@@ -222,10 +222,10 @@ draw_scene :: proc(paused: bool) {
 				text_2 = "Slow [button 0]"
 			}
 		}
-		h: i32 = text.debug_get_height()
-		line_gap: i32 = 8 * scale
-		x: i32 = 16
-		y: i32 = 16
+		h: int = text.debug_get_height()
+		line_gap: int = 8 * scale
+		x: int = 16
+		y: int = 16
 		_, _ = text.debug({x, y}, text_0)
 		y += h + line_gap
 		_, _ = text.debug({x, y}, text_1)
