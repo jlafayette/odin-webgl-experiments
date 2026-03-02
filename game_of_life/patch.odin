@@ -381,7 +381,7 @@ patch_update :: proc(patch: ^Patch, size: int, cursor: Cursor) {
 	}
 
 	// find vert where mouse is nearest
-	if cursor.mouse_button_down && !cursor.input_blocked {
+	if cursor.is_drawing {
 		slice, cn := cursor_slice(cursor, size)
 		for offset in slice {
 			y := cn.y + offset.y - (patch.offset.y * h)

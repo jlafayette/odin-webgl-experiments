@@ -9,13 +9,12 @@ JsCursor :: struct {
 	mouse_down: bool,
 }
 Cursor :: struct {
-	draw_mode:         DrawMode,
-	size:              int,
-	mouse_pos:         ScreenPixelPos,
-	camera_mv:         [2]f32, // movement since last move/click update
-	mouse_button_down: bool,
-	input_blocked:     bool,
-	js:                JsCursor,
+	draw_mode:  DrawMode,
+	size:       int,
+	mouse_pos:  ScreenPixelPos,
+	camera_mv:  [2]f32, // movement since last move/click update
+	is_drawing: bool,
+	js:         JsCursor,
 }
 
 cursor_init :: proc(cursor: ^Cursor) {
@@ -29,24 +28,20 @@ cursor_handle_pointer_move :: proc(
 	e: EventPointerMove,
 	camera_pos: [2]f32,
 	view_offset: [2]f32,
-	ui_handled_move: bool,
 ) {
 	cursor.camera_mv = 0
 	cursor.mouse_pos = e.pos + i_int_round(view_offset)
-	cursor.input_blocked = ui_handled_move
 }
 cursor_handle_pointer_click :: proc(
 	cursor: ^Cursor,
 	e: EventPointerClick,
 	camera_pos: [2]f32,
 	view_offset: [2]f32,
-	ui_handled_click: bool,
 	drag_mode_active: bool,
 ) {
 	cursor.camera_mv = 0
 	cursor.mouse_pos = e.pos + i_int_round(view_offset)
-	cursor.mouse_button_down = e.type == .DOWN && !ui_handled_click && !drag_mode_active
-	cursor.input_blocked = ui_handled_click || drag_mode_active
+	cursor.is_drawing = e.type == .DOWN && !drag_mode_active
 
 	{
 		new_c: jscursor.Cursor = cursor.js.c
@@ -101,6 +96,9 @@ cursor_update :: proc(cursor: ^Cursor, mode: DrawMode, size: int, mv: [2]f32) {
 cursor_get_shapes :: proc(cursor: Cursor, size: int, shapes: ^[dynamic]Shape) {
 	// Main shape drawing is done in the shader
 
+	if cursor.js.drag_mode {
+		return
+	}
 	// Draw mouse cursor
 	slice, cn := cursor_slice(cursor, size)
 	r: Rectangle
