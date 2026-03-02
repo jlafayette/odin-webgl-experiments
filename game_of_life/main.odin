@@ -1,4 +1,5 @@
 package game
+import "../shared/fps"
 import "../shared/resize"
 import "../shared/text"
 import "core:fmt"
@@ -38,6 +39,7 @@ State :: struct {
 	camera_vel:       [2]f32,
 	view_offset:      [2]f32,
 	has_focus:        bool,
+	fps:              fps.Fps,
 }
 @(private = "file")
 state: State = {}
@@ -53,6 +55,7 @@ start :: proc() -> (ok: bool) {
 	state.camera_zoom = 1
 	state.square_size = 8
 	state.camera_pos = {0, 0}
+	fps.init(&state.fps)
 
 	if ok = gl.SetCurrentContextById("canvas-1"); !ok {
 		fmt.eprintln("Failed to set current context to 'canvas-1'")
@@ -161,6 +164,16 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 		_, _ = text.debug({x, y}, text_2)
 		y += h + line_gap
 		_, _ = text.debug({x, y}, text_3)
+
+		fps_text: string = fmt.tprintf(
+			"FPS (avg, low): %d, %d",
+			fps.get_average(state.fps),
+			fps.get_low(state.fps),
+		)
+		fps_w: int = text.debug_get_width(fps_text)
+		x = w - fps_w - 16 * scale
+		y = 16 * scale
+		_, _ = text.debug({x, y}, fps_text)
 	}
 	return true
 }
@@ -235,6 +248,7 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 		if ok = start(); !ok {return false}
 	}
 
+	fps.update(&state.fps, dt)
 	update(&state, dt)
 	if !state.has_focus {
 		return true
