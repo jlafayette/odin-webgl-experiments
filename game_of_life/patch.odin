@@ -56,20 +56,20 @@ Patch :: struct {
 	color:        [3]f32,
 }
 
-patch_init :: proc(patch: ^Patch, offset: [2]int) {
+patch_init :: proc(patch: ^Patch, offset: [2]int, color: Maybe([3]f32)) {
 	patch.offset = offset
 	w := SQUARES.x
 	h := SQUARES.y
 	patch_set_random(patch, 127)
-	patch.color = color_random_rgb(0.65)
+	patch.color = color.? or_else color_random_rgb(0.65)
 	patch_buffers_init(&patch.buffers)
 	patch.texture_data = make([][4]u8, w * h)
 	patch.texture_info = patch_init_texture(patch.texture_data)
 }
-patch_load_new :: proc(patch: ^Patch, offset: [2]int) {
+patch_load_new :: proc(patch: ^Patch, offset: [2]int, color: Maybe([3]f32)) {
 	patch.offset = offset
 	patch_set_random(patch, 235)
-	patch.color = color_random_rgb(0.65)
+	patch.color = color.? or_else color_random_rgb(0.65)
 }
 patch_set_empty :: proc(patch: ^Patch, offset: [2]int) {
 	patch.offset = offset

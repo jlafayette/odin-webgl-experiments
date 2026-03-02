@@ -2,15 +2,19 @@ package game
 
 import "core:fmt"
 import glm "core:math/linalg/glsl"
+import "core:math/rand"
+import "core:time"
 
 PATCHES_W :: 7
 PATCHES_H :: 4
+RANDOMIZE_COLOR :: false
 Simulation :: struct {
 	patches:    [PATCHES_W * PATCHES_H]Patch,
 	shader:     PatchShader,
 	center:     [2]int,
 	lts:        [dynamic]CompressedPatch,
 	lts_lookup: map[int]int,
+	color:      Maybe([3]f32),
 }
 
 // max possible number of patches stored in lts array is LTS_DIM * LTS_DIM
@@ -54,11 +58,17 @@ lts_lookup_set :: proc(lookup: ^map[int]int, coords: [2]int, value: int) {
 }
 
 simulation_init :: proc(sim: ^Simulation) {
+
+	// sim.color = {0.5, 0.6, 0.85}
+	if !RANDOMIZE_COLOR {
+		rand.reset(cast(u64)time.now()._nsec)
+		sim.color = color_random_rgb(0.65)
+	}
+
 	for _, i in sim.patches {
 		x := i % PATCHES_W
 		y := i / PATCHES_W
-		patch_init(&sim.patches[i], {x, y})
-		// sim.patches[i].color = color_random_rgb(0.65)
+		patch_init(&sim.patches[i], {x, y}, sim.color)
 	}
 	for _, i in sim.patches {
 		cx := i % PATCHES_W
@@ -123,7 +133,7 @@ simulation_update :: proc(
 			}
 
 			if !found {
-				patch_load_new(&sim.patches[i], {x, y})
+				patch_load_new(&sim.patches[i], {x, y}, sim.color)
 				continue
 			}
 			assert(found && !out_of_bounds)
