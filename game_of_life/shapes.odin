@@ -46,6 +46,8 @@ ea_buffer_draw :: proc(b: EaBuffer, instance_count: int = 0) {
 		// fmt.printf("drawing b.count %d, instance_count: %d\n", b.count, instance_count)
 		gl.DrawElementsInstanced(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, 0, instance_count)
 	} else {
+		// unused? was rendering when instance_count=0 before early return
+		// this would draw a single shape
 		gl.DrawElements(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, b.offset)
 	}
 }
@@ -396,6 +398,9 @@ shapes_draw :: proc(s: ^Shapes, shapes: []Shape, projection_matrix: glm.mat4) {
 		}
 	}
 	instance_count: int = len(s.rect_matrices)
+	if instance_count == 0 {
+		return
+	}
 	assert(instance_count == len(s.colors))
 	assert(instance_count == len(s.circle_blends))
 	if instance_count > N_INSTANCE {

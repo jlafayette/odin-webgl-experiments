@@ -91,6 +91,7 @@ cursor_update :: proc(cursor: ^Cursor, mode: DrawMode, size: int, mv: [2]f32) {
 	cursor.camera_mv += mv
 	cursor.draw_mode = mode
 	cursor.size = size
+	cursor.is_drawing = cursor.js.mouse_down && !cursor.js.drag_mode
 }
 
 cursor_get_shapes :: proc(cursor: Cursor, size: int, shapes: ^[dynamic]Shape) {

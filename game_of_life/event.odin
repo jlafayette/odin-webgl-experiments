@@ -82,7 +82,7 @@ handle_events :: proc(state: ^State) -> bool {
 			{
 				change: [2]int = state.input.pointer_pos - e.pos
 				state.input.pointer_pos = e.pos
-				if state.camera_mouse_mode {
+				if state.camera_drag_mode {
 					if state.input.primary_down {
 						state.camera_pos += f_(change)
 					}
@@ -102,13 +102,13 @@ handle_events :: proc(state: ^State) -> bool {
 					e,
 					state.camera_pos,
 					state.view_offset,
-					state.camera_mouse_mode,
+					state.camera_drag_mode,
 				)
 			}
 		case EventInputKey:
 			{
 				if e.key == .CAMERA_MODE_TOGGLE {
-					state.camera_mouse_mode = e.down
+					state.camera_drag_mode = e.down
 					cursor_handle_camera_mode_toggled(&state.cursor, e.down)
 				}
 				state.input.key_down[e.key] = e.down
@@ -127,7 +127,7 @@ handle_events :: proc(state: ^State) -> bool {
 				for k in Key {
 					state.input.key_down[k] = false
 				}
-				state.camera_mouse_mode = false
+				state.camera_drag_mode = false
 				state.has_focus = false
 				cursor_handle_focus_lost(&state.cursor)
 			}
