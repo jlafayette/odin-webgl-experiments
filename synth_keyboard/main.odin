@@ -120,8 +120,8 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 	ea_buffer_draw(state.key_buffers.indices, instance_count = state.layout.number_of_keys)
 
 	{
-		scale: i32 = math.max(1, i32(math.round(state.layout.dpr)))
-		spacing: i32 = 5 * scale
+		scale: int = math.max(1, int(math.round(state.layout.dpr)))
+		spacing: int = 5 * scale
 		text.batch_start(
 			&state.text_batch,
 			_pick_atlas(state.layout.dpr),
@@ -132,10 +132,10 @@ draw_scene :: proc(dt: f32) -> (ok: bool) {
 			scale = scale,
 		)
 		for key in state.keys {
-			w: i32 = text.debug_get_width(key.label)
-			pos: [2]i32 = {i32(key.pos.x), i32(key.pos.y)}
-			pos.x += i32(key.w / 2) - w / 2
-			pos.y += i32(key.label_offset_height)
+			w: int = text.debug_get_width(key.label)
+			pos: [2]int = {int(key.pos.x), int(key.pos.y)}
+			pos.x += int(key.w / 2) - w / 2
+			pos.y += int(key.label_offset_height)
 			_ = text.debug(pos, key.label, flip_y = true) or_return
 		}
 	}
