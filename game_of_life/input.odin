@@ -50,7 +50,7 @@ input_init :: proc(input: ^Input) {
 	js.add_window_event_listener(.Blur, {}, on_blur)
 	js.add_window_event_listener(.Focus, {}, on_focus)
 	input.draw_mode = .ADD
-	input.cursor_size = 5
+	input.cursor_size = 4
 }
 _dpr: f32 = 1
 
