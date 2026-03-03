@@ -65,8 +65,14 @@ def main(args: Args) -> Path:
 		os.chdir(public_dst)
 		r = subprocess.check_output(["odin", "root"])
 		odin_exe = Path(r.decode()) / "odin"
+
+		flags = []
+		if args.optimized:
+			flags = ["-optimize"]
+		cmd = [server_dst.name] + flags + [odin_exe]
 		try:
-			subprocess.run([server_dst.name, odin_exe], shell=True, check=True)
+			print("cmd:", cmd)
+			subprocess.run(cmd, shell=True, check=True)
 		except KeyboardInterrupt:
 			print("Shutting down server")
 			sys.exit(0)

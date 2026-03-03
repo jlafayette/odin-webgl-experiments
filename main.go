@@ -16,14 +16,16 @@ import (
 func main() {
 	noWatchPtr := flag.Bool("no-watch", false, "turn off file watcher")
 	noBuildPtr := flag.Bool("no-build", false, "turn off initial odin build")
+	optimizePtr := flag.Bool("optimize", false, "build with optimizations")
 	flag.Parse()
 	odin_exe := flag.Arg(0)
+
 	if !*noBuildPtr {
-		build(odin_exe)
+		build(odin_exe, *optimizePtr)
 	}
 	if !*noWatchPtr {
-		go watch("../", odin_exe)
-		go watch("../../shared/", odin_exe)
+		go watch("../", odin_exe, *optimizePtr)
+		go watch("../../shared/", odin_exe, *optimizePtr)
 	}
 
 	fs := http.FileServer(http.Dir("./"))
@@ -36,12 +38,18 @@ func main() {
 	}
 }
 
-func build(odin_exe string) {
-	cmd := exec.Command(
-		odin_exe, "build", "../", "-out:_main.wasm", "-target:js_wasm32",
-		"-o:minimal",
+func build(odin_exe string, optimize bool) {
+	args := []string{"build", "../", "-out:_main.wasm", "-target:js_wasm32"}
+	if optimize {
+		args = append(args, "-o:speed")
 		// "-o:speed", "-disable-assert", "-no-bounds-check",
 		// "-o:aggressive", "-disable-assert", "-no-bounds-check",
+	} else {
+		args = append(args, "-o:minimal")
+	}
+	log.Println(odin_exe, args)
+	cmd := exec.Command(
+		odin_exe, args...,
 	)
 	log.Println("Running command and waiting for it to finish...")
 	var outb, errb bytes.Buffer
@@ -56,7 +64,7 @@ func build(odin_exe string) {
 	}
 }
 
-func watch(src string, odin_exe string) error {
+func watch(src string, odin_exe string, optimize bool) error {
 	log.Printf("Starting watch %v\n", src)
 
 	watcher, err := fsnotify.NewWatcher()
@@ -85,7 +93,7 @@ func watch(src string, odin_exe string) error {
 			default:
 				fmt.Print(".")
 				if rebuild && time.Since(build_time)*time.Millisecond > 200 {
-					build(odin_exe)
+					build(odin_exe, optimize)
 					rebuild = false
 					build_time = time.Now()
 				}

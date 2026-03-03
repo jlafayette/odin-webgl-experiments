@@ -116,12 +116,12 @@ ui_init :: proc(ui: ^Ui) -> (ok: bool) {
 		b.color = col
 		b.text_color = text_col
 		w, h: int
-		{
-			// not drawing here, so no need to give real projection matrix
-			text.batch_start(&ui.debug_text, .A30, col, glm.mat4(1), 128, 5, 1)
-			w = text.debug_get_width(b.text)
-			h = text.debug_get_height()
-		}
+		// {
+		// 	// not drawing here, so no need to give real projection matrix
+		// 	text.batch_start(&ui.debug_text, .A30, col, glm.mat4(1), 128, 5, 1)
+		// 	w = text.debug_get_width(b.text)
+		// 	h = text.debug_get_height()
+		// }
 		b.size = {w + 40, h + 20}
 		ui.buttons[i] = b
 	}

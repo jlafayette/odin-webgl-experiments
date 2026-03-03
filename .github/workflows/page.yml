@@ -19,12 +19,14 @@ jobs:
           branch: js-events
           release: false
 
-      # - name: Debug14
-      #   run: ls -l /usr/lib/llvm-14/bin
-      # - name: Debug15
-      #   run: ls -l /usr/lib/llvm-15/bin
-      # - name: Check wasm-ld
-      #   run: dpkg -L lld-17 | grep wasm-ld
+      - name: Debug14
+        run: ls -l /usr/lib/llvm-14/bin
+      - name: Debug15
+        run: ls -l /usr/lib/llvm-15/bin
+      - name: Check wasm-ld
+        run: dpkg -L lld-17 | grep wasm-ld
+      - name: Check odin
+        run: odin version
 
       - uses: actions/setup-python@v5
         with:
