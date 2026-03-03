@@ -14,15 +14,17 @@ jobs:
       - uses: laytan/setup-odin@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          llvm-version: 14
-          repository: https://github.com/jlafayette/Odin
-          branch: js-events
+          llvm-version: 18
+          repository: https://github.com/odin-lang/Odin
+          branch: master
           release: false
 
-      - name: Debug14
-        run: ls -l /usr/lib/llvm-14/bin
+      # - name: Debug14
+      #   run: ls -l /usr/lib/llvm-14/bin
       # - name: Debug15
       #   run: ls -l /usr/lib/llvm-15/bin
+      - name: Debug18
+        run: ls -l /usr/lib/llvm-18/bin
       - name: Check wasm-ld
         run: dpkg -L lld-17 | grep wasm-ld
       - name: Check odin
