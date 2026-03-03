@@ -29,6 +29,18 @@ Buffers :: struct {
 	position: gl.Buffer,
 	color:    gl.Buffer,
 }
+Arena :: struct {
+	allocator: mem.Allocator,
+	buffer:    []byte,
+	arena:     mem.Arena,
+}
+arena_init :: proc(a: ^Arena, size: int) {
+	a.buffer = make_slice([]byte, size)
+	a.arena = {
+		data = a.buffer[:],
+	}
+	a.allocator = mem.arena_allocator(&a.arena)
+}
 State :: struct {
 	started:      bool,
 	program_info: ProgramInfo,
@@ -39,22 +51,12 @@ State :: struct {
 	h:            i32,
 	dpr:          f32,
 	debug_text:   text.Batch,
+	arena:        Arena,
+	temp_arena:   Arena,
 }
 state: State = {
 	input = {has_focus = true, zoom = -6},
 }
-
-arena_buffer: [mem.Megabyte]byte
-arena: mem.Arena = {
-	data = arena_buffer[:],
-}
-arena_allocator := mem.arena_allocator(&arena)
-
-temp_arena_buffer: [mem.Megabyte]byte
-temp_arena: mem.Arena = {
-	data = temp_arena_buffer[:],
-}
-temp_arena_allocator := mem.arena_allocator(&temp_arena)
 
 init_buffers :: proc() -> Buffers {
 	return {position = init_position_buffer(), color = init_color_buffer()}
@@ -76,7 +78,10 @@ init_color_buffer :: proc() -> gl.Buffer {
 
 start :: proc() -> (ok: bool) {
 	state.started = true
-	context.temp_allocator = temp_arena_allocator
+	arena_init(&state.arena, mem.Megabyte)
+	arena_init(&state.temp_arena, mem.Megabyte)
+
+	context.temp_allocator = state.temp_arena.allocator
 	defer free_all(context.temp_allocator)
 
 	register_event_listeners()
@@ -160,11 +165,11 @@ draw_scene :: proc(paused: bool) {
 	} else {
 		gl.ClearColor(0, 0, 0, 1)
 	}
-	gl.Clear(gl.COLOR_BUFFER_BIT)
+	gl.Clear(cast(u32)gl.COLOR_BUFFER_BIT)
 	gl.ClearDepth(1)
 	gl.Enable(gl.DEPTH_TEST)
 	gl.DepthFunc(gl.LEQUAL)
-	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+	gl.Clear(cast(u32)(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT))
 
 	gl.Viewport(0, 0, state.w, state.h)
 
@@ -246,13 +251,13 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 		paused = true
 		state.input.just_lost_focus = false
 	}
-	context.temp_allocator = temp_arena_allocator
-	defer free_all(context.temp_allocator)
 
 	ok: bool
 	if !state.started {
 		if ok = start(); !ok {return false}
 	}
+	context.temp_allocator = state.temp_arena.allocator
+	defer free_all(context.temp_allocator)
 
 	update(dt)
 
