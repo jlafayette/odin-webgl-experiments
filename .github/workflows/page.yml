@@ -23,10 +23,10 @@ jobs:
       #   run: ls -l /usr/lib/llvm-14/bin
       # - name: Debug15
       #   run: ls -l /usr/lib/llvm-15/bin
-      - name: Debug18
-        run: ls -l /usr/lib/llvm-18/bin
-      - name: Check wasm-ld
-        run: dpkg -L lld-17 | grep wasm-ld
+      # - name: Debug18
+      #   run: ls -l /usr/lib/llvm-18/bin
+      # - name: Check wasm-ld
+      #   run: dpkg -L lld-17 | grep wasm-ld
       - name: Check odin
         run: odin version
 
