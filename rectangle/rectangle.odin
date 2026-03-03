@@ -29,6 +29,18 @@ Buffers :: struct {
 	position: gl.Buffer,
 	color:    gl.Buffer,
 }
+TempArena :: struct {
+	allocator: mem.Allocator,
+	buffer:    []byte,
+	arena:     mem.Arena,
+}
+temp_arena_init :: proc(ta: ^TempArena) {
+	ta.buffer = make_slice([]byte, mem.Megabyte)
+	ta.arena = {
+		data = ta.buffer[:],
+	}
+	ta.allocator = mem.arena_allocator(&ta.arena)
+}
 State :: struct {
 	started:      bool,
 	program_info: ProgramInfo,
@@ -42,15 +54,10 @@ State :: struct {
 	window_w:     i32,
 	window_h:     i32,
 	debug_text:   text.Batch,
+	temp_arena:   TempArena,
 }
 g_state: State = {}
 
-
-temp_arena_buffer: [mem.Megabyte]byte
-temp_arena: mem.Arena = {
-	data = temp_arena_buffer[:],
-}
-temp_arena_allocator := mem.arena_allocator(&temp_arena)
 
 init_buffers :: proc() -> Buffers {
 	return {position = init_position_buffer(), color = init_color_buffer()}
@@ -71,8 +78,9 @@ init_color_buffer :: proc() -> gl.Buffer {
 }
 
 start :: proc(state: ^State) -> (ok: bool) {
+	temp_arena_init(&state.temp_arena)
 	state.started = true
-	context.temp_allocator = temp_arena_allocator
+	context.temp_allocator = state.temp_arena.allocator
 	defer free_all(context.temp_allocator)
 
 	if ok = gl.SetCurrentContextById("canvas-1"); !ok {
@@ -171,11 +179,11 @@ set_color_attribute :: proc(buffers: Buffers, program_info: ProgramInfo) {
 
 draw_scene :: proc(state: ^State) {
 	gl.ClearColor(0, 0, 0, 1)
-	gl.Clear(gl.COLOR_BUFFER_BIT)
+	gl.Clear(cast(u32)gl.COLOR_BUFFER_BIT)
 	gl.ClearDepth(1)
 	gl.Enable(gl.DEPTH_TEST)
 	gl.DepthFunc(gl.LEQUAL)
-	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+	gl.Clear(cast(u32)(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT))
 
 	gl.Viewport(0, 0, state.w, state.h)
 
@@ -253,14 +261,13 @@ update :: proc(state: ^State, dt: f32) {
 
 @(export)
 step :: proc(dt: f32) -> (keep_going: bool) {
-	context.temp_allocator = temp_arena_allocator
-	defer free_all(context.temp_allocator)
-
 	ok: bool
 	if !g_state.started {
 		g_state.started = true
 		if ok = start(&g_state); !ok {return false}
 	}
+	context.temp_allocator = g_state.temp_arena.allocator
+	defer free_all(context.temp_allocator)
 
 	update(&g_state, dt)
 
