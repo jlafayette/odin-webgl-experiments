@@ -96,7 +96,7 @@ update_input :: proc(input: ^Input, ui: ^Ui, dt: f32, dpr: f32) {
 }
 
 on_pointer_move :: proc(e: js.Event) {
-	g_input.pointer_pos = {f32(e.pointer.client.x), f32(e.pointer.client.y)}
+	g_input.pointer_pos = {f32(e.mouse.client.x), f32(e.mouse.client.y)}
 }
 
 _record_pointer_click :: proc(pos: [2]f32, type: ClickType) {
@@ -108,19 +108,20 @@ _record_pointer_click :: proc(pos: [2]f32, type: ClickType) {
 }
 
 on_pointer_down :: proc(e: js.Event) {
-	if !e.pointer.is_primary {
-		return
-	}
+	fmt.println(e.mouse.button, e.mouse.buttons)
+	// if !e.mouse.button {
+	// 	return
+	// }
 	g_input.pointer = .Down
-	_record_pointer_click({f32(e.pointer.client.x), f32(e.pointer.client.y)}, .DOWN)
+	_record_pointer_click({f32(e.mouse.client.x), f32(e.mouse.client.y)}, .DOWN)
 }
 on_pointer_up :: proc(e: js.Event) {
 	// fmt.println("unclick:", e.mouse.button)
-	if !e.pointer.is_primary {
-		return
-	}
+	// if !e.mouse.is_primary {
+	// 	return
+	// }
 	g_input.pointer = .Up
-	_record_pointer_click({f32(e.pointer.client.x), f32(e.pointer.client.y)}, .UP)
+	_record_pointer_click({f32(e.mouse.client.x), f32(e.mouse.client.y)}, .UP)
 }
 
 on_key_down :: proc(e: js.Event) {
