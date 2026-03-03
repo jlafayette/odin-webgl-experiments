@@ -25,6 +25,18 @@ Layout :: struct {
 	key_dimensions: [2]f32,
 	resized:        bool,
 }
+Arena :: struct {
+	allocator: mem.Allocator,
+	buffer:    []byte,
+	arena:     mem.Arena,
+}
+arena_init :: proc(a: ^Arena, size: int) {
+	a.buffer = make_slice([]byte, size)
+	a.arena = {
+		data = a.buffer[:],
+	}
+	a.allocator = mem.arena_allocator(&a.arena)
+}
 State :: struct {
 	started:     bool,
 	key_shader:  KeyShader,
@@ -33,18 +45,15 @@ State :: struct {
 	layout:      Layout,
 	keys:        []Key,
 	text_batch:  text.Batch,
+	temp_arena:  Arena,
 }
 @(private = "file")
 state: State = {}
 
-temp_arena_buffer: [mem.Megabyte * 4]byte
-temp_arena: mem.Arena = {
-	data = temp_arena_buffer[:],
-}
-temp_arena_allocator := mem.arena_allocator(&temp_arena)
 
 start :: proc() -> (ok: bool) {
 	state.started = true
+	arena_init(&state.temp_arena, mem.Megabyte * 4)
 
 	if ok = gl.SetCurrentContextById("canvas-1"); !ok {
 		fmt.eprintln("Failed to set current context to 'canvas-1'")
@@ -83,11 +92,11 @@ check_gl_error :: proc() -> (ok: bool) {
 
 draw_scene :: proc(dt: f32) -> (ok: bool) {
 	gl.ClearColor(0.5, 0.5, 0.5, 1)
-	gl.Clear(gl.COLOR_BUFFER_BIT)
+	gl.Clear(cast(u32)gl.COLOR_BUFFER_BIT)
 	gl.ClearDepth(1)
 	gl.Enable(gl.DEPTH_TEST)
 	gl.DepthFunc(gl.LEQUAL)
-	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+	gl.Clear(cast(u32)(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT))
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
@@ -191,13 +200,12 @@ update_handle_resize :: proc(layout: ^Layout) {
 
 @(export)
 step :: proc(dt: f32) -> (keep_going: bool) {
-	context.temp_allocator = temp_arena_allocator
-	defer free_all(context.temp_allocator)
-
 	ok: bool
 	if !state.started {
 		if ok = start(); !ok {return false}
 	}
+	context.temp_allocator = state.temp_arena.allocator
+	defer free_all(context.temp_allocator)
 
 	update(&state, &g_input, dt)
 

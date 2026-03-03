@@ -1,8 +1,8 @@
+#+feature dynamic-literals
 package synth_keyboard
 
 foreign import odin_mouse "odin_mouse"
 
-import "core:fmt"
 import "core:sys/wasm/js"
 
 Input :: struct {
