@@ -2,7 +2,6 @@ package game
 
 
 import "core:fmt"
-import "core:math"
 import glm "core:math/linalg/glsl"
 import gl "vendor:wasm/WebGL"
 
@@ -92,10 +91,22 @@ patch_shader_use :: proc(
 	shader_set_attribute(s.a_pos, buffers.pos)
 
 	gl.UniformMatrix4fv(s.u_projection_matrix, u.projection_matrix)
-	gl.Uniform2fv(s.u_dim, u.dim)
-	gl.Uniform2fv(s.u_tile_size, u.tile_size)
-	gl.Uniform2fv(s.u_pos_offset, u.pos_offset)
-	gl.Uniform3fv(s.u_color, u.color)
+	{
+		v: [1][2]f32 = {u.dim}
+		gl.Uniform2fv(s.u_dim, v[:])
+	}
+	{
+		v: [1][2]f32 = {u.tile_size}
+		gl.Uniform2fv(s.u_tile_size, v[:])
+	}
+	{
+		v: [1][2]f32 = {u.pos_offset}
+		gl.Uniform2fv(s.u_pos_offset, v[:])
+	}
+	{
+		v: [1][3]f32 = {u.color}
+		gl.Uniform3fv(s.u_color, v[:])
+	}
 
 	// set texture
 	gl.ActiveTexture(texture.unit)

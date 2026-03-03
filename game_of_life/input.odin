@@ -59,22 +59,22 @@ input_update :: proc(dpr: f32) {
 }
 
 on_pointer_move :: proc(e: js.Event) {
-	pos := i_(f_i64(e.pointer.client) * _dpr)
+	pos := i_(f_i64(e.mouse.client) * _dpr)
 	event_add(EventPointerMove{pos})
 }
 
 on_pointer_down :: proc(e: js.Event) {
-	if !e.pointer.is_primary {
+	if e.mouse.button != 0 {
 		return
 	}
-	px: ScreenPixelPos = i_(f_i64(e.pointer.client) * _dpr)
+	px: ScreenPixelPos = i_(f_i64(e.mouse.client) * _dpr)
 	event_add(EventPointerClick{pos = px, type = .DOWN})
 }
 on_pointer_up :: proc(e: js.Event) {
-	if !e.pointer.is_primary {
+	if e.mouse.button != 0 {
 		return
 	}
-	px: ScreenPixelPos = i_(f_i64(e.pointer.client) * _dpr)
+	px: ScreenPixelPos = i_(f_i64(e.mouse.client) * _dpr)
 	event_add(EventPointerClick{pos = px, type = .UP})
 }
 

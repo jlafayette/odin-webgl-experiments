@@ -21,6 +21,18 @@ GameMode :: enum {
 	Play,
 	Pause,
 }
+Arena :: struct {
+	allocator: mem.Allocator,
+	buffer:    []byte,
+	arena:     mem.Arena,
+}
+arena_init :: proc(a: ^Arena, size: int) {
+	a.buffer = make_slice([]byte, size)
+	a.arena = {
+		data = a.buffer[:],
+	}
+	a.allocator = mem.arena_allocator(&a.arena)
+}
 State :: struct {
 	game_mode:        GameMode,
 	switch_to_mode:   GameMode,
@@ -40,17 +52,13 @@ State :: struct {
 	view_offset:      [2]f32,
 	has_focus:        bool,
 	fps:              fps.Fps,
+	temp_arena:       Arena,
 }
 @(private = "file")
 state: State = {}
 
-temp_arena_buffer: [mem.Megabyte * 8]byte
-temp_arena: mem.Arena = {
-	data = temp_arena_buffer[:],
-}
-temp_arena_allocator := mem.arena_allocator(&temp_arena)
-
 start :: proc() -> (ok: bool) {
+	arena_init(&state.temp_arena, mem.Megabyte * 8)
 	state.started = true
 	state.camera_zoom = 1
 	state.square_size = 8
@@ -93,11 +101,11 @@ _camera_square_offset :: proc(camera_pos: [2]f32, square_size: int) -> [2]int {
 draw_scene :: proc(dt: f32) -> (ok: bool) {
 	bg := COLOR_1
 	gl.ClearColor(bg.r, bg.g, bg.b, 1)
-	gl.Clear(gl.COLOR_BUFFER_BIT)
+	gl.Clear(cast(u32)gl.COLOR_BUFFER_BIT)
 	gl.ClearDepth(1)
 	gl.Enable(gl.DEPTH_TEST)
 	gl.DepthFunc(gl.LEQUAL)
-	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+	gl.Clear(cast(u32)(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT))
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
@@ -238,8 +246,6 @@ _first: bool = true
 
 @(export)
 step :: proc(dt: f32) -> (keep_going: bool) {
-	context.temp_allocator = temp_arena_allocator
-	defer free_all(context.temp_allocator)
 	defer {_first = false}
 	// fmt.println("---------------- step --------------------")
 
@@ -247,6 +253,8 @@ step :: proc(dt: f32) -> (keep_going: bool) {
 	if !state.started {
 		if ok = start(); !ok {return false}
 	}
+	context.temp_allocator = state.temp_arena.allocator
+	defer free_all(context.temp_allocator)
 
 	fps.update(&state.fps, dt)
 	update(&state, dt)

@@ -6,7 +6,7 @@ import "core:math/rand"
 // #222031
 // #5a3f73
 // #ca3636
-// #f3ecd7  
+// #f3ecd7
 
 @(private = "file")
 _diff :: proc(c: [3]f32, tgt: f32) -> f32 {
@@ -32,7 +32,7 @@ color_random_rgb :: proc(luminance: f32) -> [3]f32 {
 }
 
 @(private = "file")
-_rgb :: proc(r: int, g: int, b: int) -> [4]f32 {
+_rgb :: proc "contextless" (r: int, g: int, b: int) -> [4]f32 {
 	r: f32 = f32(r) / 255
 	g: f32 = f32(g) / 255
 	b: f32 = f32(b) / 255
