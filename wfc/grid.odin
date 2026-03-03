@@ -5,12 +5,6 @@ import "core:math"
 import "core:math/rand"
 import "core:mem"
 
-grid_arena_buffer: [mem.Megabyte * 4]byte
-grid_arena: mem.Arena = {
-	data = grid_arena_buffer[:],
-}
-grid_arena_allocator := mem.arena_allocator(&grid_arena)
-
 OPTIONS_COUNT :: 13
 
 Grid :: struct {
@@ -21,6 +15,7 @@ Grid :: struct {
 	resolved:      bool,
 	start_at:      Maybe([2]int),
 	allocator:     mem.Allocator,
+	arena:         Arena,
 }
 Square :: struct {
 	x:         int,
@@ -78,7 +73,8 @@ square_less_options :: proc(i, j: ^Square) -> bool {
 }
 
 grid_init :: proc(grid: ^Grid, row_count, col_count: int) {
-	grid.allocator = grid_arena_allocator
+	arena_init(&grid.arena, mem.Megabyte * 4)
+	grid.allocator = grid.arena.allocator
 	grid.resolved = false
 	count := row_count * col_count
 	err: mem.Allocator_Error

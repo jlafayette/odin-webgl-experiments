@@ -1,8 +1,6 @@
 package wfc
 
 import "core:fmt"
-import "core:math"
-import glm "core:math/linalg/glsl"
 import "core:sys/wasm/js"
 
 Input :: struct {
@@ -25,7 +23,7 @@ update_input :: proc(input: ^Input, dt: f32) {
 
 on_pointer_down :: proc(e: js.Event) {
 	g_input.restart = true
-	g_input.restart_at = e.pointer.client
+	g_input.restart_at = e.mouse.client
 	g_input.play = true
 	fmt.println("click")
 }

@@ -1,21 +1,13 @@
 package wfc
 
-import "../shared/resize"
 import "../shared/text"
 import "core:fmt"
 import "core:math"
 import glm "core:math/linalg/glsl"
 import "core:mem"
-import "core:strings"
 import gl "vendor:wasm/WebGL"
 
 main :: proc() {}
-
-temp_arena_buffer: [mem.Megabyte * 1]byte
-temp_arena: mem.Arena = {
-	data = temp_arena_buffer[:],
-}
-temp_arena_allocator := mem.arena_allocator(&temp_arena)
 
 ModePlay :: struct {
 	steps_per_frame: int,
@@ -55,6 +47,19 @@ game_destroy :: proc(g: ^Game) {
 	grid_destroy(&g.grid)
 }
 
+Arena :: struct {
+	allocator: mem.Allocator,
+	buffer:    []byte,
+	arena:     mem.Arena,
+}
+arena_init :: proc(a: ^Arena, size: int) {
+	a.buffer = make_slice([]byte, size)
+	a.arena = {
+		data = a.buffer[:],
+	}
+	a.allocator = mem.arena_allocator(&a.arena)
+}
+
 State :: struct {
 	started:      bool,
 	debug_text:   text.Batch,
@@ -65,6 +70,7 @@ State :: struct {
 	shapes:       Shapes,
 	time_elapsed: f64,
 	game:         Game,
+	temp_arena:   Arena,
 }
 @(private = "file")
 g_state: State = {}
@@ -72,6 +78,7 @@ g_state: State = {}
 
 start :: proc(state: ^State) -> (ok: bool) {
 	state.started = true
+	arena_init(&g_state.temp_arena, mem.Megabyte * 1)
 
 	if ok = gl.SetCurrentContextById("canvas-1"); !ok {
 		fmt.eprintln("Failed to set current context to 'canvas-1'")
@@ -87,11 +94,11 @@ start :: proc(state: ^State) -> (ok: bool) {
 
 draw_scene :: proc(state: ^State) -> (ok: bool) {
 	gl.ClearColor(0, 0, 0, 1)
-	gl.Clear(gl.COLOR_BUFFER_BIT)
+	gl.Clear(cast(u32)gl.COLOR_BUFFER_BIT)
 	gl.ClearDepth(1)
 	gl.Enable(gl.DEPTH_TEST)
 	gl.DepthFunc(gl.LEQUAL)
-	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+	gl.Clear(cast(u32)(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT))
 
 	gl.Viewport(0, 0, state.w, state.h)
 
@@ -127,13 +134,12 @@ draw_scene :: proc(state: ^State) -> (ok: bool) {
 
 @(export)
 step :: proc(dt: f32) -> (keep_going: bool) {
-	context.temp_allocator = temp_arena_allocator
-	defer free_all(context.temp_allocator)
-
 	ok: bool
 	if !g_state.started {
 		if ok = start(&g_state); !ok {return false}
 	}
+	context.temp_allocator = g_state.temp_arena.allocator
+	defer free_all(context.temp_allocator)
 
 	update(&g_state, dt)
 

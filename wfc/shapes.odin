@@ -1,6 +1,5 @@
 package wfc
 
-import "../shared/text"
 import "core:fmt"
 import "core:math"
 import glm "core:math/linalg/glsl"
@@ -13,14 +12,6 @@ BUFFER_SIZE ::
 	N_INSTANCE * size_of(glm.vec4) +
 	N_INSTANCE * size_of(glm.mat4) +
 	64
-@(private = "file")
-_shapes_arena_buffer: [BUFFER_SIZE]byte
-@(private = "file")
-_shapes_arena: mem.Arena = {
-	data = _shapes_arena_buffer[:],
-}
-@(private = "file")
-shapes_arena_allocator := mem.arena_allocator(&_shapes_arena)
 
 Buffer :: struct {
 	id:     gl.Buffer,
@@ -224,24 +215,26 @@ Shapes :: struct {
 	rect_matrices:   []glm.mat4,
 	colors:          []glm.vec4,
 	tile_infos:      []glm.vec4,
+	arena:           Arena,
 }
 
 shapes_init :: proc(s: ^Shapes, w, h: i32) -> (ok: bool) {
+	arena_init(&s.arena, BUFFER_SIZE)
 	ok = flat_shader_init(&s.shader)
 	if !ok {return false}
 
 	err: mem.Allocator_Error
-	s.rect_matrices, err = make([]glm.mat4, N_INSTANCE, allocator = shapes_arena_allocator)
+	s.rect_matrices, err = make([]glm.mat4, N_INSTANCE, allocator = s.arena.allocator)
 	if err != nil {
 		fmt.eprintln("shapes_init rect_matrices error allocating:", err)
 		return false
 	}
-	s.colors, err = make([]glm.vec4, N_INSTANCE, allocator = shapes_arena_allocator)
+	s.colors, err = make([]glm.vec4, N_INSTANCE, allocator = s.arena.allocator)
 	if err != nil {
 		fmt.eprintln("shapes_init colors error allocating:", err)
 		return false
 	}
-	s.tile_infos, err = make([]glm.vec4, N_INSTANCE, allocator = shapes_arena_allocator)
+	s.tile_infos, err = make([]glm.vec4, N_INSTANCE, allocator = s.arena.allocator)
 	if err != nil {
 		fmt.eprintln("shapes_init tile_infos error allocating:", err)
 		return false
