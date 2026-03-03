@@ -2,7 +2,6 @@ package trails
 
 import "../shared/resize"
 import "core:fmt"
-import "core:math"
 import glm "core:math/linalg/glsl"
 import "core:mem"
 import gl "vendor:wasm/WebGL"
@@ -10,6 +9,18 @@ import gl "vendor:wasm/WebGL"
 main :: proc() {}
 
 
+TempArena :: struct {
+	allocator: mem.Allocator,
+	buffer:    []byte,
+	arena:     mem.Arena,
+}
+temp_arena_init :: proc(ta: ^TempArena) {
+	ta.buffer = make_slice([]byte, mem.Megabyte * 4)
+	ta.arena = {
+		data = ta.buffer[:],
+	}
+	ta.allocator = mem.arena_allocator(&ta.arena)
+}
 GameState :: struct {
 	started:           bool,
 	has_focus:         bool,
@@ -20,18 +31,13 @@ GameState :: struct {
 	w:                 i32,
 	h:                 i32,
 	resize:            resize.ResizeState,
+	temp_arena:        TempArena,
 }
 @(private = "file")
 g_: GameState = {}
 
-temp_arena_buffer: [mem.Megabyte * 4]byte
-temp_arena: mem.Arena = {
-	data = temp_arena_buffer[:],
-}
-temp_arena_allocator := mem.arena_allocator(&temp_arena)
-
-
 start :: proc(g: ^GameState) -> (ok: bool) {
+	temp_arena_init(&g_.temp_arena)
 	g.started = true
 	g.has_focus = true
 
@@ -62,11 +68,11 @@ check_gl_error :: proc() -> (ok: bool) {
 
 draw_scene :: proc(g: GameState, dt: f32) -> (ok: bool) {
 	gl.ClearColor(0.1, 0.1, 0.1, 1)
-	gl.Clear(gl.COLOR_BUFFER_BIT)
+	gl.Clear(cast(u32)gl.COLOR_BUFFER_BIT)
 	gl.ClearDepth(1)
 	gl.Enable(gl.DEPTH_TEST)
 	gl.DepthFunc(gl.LEQUAL)
-	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+	gl.Clear(cast(u32)(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT))
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
@@ -117,13 +123,13 @@ update :: proc(g: ^GameState, dt: f32) {
 
 @(export)
 step :: proc(dt: f32) -> (keep_going: bool) {
-	context.temp_allocator = temp_arena_allocator
-	defer free_all(context.temp_allocator)
 
 	ok: bool
 	if !g_.started {
 		if ok = start(&g_); !ok {return false}
 	}
+	context.temp_allocator = g_.temp_arena.allocator
+	defer free_all(context.temp_allocator)
 
 	update(&g_, dt)
 

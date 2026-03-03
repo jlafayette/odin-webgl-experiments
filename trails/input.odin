@@ -6,7 +6,6 @@ import "core:fmt"
 import "core:math"
 import glm "core:math/linalg/glsl"
 import "core:sys/wasm/js"
-import gl "vendor:wasm/WebGL"
 
 Touch :: struct {
 	id:         i32,
@@ -50,14 +49,13 @@ get_mouse_pos :: proc "contextless" (
 }
 
 init_input :: proc(input: ^Input) {
-	js.add_window_event_listener(.Mouse_Move, {}, on_mouse_move)
+	js.add_window_event_listener(.Pointer_Move, {}, on_pointer_move)
 	js.add_window_event_listener(.Blur, {}, on_blur)
 
 	js.add_window_event_listener(.Touch_Start, {}, on_touch_start)
 	js.add_window_event_listener(.Touch_End, {}, on_touch_end)
 	js.add_window_event_listener(.Touch_Move, {}, on_touch_move)
 	js.add_window_event_listener(.Touch_Cancel, {}, on_touch_cancel)
-
 }
 
 // Update global gamestate with listener input
@@ -94,11 +92,8 @@ update_input :: proc(input: ^Input, dt: f32, w: i32, h: i32, dpr: f32) {
 	input.vel = input.pos - old_pos
 }
 
-on_mouse_move :: proc(e: js.Event) {
-	// movement := e.mouse.movement
-	// mouse_diff := {f32(movement.x), f32(movement.y)}
+on_pointer_move :: proc(e: js.Event) {
 	pos := get_mouse_pos("canvas-1", e.mouse.client, true)
-	// fmt.println("ffi pos:", pos)
 	i_.mouse_pos = pos
 }
 
@@ -122,33 +117,34 @@ touch_pos :: proc(
 	return enabled, pos
 }
 
-copy_touches :: proc(touch_count: int, touches: [16]js.Touch) {
-	for touch, i in touches {
-		if i < touch_count {
-			i_.touches[i].client_pos = {f32(touch.client.x), f32(touch.client.y)}
-			i_.touches[i].id = i32(touch.identifier)
-		} else {
-			i_.touches[i].client_pos = 0
-			i_.touches[i].id = -1
-		}
-	}
-	i_.touch_count = touch_count
-}
+// copy_touches :: proc(touch_count: int, touches: [16]js.Touch) {
+// 	for touch, i in touches {
+// 		if i < touch_count {
+// 			i_.touches[i].client_pos = {f32(touch.client.x), f32(touch.client.y)}
+// 			i_.touches[i].id = i32(touch.identifier)
+// 		} else {
+// 			i_.touches[i].client_pos = 0
+// 			i_.touches[i].id = -1
+// 		}
+// 	}
+// 	i_.touch_count = touch_count
+// }
 
 on_touch_start :: proc(e: js.Event) {
-	// fmt.println("o touch start")
-	copy_touches(e.touch.touch_count, e.touch.touches)
+	fmt.println("o touch start", e.id)
+
+	// copy_touches(e.touch.touch_count, e.touch.touches)
 }
 on_touch_end :: proc(e: js.Event) {
-	// fmt.println("o touch end")
-	copy_touches(e.touch.touch_count, e.touch.touches)
+	fmt.println("o touch end", e.id)
+	// copy_touches(e.touch.touch_count, e.touch.touches)
 }
 on_touch_move :: proc(e: js.Event) {
-	// fmt.println("o touch move")
-	copy_touches(e.touch.touch_count, e.touch.touches)
+	fmt.println("o touch move", e.id)
+	// copy_touches(e.touch.touch_count, e.touch.touches)
 }
 on_touch_cancel :: proc(e: js.Event) {
-	// fmt.println("o touch cancel")
-	copy_touches(e.touch.touch_count, e.touch.touches)
+	fmt.println("o touch cancel", e.id)
+	// copy_touches(e.touch.touch_count, e.touch.touches)
 }
 

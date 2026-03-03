@@ -31,8 +31,8 @@ Selection :: struct {
 }
 TempArena :: struct {
 	allocator: mem.Allocator,
-	buffer: []byte,
-	arena: mem.Arena,
+	buffer:    []byte,
+	arena:     mem.Arena,
 }
 temp_arena_init :: proc(ta: ^TempArena) {
 	ta.buffer = make_slice([]byte, mem.Megabyte * 32)
@@ -42,19 +42,19 @@ temp_arena_init :: proc(ta: ^TempArena) {
 	ta.allocator = mem.arena_allocator(&ta.arena)
 }
 State :: struct {
-	started:              bool,
-	rotation:             f32,
-	cube_shader:          CubeShader,
-	lighting_shader:      LightingShader,
-	geo_buffers:          Geos,
-	textures:             Textures,
-	selection:            Selection,
-	debug_text:           text.Batch,
-	w:                    i32,
-	h:                    i32,
-	dpr:                  f32,
-	ui:                   Ui,
-	temp_arena: TempArena,
+	started:         bool,
+	rotation:        f32,
+	cube_shader:     CubeShader,
+	lighting_shader: LightingShader,
+	geo_buffers:     Geos,
+	textures:        Textures,
+	selection:       Selection,
+	debug_text:      text.Batch,
+	w:               i32,
+	h:               i32,
+	dpr:             f32,
+	ui:              Ui,
+	temp_arena:      TempArena,
 }
 @(private = "file")
 g_state: State = {
