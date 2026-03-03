@@ -2,9 +2,7 @@ package camera
 
 import "../shared/resize"
 import "../shared/text"
-import "core:bytes"
 import "core:fmt"
-import "core:image/png"
 import "core:math"
 import glm "core:math/linalg/glsl"
 import "core:mem"
@@ -12,6 +10,18 @@ import gl "vendor:wasm/WebGL"
 
 main :: proc() {}
 
+Arena :: struct {
+	allocator: mem.Allocator,
+	buffer:    []byte,
+	arena:     mem.Arena,
+}
+arena_init :: proc(a: ^Arena, size: int) {
+	a.buffer = make_slice([]byte, size)
+	a.arena = {
+		data = a.buffer[:],
+	}
+	a.allocator = mem.arena_allocator(&a.arena)
+}
 State :: struct {
 	started:    bool,
 	shader:     Shader,
@@ -21,6 +31,7 @@ State :: struct {
 	h:          i32,
 	dpr:        f32,
 	debug_text: text.Batch,
+	temp_arena: Arena,
 }
 state: State = {}
 
@@ -28,16 +39,12 @@ N_CUBES :: 100_000
 SPHERE_RADIUS :: 500
 Z_FAR :: SPHERE_RADIUS * 2
 
-temp_arena_buffer: [mem.Megabyte * 4]byte
-temp_arena: mem.Arena = {
-	data = temp_arena_buffer[:],
-}
-temp_arena_allocator := mem.arena_allocator(&temp_arena)
 
 start :: proc() -> (ok: bool) {
 	fmt.println("running start")
 	state.started = true
-	context.temp_allocator = temp_arena_allocator
+	arena_init(&state.temp_arena, mem.Megabyte * 4)
+	context.temp_allocator = state.temp_arena.allocator
 	defer free_all(context.temp_allocator)
 
 	setup_event_listeners()
@@ -67,11 +74,11 @@ check_gl_error :: proc() -> (ok: bool) {
 
 draw_scene :: proc() -> (ok: bool) {
 	gl.ClearColor(0, 0, 0, 1)
-	gl.Clear(gl.COLOR_BUFFER_BIT)
+	gl.Clear(cast(u32)gl.COLOR_BUFFER_BIT)
 	gl.ClearDepth(1)
 	gl.Enable(gl.DEPTH_TEST)
 	gl.DepthFunc(gl.LEQUAL)
-	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+	gl.Clear(cast(u32)(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT))
 
 	gl.Viewport(0, 0, state.w, state.h)
 
@@ -172,14 +179,13 @@ draw_scene :: proc() -> (ok: bool) {
 
 @(export)
 step :: proc(dt: f32) -> (keep_going: bool) {
-	context.temp_allocator = temp_arena_allocator
-	defer free_all(context.temp_allocator)
-
 	ok: bool
 	if !state.started {
 		state.started = true
 		if ok = start(); !ok {return false}
 	}
+	context.temp_allocator = state.temp_arena.allocator
+	defer free_all(context.temp_allocator)
 
 	if (!g_has_focus) {return true}
 

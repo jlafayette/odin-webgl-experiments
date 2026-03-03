@@ -101,11 +101,11 @@ update :: proc(dt: f32) {
 	g_mouse_diff = {0, 0}
 
 	// touch inputs (yaw and pitch)
-	sensitivity = 10
-	touch_movement: [2]f32 = touch_movement(g_touch_count, g_touches, g_prev_touches)
-	g_yaw += -touch_movement.x * dt * sensitivity
-	g_pitch += touch_movement.y * dt * sensitivity
-	g_prev_touches = g_touches
+	// sensitivity = 10
+	// touch_movement: [2]f32 = touch_movement(g_touch_count, g_touches, g_prev_touches)
+	// g_yaw += -touch_movement.x * dt * sensitivity
+	// g_pitch += touch_movement.y * dt * sensitivity
+	// g_prev_touches = g_touches
 
 	// rotate camera
 	if g_pitch > 89.9 {g_pitch = 89.9}
@@ -185,45 +185,45 @@ setup_event_listeners :: proc() {
 	}
 }
 
-copy_touches :: proc(touch_count: int, touches: [16]js.Touch) {
-	for touch, i in touches {
-		if i < touch_count {
-			g_touches[i].client_pos = {f32(touch.client.x), f32(touch.client.y)}
-			g_touches[i].id = i32(touch.identifier)
-		} else {
-			g_touches[i].client_pos = 0
-			g_touches[i].id = -1
-		}
-	}
-	g_touch_count = touch_count
-}
+// copy_touches :: proc(touch_count: int, touches: [16]js.Touch) {
+// 	for touch, i in touches {
+// 		if i < touch_count {
+// 			g_touches[i].client_pos = {f32(touch.client.x), f32(touch.client.y)}
+// 			g_touches[i].id = i32(touch.identifier)
+// 		} else {
+// 			g_touches[i].client_pos = 0
+// 			g_touches[i].id = -1
+// 		}
+// 	}
+// 	g_touch_count = touch_count
+// }
 
-touch_movement :: proc(touch_count: int, touches, prev_touches: [16]Touch) -> glm.vec2 {
-	movement: glm.vec2
-	for t1, i in touches {
-		t2 := prev_touches[i]
-		if i < touch_count && t1.id >= 0 && t2.id >= 0 {
-			diff := t1.client_pos - t2.client_pos
-			if glm.length(diff) > glm.length(movement) {
-				movement = diff
-			}
-		} else {
-			break
-		}
-	}
-	return movement
-}
+// touch_movement :: proc(touch_count: int, touches, prev_touches: [16]Touch) -> glm.vec2 {
+// 	movement: glm.vec2
+// 	for t1, i in touches {
+// 		t2 := prev_touches[i]
+// 		if i < touch_count && t1.id >= 0 && t2.id >= 0 {
+// 			diff := t1.client_pos - t2.client_pos
+// 			if glm.length(diff) > glm.length(movement) {
+// 				movement = diff
+// 			}
+// 		} else {
+// 			break
+// 		}
+// 	}
+// 	return movement
+// }
 
 on_touch_start :: proc(e: js.Event) {
-	copy_touches(e.touch.touch_count, e.touch.touches)
+	// copy_touches(e.touch.touch_count, e.touch.touches)
 }
 on_touch_end :: proc(e: js.Event) {
-	copy_touches(e.touch.touch_count, e.touch.touches)
+	// copy_touches(e.touch.touch_count, e.touch.touches)
 }
 on_touch_move :: proc(e: js.Event) {
-	copy_touches(e.touch.touch_count, e.touch.touches)
+	// copy_touches(e.touch.touch_count, e.touch.touches)
 }
 on_touch_cancel :: proc(e: js.Event) {
-	copy_touches(e.touch.touch_count, e.touch.touches)
+	// copy_touches(e.touch.touch_count, e.touch.touches)
 }
 

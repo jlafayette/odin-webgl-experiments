@@ -57,8 +57,10 @@ shader_use :: proc(s: Shader, u: Uniforms, buffers: Buffers) -> (ok: bool) {
 	gl.UniformMatrix4fv(s.u_view_matrix, u.view_matrix)
 	gl.UniformMatrix4fv(s.u_projection_matrix, u.projection_matrix)
 	gl.Uniform1f(s.u_max_fog_distance, u.max_fog_distance)
-	gl.Uniform4fv(s.u_fog_color, u.fog_color)
-
+	{
+		v: [1][4]f32 = {u.fog_color}
+		gl.Uniform4fv(s.u_fog_color, v[:])
+	}
 	return check_gl_error()
 }
 shader_set_attribute :: proc(index: i32, b: Buffer) {
