@@ -204,34 +204,34 @@ touch_movement :: proc(touch_count: int, touches, prev_touches: [16]Touch) -> gl
 	return movement
 }
 
-copy_touches :: proc(touch_count: int, touches: [16]js.Touch) {
-	for touch, i in touches {
-		if i < touch_count {
-			g_input.touches[i].client_pos = {f32(touch.client.x), f32(touch.client.y)}
-			g_input.touches[i].id = i32(touch.identifier)
-		} else {
-			g_input.touches[i].client_pos = 0
-			g_input.touches[i].id = -1
-		}
-	}
-	g_input.touch_count = touch_count
-}
+// copy_touches :: proc(touch_count: int, touches: [16]js.Touch) {
+// 	for touch, i in touches {
+// 		if i < touch_count {
+// 			g_input.touches[i].client_pos = {f32(touch.client.x), f32(touch.client.y)}
+// 			g_input.touches[i].id = i32(touch.identifier)
+// 		} else {
+// 			g_input.touches[i].client_pos = 0
+// 			g_input.touches[i].id = -1
+// 		}
+// 	}
+// 	g_input.touch_count = touch_count
+// }
 
 on_touch_start :: proc(e: js.Event) {
 	// fmt.println("o touch start")
-	copy_touches(e.touch.touch_count, e.touch.touches)
+	// copy_touches(e.touch.touch_count, e.touch.touches)
 }
 on_touch_end :: proc(e: js.Event) {
 	// fmt.println("o touch end")
-	copy_touches(e.touch.touch_count, e.touch.touches)
+	// copy_touches(e.touch.touch_count, e.touch.touches)
 }
 on_touch_move :: proc(e: js.Event) {
 	// fmt.println("o touch move")
-	copy_touches(e.touch.touch_count, e.touch.touches)
+	// copy_touches(e.touch.touch_count, e.touch.touches)
 }
 on_touch_cancel :: proc(e: js.Event) {
 	// fmt.println("o touch cancel")
-	copy_touches(e.touch.touch_count, e.touch.touches)
+	// copy_touches(e.touch.touch_count, e.touch.touches)
 }
 
 on_key_down :: proc(e: js.Event) {

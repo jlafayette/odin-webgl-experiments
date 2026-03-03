@@ -70,8 +70,11 @@ flat_shader_use :: proc(s: FlatShader, u: FlatUniforms, buffers: ButtonBuffers) 
 	shader_set_attribute(s.a_pos, buffers.pos)
 	shader_set_instance_matrix_attribute(s.a_model_matrix, buffers.model_matrices)
 
-	// // set uniforms
-	gl.Uniform4fv(s.u_color, u.color)
+	// set uniforms
+	{
+		v: [1][4]f32 = {u.color}
+		gl.Uniform4fv(s.u_color, v[:])
+	}
 	gl.UniformMatrix4fv(s.u_view_projection_matrix, u.view_projection_matrix)
 }
 shader_set_instance_matrix_attribute :: proc(index: i32, b: Buffer) {

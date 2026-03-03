@@ -58,7 +58,10 @@ shader_use :: proc(
 	shader_set_attribute(s.a_tex_coord, buffer_tex)
 
 	// set uniforms
-	gl.Uniform3fv(s.u_text_color, u.color)
+	{
+		v: [1][3]f32 = {u.color}
+		gl.Uniform3fv(s.u_text_color, v[:])
+	}
 	gl.UniformMatrix4fv(s.u_projection_matrix, u.projection_matrix)
 
 	// set texture

@@ -29,32 +29,40 @@ Selection :: struct {
 	current_geo:     GeoId,
 	current_texture: TextureId,
 }
+TempArena :: struct {
+	allocator: mem.Allocator,
+	buffer: []byte,
+	arena: mem.Arena,
+}
+temp_arena_init :: proc(ta: ^TempArena) {
+	ta.buffer = make_slice([]byte, mem.Megabyte * 32)
+	ta.arena = {
+		data = ta.buffer[:],
+	}
+	ta.allocator = mem.arena_allocator(&ta.arena)
+}
 State :: struct {
-	started:         bool,
-	rotation:        f32,
-	cube_shader:     CubeShader,
-	lighting_shader: LightingShader,
-	geo_buffers:     Geos,
-	textures:        Textures,
-	selection:       Selection,
-	debug_text:      text.Batch,
-	w:               i32,
-	h:               i32,
-	dpr:             f32,
-	ui:              Ui,
+	started:              bool,
+	rotation:             f32,
+	cube_shader:          CubeShader,
+	lighting_shader:      LightingShader,
+	geo_buffers:          Geos,
+	textures:             Textures,
+	selection:            Selection,
+	debug_text:           text.Batch,
+	w:                    i32,
+	h:                    i32,
+	dpr:                  f32,
+	ui:                   Ui,
+	temp_arena: TempArena,
 }
 @(private = "file")
 g_state: State = {
 	selection = {current_geo = .Cube, current_shader = .Lighting, current_texture = .Odin},
 }
 
-temp_arena_buffer: [mem.Megabyte * 32]byte
-temp_arena: mem.Arena = {
-	data = temp_arena_buffer[:],
-}
-temp_arena_allocator := mem.arena_allocator(&temp_arena)
-
 start :: proc(state: ^State) -> (ok: bool) {
+	temp_arena_init(&g_state.temp_arena)
 	state.started = true
 
 	if ok = gl.SetCurrentContextById("canvas-1"); !ok {
@@ -86,11 +94,11 @@ start :: proc(state: ^State) -> (ok: bool) {
 
 draw_scene :: proc(state: ^State) -> (ok: bool) {
 	gl.ClearColor(0, 0, 0, 1)
-	gl.Clear(gl.COLOR_BUFFER_BIT)
+	gl.Clear(cast(u32)gl.COLOR_BUFFER_BIT)
 	gl.ClearDepth(1)
 	gl.Enable(gl.DEPTH_TEST)
 	gl.DepthFunc(gl.LEQUAL)
-	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+	gl.Clear(cast(u32)(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT))
 
 	gl.Viewport(0, 0, state.w, state.h)
 
@@ -237,13 +245,12 @@ update :: proc(state: ^State, dt: f32) {
 
 @(export)
 step :: proc(dt: f32) -> (keep_going: bool) {
-	context.temp_allocator = temp_arena_allocator
-	defer free_all(context.temp_allocator)
-
 	ok: bool
 	if !g_state.started {
 		if ok = start(&g_state); !ok {return false}
 	}
+	context.temp_allocator = g_state.temp_arena.allocator
+	defer free_all(context.temp_allocator)
 
 	update(&g_state, dt)
 

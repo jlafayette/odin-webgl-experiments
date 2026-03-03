@@ -62,12 +62,12 @@ _add_key :: proc(f: Font) -> int {
 add :: proc(s: string, pos: [2]int, font: Font) -> (size: [2]int, ok: bool) {
 	if g_adds == nil {
 		err: runtime.Allocator_Error
-		g_adds, err = make(map[int]_BatchAdds)
-		if err != nil {
-			fmt.eprintln("Failed to alloc memory for text Add map:", err)
-			ok = false
-			return
-		}
+		g_adds = make(map[int]_BatchAdds)
+		// if err != nil {
+		// 	fmt.eprintln("Failed to alloc memory for text Add map:", err)
+		// 	ok = false
+		// 	return
+		// }
 	}
 
 	add_ := Add{s, pos, font}
